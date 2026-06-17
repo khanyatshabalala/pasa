@@ -11,25 +11,25 @@
 ### 2. Build Settings (Automatically Detected)
 Netlify will automatically detect:
 - **Build command**: `npm run build`
-- **Publish directory**: `dist/client`
+- **Publish directory**: `dist`
 - **Node version**: 20.x
 
 ### 3. Environment Variables
 Add these environment variables in Netlify Dashboard → Site settings → Build & deploy → Environment:
 
 ```
-VITE_SUPABASE_URL=https://pbhppoanxwbbbinrcwdj.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_zgBoK5MCB1gJoMypsNf10A_n8SHK38V
-SUPABASE_URL=https://pbhppoanxwbbbinrcwdj.supabase.co
-SUPABASE_PUBLISHABLE_KEY=sb_publishable_zgBoK5MCB1gJoMypsNf10A_n8SHK38V
-VITE_VAPID_PUBLIC_KEY=BIVGT0FWfqCGs0KoGOvDVTVTCT3KPjPu7S_Ltvlu33afMDeSUTVigG3V2nl52oT4fVSI6JnecbE7HvQPBzAQ2Rc
+VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=<your-anon-key>
+SUPABASE_URL=https://<your-project-ref>.supabase.co
+SUPABASE_PUBLISHABLE_KEY=<your-anon-key>
+VITE_VAPID_PUBLIC_KEY=<your-vapid-public-key>
 ```
 
 ### 4. Deploy
 Simply push to your main branch, and Netlify will automatically:
 - Build your project
 - Run `npm run build`
-- Deploy the `dist/client` folder
+- Deploy the `dist` folder
 - Assign a live URL
 
 ## Important Notes
