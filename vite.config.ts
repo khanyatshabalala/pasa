@@ -19,11 +19,19 @@ export default defineConfig({
     // Code-split vendor chunks for better caching
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react":    ["react", "react-dom"],
-          "vendor-router":   ["@tanstack/react-router"],
-          "vendor-supabase": ["@supabase/supabase-js"],
-          "vendor-ui":       ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs"],
+        manualChunks: (id) => {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+            return "vendor-react";
+          }
+          if (id.includes("node_modules/@tanstack/react-router")) {
+            return "vendor-router";
+          }
+          if (id.includes("node_modules/@supabase")) {
+            return "vendor-supabase";
+          }
+          if (id.includes("node_modules/@radix-ui")) {
+            return "vendor-ui";
+          }
         },
       },
     },
