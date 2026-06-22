@@ -1,13 +1,20 @@
 # Netlify Configuration — Monorepo
-# Web app lives in the /web subdirectory
+# Web app lives in the /web subdirectory.
+# NOTE: when base = "web", all paths below are relative to /web
 [build]
-base    = "web"
-command = "npm run build"
-publish = "web/dist"
-functions = "web/netlify/functions"
+base      = "web"
+command   = "npm run build"
+publish   = "dist"
+functions = "netlify/functions"
 
 [build.environment]
 NODE_VERSION = "20"
+
+# Tell secrets scanner to ignore the compiled JS bundle.
+# VITE_* vars are intentionally public (anon key, public VAPID key) —
+# they are safe to ship in browser code. The scanner flags them because
+# they match env var names, not because they are actually secret.
+SECRETS_SCAN_OMIT_PATHS = "dist"
 
 # Security headers
 [[headers]]
