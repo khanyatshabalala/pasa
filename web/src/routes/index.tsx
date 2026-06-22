@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { PublicHeader } from "@/components/funda/PublicHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, BookOpen, Users, Shield, Bell, GraduationCap, MapPin, TrendingUp, MessageCircle } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Shield, Bell, GraduationCap, CalendarDays, TrendingUp, MessageCircle } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Landing
