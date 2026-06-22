@@ -6,27 +6,27 @@ import { Home, Users, BookOpen, CalendarDays, Bell, Shield, ArrowLeftRight, Clip
 import { Button } from "@/components/ui/button";
 
 const parentItems = [
-  { to: "/app", title: "Overview", icon: Home, exact: true },
-  { to: "/app/children", title: "My children", icon: Users },
-  { to: "/app/marks", title: "Report cards", icon: BookOpen },
-  { to: "/app/attendance", title: "Attendance", icon: ClipboardList },
-  { to: "/app/discipline", title: "Discipline", icon: Shield },
-  { to: "/app/calendar", title: "Calendar", icon: CalendarDays },
-  { to: "/app/alerts", title: "Notifications", icon: Bell },
-  { to: "/app/schools", title: "Schools", icon: GraduationCap },
-  { to: "/app/assistant", title: "AI Assistant", icon: MessageCircle },
+  { to: "/app",              title: "Overview",      icon: Home,        exact: true },
+  { to: "/app/children",     title: "My children",   icon: Users },
+  { to: "/app/calendar",     title: "Calendar",      icon: CalendarDays },
+  { to: "/app/alerts",       title: "Notifications", icon: Bell },
+  { to: "/app/discipline",   title: "Discipline",    icon: Shield },
+  { to: "/app/marks",        title: "Report cards",  icon: BookOpen },
+  { to: "/app/attendance",   title: "Attendance",    icon: ClipboardList },
+  { to: "/app/schools",      title: "Schools",       icon: GraduationCap },
+  { to: "/app/assistant",    title: "AI Assistant",  icon: MessageCircle },
 ];
 
 const schoolBaseItems = [
-  { to: "/app", title: "Overview", icon: Home, exact: true },
-  { to: "/app/learners", title: "Learners", icon: Users },
-  { to: "/app/classes", title: "Classes", icon: LayoutList },
-  { to: "/app/exam-timetable", title: "Exam timetable", icon: ClipboardCheck },
-  { to: "/app/attendance-capture", title: "Attendance", icon: ClipboardList },
-  { to: "/app/marks-capture", title: "Report cards", icon: BookOpen },
-  { to: "/app/discipline-school", title: "Discipline", icon: Shield },
-  { to: "/app/calendar", title: "Calendar", icon: CalendarDays },
-  { to: "/app/assistant", title: "AI Assistant", icon: MessageCircle },
+  { to: "/app",                    title: "Overview",       icon: Home,         exact: true },
+  { to: "/app/learners",           title: "Learners",       icon: Users },
+  { to: "/app/calendar",           title: "Calendar",       icon: CalendarDays },
+  { to: "/app/exam-timetable",     title: "Exam timetable", icon: ClipboardCheck },
+  { to: "/app/classes",            title: "Classes",        icon: LayoutList },
+  { to: "/app/discipline-school",  title: "Discipline",     icon: Shield },
+  { to: "/app/attendance-capture", title: "Attendance",     icon: ClipboardList },
+  { to: "/app/marks-capture",      title: "Report cards",   icon: BookOpen },
+  { to: "/app/assistant",          title: "AI Assistant",   icon: MessageCircle },
 ];
 
 const adminExtra = [

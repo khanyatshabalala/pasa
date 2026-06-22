@@ -45,11 +45,11 @@ function Landing() {
               Built for South African schools
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05]">
-              Every school. <br />
-              <span className="text-accent">Every parent.</span> One app.
+              Keeping parents in sync <br />
+              <span className="text-accent">with their child's education.</span>
             </h1>
             <p className="mt-6 text-lg text-white/70 max-w-2xl leading-relaxed">
-              PASA — the Parent and School Alliance. See your child's marks, attendance and discipline in real time — and schools manage everything from one dashboard.
+              PASA connects schools directly with verified parents — so important information about events, meetings, examinations and learner conduct is never lost, delayed or dependent on the learner to pass on.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20">
@@ -65,8 +65,8 @@ function Landing() {
               </Button>
             </div>
             <div className="mt-12 grid grid-cols-3 gap-8 max-w-md">
-              <Stat value="8+" label="Cape Town schools" />
-              <Stat value="4" label="Roles supported" />
+              <Stat value="Direct" label="School-to-parent communication" />
+              <Stat value="Verified" label="Parent-learner links" />
               <Stat value="R0" label="To get started" />
             </div>
           </div>
@@ -76,19 +76,19 @@ function Landing() {
       {/* FEATURES */}
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-2xl mb-12">
-          <div className="text-sm font-medium text-accent mb-2">EVERYTHING IN ONE PLACE</div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">School life, simplified.</h2>
-          <p className="text-muted-foreground mt-3">From the morning bell to the report card — PASA keeps everyone in sync.</p>
+          <div className="text-sm font-medium text-accent mb-2">ONE PLATFORM. FULL VISIBILITY.</div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Parents cannot support what they cannot see.</h2>
+          <p className="text-muted-foreground mt-3">PASA gives schools a trusted channel to communicate directly with verified parents — replacing fragmented WhatsApp groups, printed letters and messages passed through learners.</p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Feature icon={BookOpen} title="Marks & reports" body="Real-time results vs class average. Download for bursary applications." />
-          <Feature icon={Users} title="Attendance" body="Daily roll-call by teachers. Instant alerts to parents on absence." />
-          <Feature icon={Shield} title="Discipline" body="Merits, warnings and detentions tracked transparently for everyone." />
-          <Feature icon={Bell} title="Safety alerts" body="Always free. Parents get notified the moment something matters." />
-          <Feature icon={MapPin} title="School Explorer" body="Browse 8+ Cape Town schools by district, fees, EMIS and phase." />
-          <Feature icon={TrendingUp} title="Transfers" body="Request and approve learner transfers with full audit trail." />
-          <Feature icon={GraduationCap} title="Multi-role" body="One school dashboard adapts for teachers, principals and admins." />
-          <Feature icon={MessageCircle} title="AI assistant" body="ChatGPT-powered helper for parents and staff, in-context." />
+          <Feature icon={CalendarDays} title="School calendar & events" body="Schools publish opening dates, events and parent meetings. Parents see everything in one place." />
+          <Feature icon={Bell} title="Direct notifications" body="Important updates go straight to parents — no more relying on learners to pass on information." />
+          <Feature icon={Shield} title="Conduct visibility" body="Discipline and conduct records are communicated directly to the verified parent, transparently." />
+          <Feature icon={GraduationCap} title="Exam & test schedules" body="Examination timetables, class tests and extra classes published by teachers — parents can verify." />
+          <Feature icon={BookOpen} title="Academic documents" body="Report cards and marks accessible to parents directly from the school." />
+          <Feature icon={Users} title="Verified parent links" body="Schools approve each parent-learner link, keeping the school as the source of truth." />
+          <Feature icon={TrendingUp} title="Transfers" body="Request and approve learner transfers with a full audit trail." />
+          <Feature icon={MessageCircle} title="AI assistant" body="AI-powered helper for parents and staff, in context." />
         </div>
       </section>
 
@@ -97,8 +97,8 @@ function Landing() {
         <Card className="p-10 md:p-14 bg-primary text-primary-foreground border-0 overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/15 via-transparent to-transparent" />
           <div className="relative max-w-2xl">
-            <h3 className="text-3xl md:text-4xl font-bold tracking-tight">Join the home–school revolution.</h3>
-            <p className="mt-3 text-primary-foreground/70">Free for parents. Free for schools to list. Premium adds unlimited children, instant alerts and downloadable reports.</p>
+            <h3 className="text-3xl md:text-4xl font-bold tracking-tight">Bridge the gap between home and school.</h3>
+            <p className="mt-3 text-primary-foreground/70">Free for schools. Free for parents to get started. Premium adds multiple learner profiles, advanced notifications and cross-school scheduling intelligence.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90"><Link to="/auth">Create my account</Link></Button>
               <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"><Link to="/pricing">See pricing</Link></Button>

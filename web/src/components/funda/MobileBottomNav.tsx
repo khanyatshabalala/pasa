@@ -5,7 +5,7 @@ import {
   Home, Users, BookOpen, CalendarDays, Bell, Shield,
   ArrowLeftRight, GraduationCap, ClipboardList, FileText,
   MessageCircle, Crown, Settings, LogOut, MoreHorizontal,
-  ShieldCheck, X, UserCog, ClipboardCheck,
+  ShieldCheck, X, UserCog, ClipboardCheck, LayoutList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -20,31 +20,32 @@ type NavItem = {
 // ── Role-based nav definitions ─────────────────────────────────────────────
 // First 4 items appear in the bottom bar. The rest go in the "More" sheet.
 const parentPrimary: NavItem[] = [
-  { to: "/app",              title: "Home",       icon: Home,        exact: true },
-  { to: "/app/calendar",     title: "Calendar",   icon: CalendarDays },
-  { to: "/app/discipline",   title: "Discipline", icon: Shield },
-  { to: "/app/alerts",       title: "Notifications", icon: Bell },
-  { to: "/app/assistant",    title: "Assistant",  icon: MessageCircle },
+  { to: "/app",          title: "Home",          icon: Home,        exact: true },
+  { to: "/app/calendar", title: "Calendar",      icon: CalendarDays },
+  { to: "/app/alerts",   title: "Notifications", icon: Bell },
+  { to: "/app/discipline", title: "Discipline",  icon: Shield },
+  { to: "/app/assistant", title: "Assistant",    icon: MessageCircle },
 ];
 const parentMore: NavItem[] = [
-  { to: "/app/children",   title: "Children",   icon: Users },
+  { to: "/app/children",   title: "Children",    icon: Users },
   { to: "/app/marks",      title: "Report cards", icon: BookOpen },
-  { to: "/app/attendance", title: "Attendance", icon: ClipboardList },
-  { to: "/app/schools",    title: "Schools",    icon: GraduationCap },
-  { to: "/app/upgrade",    title: "Premium",    icon: Crown },
-  { to: "/app/profile",    title: "Profile",    icon: Settings },
+  { to: "/app/attendance", title: "Attendance",  icon: ClipboardList },
+  { to: "/app/schools",    title: "Schools",     icon: GraduationCap },
+  { to: "/app/upgrade",    title: "Premium",     icon: Crown },
+  { to: "/app/profile",    title: "Profile",     icon: Settings },
 ];
 
 const schoolPrimary: NavItem[] = [
   { to: "/app",                    title: "Home",       icon: Home,        exact: true },
   { to: "/app/learners",           title: "Learners",   icon: Users },
-  { to: "/app/marks-capture",      title: "Reports",    icon: BookOpen },
-  { to: "/app/attendance-capture", title: "Attendance", icon: ClipboardList },
+  { to: "/app/calendar",           title: "Calendar",   icon: CalendarDays },
+  { to: "/app/discipline-school",  title: "Discipline", icon: Shield },
 ];
 const schoolMore: NavItem[] = [
-  { to: "/app/classes",            title: "Exams",      icon: ClipboardCheck },
-  { to: "/app/discipline-school",  title: "Discipline", icon: Shield },
-  { to: "/app/calendar",           title: "Calendar",   icon: CalendarDays },
+  { to: "/app/exam-timetable",     title: "Exams",      icon: ClipboardCheck },
+  { to: "/app/marks-capture",      title: "Reports",    icon: BookOpen },
+  { to: "/app/attendance-capture", title: "Attendance", icon: ClipboardList },
+  { to: "/app/classes",            title: "Classes",    icon: LayoutList },
   { to: "/app/assistant",          title: "Assistant",  icon: MessageCircle },
   { to: "/app/transfers",          title: "Transfers",  icon: ArrowLeftRight },
   { to: "/app/staff",              title: "Staff",      icon: UserCog },
