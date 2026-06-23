@@ -101,8 +101,29 @@ function ChildrenPage() {
   // Load schools when district changes
   useEffect(() => {
     if (!districtId) { setSchools([]); setSchoolId(""); return; }
-    supabase.from("schools").select("id, name").eq("district_id", districtId).order("name")
-      .then(({ data }) => { setSchools(data ?? []); setSchoolId(""); });
+    const selectedDistrict = districts.find(d => d.id === districtId);
+
+    async function loadSchools() {
+      // Get schools linked by district_id
+      const { data: linked } = await supabase
+        .from("schools").select("id, name").eq("district_id", districtId).order("name");
+
+      // Also get schools matched by text district name (for schools without district_id set)
+      let textMatched: { id: string; name: string }[] = [];
+      if (selectedDistrict?.name) {
+        const { data } = await supabase
+          .from("schools").select("id, name")
+          .eq("district", selectedDistrict.name).is("district_id", null).order("name");
+        textMatched = data ?? [];
+      }
+
+      // Merge and deduplicate
+      const all = [...(linked ?? []), ...textMatched];
+      const unique = Array.from(new Map(all.map(s => [s.id, s])).values());
+      setSchools(unique);
+      setSchoolId("");
+    }
+    loadSchools();
   }, [districtId]);
 
   const resetDialog = () => {
