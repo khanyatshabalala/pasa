@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ClassesPage } from "@/components/funda/dashboards/ClassesPage";
+import { ClassesPage } from "@/features/classes/ClassesPage";
 
 export const Route = createFileRoute("/app/classes")({
   component: ClassesPage,

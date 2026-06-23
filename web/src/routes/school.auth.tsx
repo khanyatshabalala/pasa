@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { FundaLogo } from "@/components/funda/Logo";
-import { BarefootLoader } from "@/components/funda/BarefootLoader";
+import { FundaLogo } from "@/components/layout/Logo";
+import { BarefootLoader } from "@/components/shared/Loader";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
 

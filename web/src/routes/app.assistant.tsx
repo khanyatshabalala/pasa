@@ -1,51 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { PageHeader } from "@/components/funda/dashboards/PageHeader";
-import { Loader2, Send, Sparkles } from "lucide-react";
+import { PageHeader } from "@/components/shared/PageHeader";
+import { Sparkles, Construction } from "lucide-react";
 
 export const Route = createFileRoute("/app/assistant")({
   component: () => {
-    const [msgs, setMsgs] = useState<{role:string;content:string}[]>([
-      { role: "assistant", content: "Hi! I'm the PASA Assistant. Ask me anything about school admin, marks, or how to use the app." },
-    ]);
-    const [input, setInput] = useState("");
-    const [loading, setLoading] = useState(false);
-
-    const send = async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!input.trim() || loading) return;
-      const userMsg = { role: "user", content: input };
-      const next = [...msgs, userMsg];
-      setMsgs(next); setInput(""); setLoading(true);
-      const { data, error } = await supabase.functions.invoke("ai-assistant", { body: { messages: next } });
-      setLoading(false);
-      if (error) return setMsgs([...next, { role: "assistant", content: "Sorry, something went wrong: " + error.message }]);
-      setMsgs([...next, { role: "assistant", content: data?.reply ?? "..." }]);
-    };
-
     return (
       <div className="max-w-3xl">
-        <PageHeader title="PASA Assistant" sub="Ask anything about your child's school journey." action={<Sparkles className="size-5 text-accent"/>}/>
-        <Card className="flex flex-col h-[calc(100vh-220px)]">
-          <div className="flex-1 overflow-y-auto p-5 space-y-4">
-            {msgs.map((m, i) => (
-              <div key={i} className={`flex ${m.role==="user"?"justify-end":"justify-start"}`}>
-                <div className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-sm ${m.role==="user"?"bg-accent text-accent-foreground":"bg-muted"}`}>{m.content}</div>
-              </div>
-            ))}
-            {loading && <div className="flex"><div className="bg-muted rounded-2xl px-4 py-2.5"><Loader2 className="size-4 animate-spin"/></div></div>}
-          </div>
-          <form onSubmit={send} className="border-t p-3 flex gap-2">
-            <Input value={input} onChange={e=>setInput(e.target.value)} placeholder="Ask anything…" disabled={loading}/>
-            <Button type="submit" disabled={loading} className="bg-accent text-accent-foreground hover:bg-accent/90"><Send className="size-4"/></Button>
-          </form>
+        <PageHeader title="PASA Assistant" sub="AI-powered help for parents and staff." action={<Sparkles className="size-5 text-accent" />} />
+        <Card className="p-10 text-center">
+          <Construction className="size-12 mx-auto mb-4 text-muted-foreground/40" />
+          <h3 className="text-lg font-semibold mb-2">Coming Soon</h3>
+          <p className="text-sm text-muted-foreground max-w-md mx-auto leading-relaxed">
+            The PASA AI Assistant is currently under development. Once available, you'll be able to ask questions about your child's school schedule, academic progress, and how to use the platform.
+          </p>
+          <p className="text-xs text-muted-foreground/60 mt-4">
+            This feature will be included in a future update.
+          </p>
         </Card>
       </div>
     );
   },
 });
-

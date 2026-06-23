@@ -1,7 +1,7 @@
-﻿import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
-import { PageHeader } from "@/components/funda/dashboards/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -177,7 +177,7 @@ export function ReportCardUploadPage() {
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-          <Input placeholder="Search learner…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search learner�" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={yearFilter} onValueChange={setYearFilter}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
@@ -196,7 +196,7 @@ export function ReportCardUploadPage() {
       </div>
 
       {loading ? (
-        <div className="text-sm text-muted-foreground py-10 text-center">Loading…</div>
+        <div className="text-sm text-muted-foreground py-10 text-center">Loading�</div>
       ) : filtered.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground text-sm">
           <FileText className="size-8 mx-auto mb-2 opacity-40" />
@@ -226,7 +226,7 @@ export function ReportCardUploadPage() {
                     </div>
                   </td>
                   <td className="p-3">
-                    <Badge variant="secondary">Term {card.term} · {card.academic_year}</Badge>
+                    <Badge variant="secondary">Term {card.term} � {card.academic_year}</Badge>
                   </td>
                   <td className="p-3 text-muted-foreground text-xs max-w-[180px] truncate">
                     {card.file_name}
@@ -264,7 +264,7 @@ export function ReportCardUploadPage() {
                 <SelectContent className="max-h-60">
                   {learners.map(l => (
                     <SelectItem key={l.id} value={l.id}>
-                      {l.first_name} {l.last_name} · Grade {l.grade_id === 0 ? "R" : l.grade_id}
+                      {l.first_name} {l.last_name} � Grade {l.grade_id === 0 ? "R" : l.grade_id}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -299,7 +299,7 @@ export function ReportCardUploadPage() {
                 className="block w-full text-sm text-muted-foreground file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-accent/15 file:text-accent hover:file:bg-accent/25 cursor-pointer mt-1"
                 onChange={e => setFile(e.target.files?.[0] ?? null)}
               />
-              <p className="text-xs text-muted-foreground mt-1">Max 10 MB · PDF only</p>
+              <p className="text-xs text-muted-foreground mt-1">Max 10 MB � PDF only</p>
             </div>
             <div>
               <Label>Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
@@ -310,7 +310,7 @@ export function ReportCardUploadPage() {
               disabled={uploading || !file || !learnerId}
               className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
             >
-              {uploading ? <><Loader2 className="size-4 animate-spin mr-2" />Uploading…</> : <><Upload className="size-4 mr-2" />Upload</>}
+              {uploading ? <><Loader2 className="size-4 animate-spin mr-2" />Uploading�</> : <><Upload className="size-4 mr-2" />Upload</>}
             </Button>
           </form>
         </DialogContent>

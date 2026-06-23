@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tan
 import { useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
-import { FundaLogo } from "@/components/funda/Logo";
+import { FundaLogo } from "@/components/layout/Logo";
 import { Building2, Map, Users, LayoutDashboard, LogOut, ArrowLeft, Settings, Trophy } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({

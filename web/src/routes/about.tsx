@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PublicHeader } from "@/components/funda/PublicHeader";
+import { PublicHeader } from "@/components/layout/PublicHeader";
 
 export const Route = createFileRoute("/about")({
   component: About

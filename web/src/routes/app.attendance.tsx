@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ParentDataList } from "@/components/funda/dashboards/SimplePage";
+import { ParentDataList } from "@/components/shared/SimplePage";
 import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/app/attendance")({

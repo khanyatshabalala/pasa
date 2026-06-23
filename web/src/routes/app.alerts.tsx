@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PageHeader } from "@/components/funda/dashboards/PageHeader";
+import { PageHeader } from "@/components/shared/PageHeader";
 import {
   Bell, CalendarDays, BookOpen, ClipboardList,
   Shield, AlertTriangle, CheckCheck,
