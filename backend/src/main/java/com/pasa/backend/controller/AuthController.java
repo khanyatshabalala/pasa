@@ -1,13 +1,14 @@
 package com.pasa.backend.controller;
 
-import com.pasa.backend.dto.request.RegisterRequest;
-import com.pasa.backend.dto.request.SignInRequest;
+import com.pasa.backend.dto.request.*;
 import com.pasa.backend.dto.response.TokenResponse;
 import com.pasa.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -43,5 +44,19 @@ public class AuthController {
     @PostMapping("/admin/signin")
     public ResponseEntity<TokenResponse> adminSignIn(@Valid @RequestBody SignInRequest req) {
         return ResponseEntity.ok(authService.signInAdmin(req));
+    }
+
+    // ── Password reset ────────────────────────────────────────────────────
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest req) {
+        authService.requestPasswordReset(req.email());
+        return ResponseEntity.ok(Map.of("message", "If the email exists, a reset link has been sent."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Map<String, String>> resetPassword(@Valid @RequestBody ResetPasswordRequest req) {
+        authService.resetPassword(req.token(), req.newPassword());
+        return ResponseEntity.ok(Map.of("message", "Password updated successfully."));
     }
 }

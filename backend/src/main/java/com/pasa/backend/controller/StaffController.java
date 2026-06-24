@@ -1,6 +1,8 @@
 package com.pasa.backend.controller;
 
 import com.pasa.backend.dto.request.AddStaffRequest;
+import com.pasa.backend.dto.request.InviteStaffRequest;
+import com.pasa.backend.dto.response.InviteStaffResponse;
 import com.pasa.backend.dto.response.StaffResponse;
 import com.pasa.backend.service.StaffService;
 import jakarta.validation.Valid;
@@ -36,6 +38,16 @@ public class StaffController {
     ) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(staffService.addStaff(schoolId, req));
+    }
+
+    @PostMapping("/invite")
+    @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
+    public ResponseEntity<InviteStaffResponse> inviteStaff(
+            @PathVariable UUID schoolId,
+            @Valid @RequestBody InviteStaffRequest req
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(staffService.inviteStaff(schoolId, req));
     }
 
     @PutMapping("/{id}")
