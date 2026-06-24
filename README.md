@@ -116,16 +116,54 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 - **Vite 8** — build tooling
 - **Netlify** — hosting
 
+#### Web Directory Structure (feature-based)
+
+```
+web/src/
+├── components/
+│   ├── layout/       # App shell — sidebar, mobile nav, logo
+│   ├── shared/       # Reusable composed components
+│   └── ui/           # Primitive UI kit (shadcn/ui)
+├── features/         # Domain modules (auth, calendar, discipline, marks, etc.)
+├── routes/           # TanStack Router file-based routes (thin wrappers)
+├── hooks/            # Custom React hooks
+├── integrations/     # Third-party clients (Supabase)
+├── lib/              # Shared utilities (auth context, error helpers)
+├── main.tsx          # App entry point
+├── router.tsx        # Router instance
+└── styles.css        # Global Tailwind styles
+```
+
 ### Mobile (`/mobile`)
-- **React Native** + **Expo**
-- **Expo Router** — file-based routing
+- **React Native** + **Expo 55**
+- **Expo Router** — file-based routing with typed routes
 - **Supabase** — shared backend
 
 ### Backend (`/backend`)
-- **Spring Boot 3** — REST API (Java 21)
-- **Spring Security** + **JWT** — authentication and role-based access
-- **Spring Data JPA** + **PostgreSQL** — data layer
+- **Spring Boot 3.3** — REST API (Java 21)
+- **Spring Security** + **JWT (jjwt 0.12)** — authentication and role-based access
+- **Spring Data JPA** + **PostgreSQL** — data layer (Supabase-hosted)
+- **Lombok** — boilerplate reduction
 - AWS deployment target
+
+#### Backend API Endpoints
+
+| Controller | Base Path | Key Operations |
+|---|---|---|
+| AuthController | `/api/v1/auth` | `POST /signin`, `POST /register` |
+| SchoolController | `/api/v1/schools` | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}` |
+| LearnerController | `/api/v1` | `GET /children`, `GET /schools/{id}/learners`, `POST /schools/{id}/learners`, `PUT /learners/{id}` |
+| CalendarController | `/api/v1/schools/{id}/calendar` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
+| ExamTimetableController | `/api/v1/schools/{id}/exam-timetable` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
+| ClassController | `/api/v1/schools/{id}/classes` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
+| AttendanceController | `/api/v1/learners/{id}/attendance` | `GET`, `POST`, `PUT /{id}` |
+| MarksController | `/api/v1/learners/{id}/marks` | `GET`, `POST`, `PUT /{id}` |
+| DisciplineController | `/api/v1/learners/{id}/discipline` | `GET`, `POST`, `DELETE /{id}` |
+| NotificationController | `/api/v1/notifications` | `GET`, `GET /unread-count`, `PATCH /{id}/read`, `POST /read-all` |
+| LinkRequestController | `/api/v1/link-requests` | `GET /mine`, `POST /`, `POST /{id}/approve`, `POST /{id}/reject` |
+| StaffController | `/api/v1/schools/{id}/staff` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
+| TransferController | `/api/v1/transfers` | `GET /school/{id}`, `GET /learner/{id}`, `POST`, `PATCH /{id}/status` |
+| AuditController | `/api/v1/schools/{id}/audit` | `GET` (paginated) |
 
 ### Infrastructure (`/supabase`)
 - PostgreSQL migrations
@@ -139,7 +177,7 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 ```
 pasa/
 ├── web/          # React web app (parents + school staff portal)
-├── mobile/       # React Native mobile app
+├── mobile/       # React Native mobile app (Expo)
 ├── backend/      # Spring Boot REST API
 ├── supabase/     # Database migrations and edge functions
 └── SKILLS/       # Product documentation
@@ -170,7 +208,7 @@ npm start
 ### Backend
 ```bash
 cd backend
-# Set environment variables: SUPABASE_DB_PASSWORD, JWT_SECRET
+# Set environment variables: SUPABASE_DB_PASSWORD, JWT_SECRET, PASA_CORS_ORIGINS
 ./mvnw spring-boot:run
 ```
 
