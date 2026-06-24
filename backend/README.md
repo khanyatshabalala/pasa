@@ -1,6 +1,8 @@
 # PASA — Backend API
 
-Spring Boot REST API for the PASA platform.
+Spring Boot REST API for the PASA platform (Parent and School Alliance).
+
+**123+ source files** | **16 controllers** | **Full layered architecture**
 
 ---
 
@@ -33,6 +35,16 @@ $env:PASA_CORS_ORIGINS="http://localhost:5173"
 
 The API is available at `http://localhost:8080`.
 
+### Useful URLs (local)
+
+| URL | Description |
+|---|---|
+| `http://localhost:8080/swagger-ui` | Interactive API documentation (Swagger UI) |
+| `http://localhost:8080/api-docs` | OpenAPI 3.0 JSON spec |
+| `http://localhost:8080/actuator/health` | Health check |
+| `http://localhost:8080/actuator/info` | App info and version |
+| `http://localhost:8080/actuator/metrics` | Runtime metrics |
+
 ---
 
 ## Environment Variables
@@ -51,25 +63,75 @@ Copy `.env.example` for reference. Environment variables are injected via `appli
 
 ```
 src/main/java/com/pasa/backend/
-├── config/          # Spring configuration (SecurityConfig, CORS)
-├── controller/      # REST controllers — thin routing + delegation
+├── config/              # Spring configuration (SecurityConfig, OpenApiConfig)
+├── controller/          # REST controllers — thin routing + delegation (16 controllers)
+│   ├── AdminController.java
+│   ├── AttendanceController.java
+│   ├── AuditController.java
+│   ├── AuthController.java
+│   ├── CalendarController.java
+│   ├── ClassController.java
+│   ├── DisciplineController.java
+│   ├── ExamTimetableController.java
+│   ├── LearnerController.java
+│   ├── LinkRequestController.java
+│   ├── MarksController.java
+│   ├── NotificationController.java
+│   ├── ProfileController.java
+│   ├── SchoolController.java
+│   ├── StaffController.java
+│   └── TransferController.java
 ├── domain/
-│   ├── entity/      # JPA entities (Learner, School, Attendance, etc.)
-│   └── enums/       # Java enums (AppRole, AttendanceStatus, TransferStatus, etc.)
+│   ├── entity/          # JPA entities (14 entities)
+│   └── enums/           # Java enums (AppRole, AttendanceStatus, TransferStatus, etc.)
 ├── dto/
-│   ├── request/     # Incoming request DTOs (validated with Jakarta annotations)
-│   └── response/    # Outgoing response DTOs (immutable records)
-├── exception/       # Custom exception classes and global handler
-├── mapper/          # Entity ↔ DTO conversion
-├── repository/      # Spring Data JPA repositories
-├── security/        # JWT filter, JWT utility, JWT properties
-├── service/         # Business logic services (one per domain)
-└── PasaApplication.java  # Main Spring Boot entry point
+│   ├── request/         # Incoming request DTOs (20 records, validated with Jakarta annotations)
+│   └── response/        # Outgoing response DTOs (18 immutable records)
+├── exception/           # Custom exception classes + GlobalExceptionHandler
+├── mapper/              # Entity ↔ DTO conversion (13 mappers)
+├── repository/          # Spring Data JPA repositories (13 repositories)
+├── security/            # JWT filter, JWT utility, JWT properties
+├── service/             # Business logic services (16 services, one per domain)
+└── PasaApplication.java # Main Spring Boot entry point
 ```
-├── security/        # JWT filter, JWT utility, JWT properties
-├── service/         # Business logic services
-└── PasaApplication.java  # Main Spring Boot entry point
+
+### Architecture Pattern
+
 ```
+controller/ → service/ → repository/ → entity
+                ↕               ↕
+          dto/request/    dto/response/
+               ↕
+            mapper/
+```
+
+Controllers are thin — they validate input, delegate to services, and return responses. Services contain all business logic. Mappers handle entity ↔ DTO conversion. Repositories provide data access.
+
+---
+
+## Swagger / OpenAPI
+
+Interactive API documentation is available at `/swagger-ui`. The OpenAPI 3.0 spec is served at `/api-docs`.
+
+**Features:**
+- All endpoints documented with request/response schemas
+- JWT Bearer authentication configured — click "Authorize" and paste your token
+- Endpoints grouped by tag and sorted alphabetically
+- Try-it-out functionality for testing directly in the browser
+
+---
+
+## Actuator (Observability)
+
+Spring Boot Actuator provides production-ready endpoints:
+
+| Endpoint | Access | Description |
+|---|---|---|
+| `/actuator/health` | Public | Application health status (DB connectivity, disk space) |
+| `/actuator/info` | Public | App name, version, description |
+| `/actuator/metrics` | Authenticated | JVM memory, HTTP request counts, response times |
+
+Health check details are shown only for authenticated requests (`show-details=when_authorized`).
 
 ---
 
@@ -85,8 +147,29 @@ Base URL: `/api/v1`
 | POST | `/auth/parent/signin` | Parent sign in → rejects staff/admin with 403 |
 | POST | `/auth/staff/signin` | Staff sign in (teacher/principal/school_admin) → rejects parents with 403 |
 | POST | `/auth/admin/signin` | Super admin sign in → rejects non-admins with 403 |
+| POST | `/auth/forgot-password` | Request password reset email |
+| POST | `/auth/reset-password` | Reset password with token |
 
 > **Security note:** Each portal endpoint enforces role boundaries server-side. A valid credential on the wrong portal returns 403 — no token is ever issued, preventing dashboard flash bugs.
+
+### Profile (`/api/v1/profile`) — Authenticated
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/profile` | Get current user's profile |
+| PUT | `/profile` | Update current user's profile |
+
+### Admin (`/api/v1/admin`) — super_admin only
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/admin/districts` | List districts (optional `?province=` filter) |
+| POST | `/admin/districts` | Create a district |
+| PUT | `/admin/districts/{id}` | Update a district |
+| DELETE | `/admin/districts/{id}` | Delete a district |
+| GET | `/admin/users` | List all users with roles (paginated: `?page=0&size=50`) |
+| POST | `/admin/users/{userId}/roles` | Assign a role to a user |
+| DELETE | `/admin/users/{userId}/roles/{roleId}` | Remove a role from a user |
 
 ### Schools (`/api/v1/schools`) — GET public, write requires role
 
@@ -134,6 +217,16 @@ Base URL: `/api/v1`
 | PUT | `/{id}` | principal, school_admin, super_admin | Update class |
 | DELETE | `/{id}` | principal, school_admin, super_admin | Delete class |
 
+### Staff (`/api/v1/schools/{schoolId}/staff`)
+
+| Method | Path | Roles | Description |
+|---|---|---|---|
+| GET | `/` | principal, school_admin, super_admin | List staff |
+| POST | `/` | principal, school_admin, super_admin | Add staff member |
+| POST | `/invite` | principal, school_admin, super_admin | Invite staff (creates account + assigns role) |
+| PUT | `/{id}` | principal, school_admin, super_admin | Update staff |
+| DELETE | `/{id}` | principal, school_admin, super_admin | Remove staff |
+
 ### Attendance (`/api/v1/learners/{learnerId}/attendance`)
 
 | Method | Path | Roles | Description |
@@ -177,15 +270,6 @@ Base URL: `/api/v1`
 | POST | `/link-requests/{id}/approve` | principal, school_admin, super_admin | Approve request |
 | POST | `/link-requests/{id}/reject` | principal, school_admin, super_admin | Reject request |
 
-### Staff (`/api/v1/schools/{schoolId}/staff`)
-
-| Method | Path | Roles | Description |
-|---|---|---|---|
-| GET | `/` | principal, school_admin, super_admin | List staff |
-| POST | `/` | principal, school_admin, super_admin | Add staff member |
-| PUT | `/{id}` | principal, school_admin, super_admin | Update staff |
-| DELETE | `/{id}` | principal, school_admin, super_admin | Remove staff |
-
 ### Transfers (`/api/v1/transfers`)
 
 | Method | Path | Roles | Description |
@@ -205,18 +289,28 @@ Base URL: `/api/v1`
 
 ## Authentication Flow
 
-PASA uses **JWT-based stateless authentication**.
+PASA uses **JWT-based stateless authentication** with **portal-separated sign-in**.
 
 ```
 ┌─────────┐         ┌─────────────┐         ┌────────────┐
 │  Client │         │  /api/v1/   │         │  Database  │
 └────┬────┘         └──────┬──────┘         └─────┬──────┘
-     │  POST /auth/register │                      │
-     │  or POST /auth/signin│                      │
-     ├─────────────────────►│  validate creds      │
+     │                      │                      │
+     │  POST /auth/parent/  │                      │
+     │       register       │                      │
+     ├─────────────────────►│  create account      │
      │                      ├─────────────────────►│
      │                      │◄─────────────────────┤
      │◄─── { token, role } ─┤                      │
+     │                      │                      │
+     │  POST /auth/{portal}/│                      │
+     │       signin         │                      │
+     ├─────────────────────►│  validate creds      │
+     │                      │  check portal match  │
+     │                      ├─────────────────────►│
+     │                      │◄─────────────────────┤
+     │◄─── { token, role } ─┤  (or 403 if wrong   │
+     │                      │   portal)            │
      │                      │                      │
      │  GET /api/v1/...     │                      │
      │  Authorization:      │                      │
@@ -226,10 +320,28 @@ PASA uses **JWT-based stateless authentication**.
      │◄─── response ────────┤                      │
 ```
 
-1. **Register** (`POST /auth/register`) — creates a parent account, returns a JWT.
-2. **Sign in** (`POST /auth/signin`) — validates credentials, returns a JWT.
-3. **Authenticated requests** — send `Authorization: Bearer <token>` header.
-4. Token is valid for **24 hours** (`pasa.jwt.expiration-ms=86400000`).
+### Portal Separation
+
+Three sign-in endpoints enforce strict role boundaries:
+
+| Endpoint | Allowed Roles | Rejects |
+|---|---|---|
+| `POST /auth/parent/signin` | parent | staff, admin → 403 |
+| `POST /auth/staff/signin` | teacher, principal, school_admin | parent, super_admin → 403 |
+| `POST /auth/admin/signin` | super_admin | all others → 403 |
+
+**Why?** This prevents dashboard flash — if a staff member accidentally signs into the parent portal, the server rejects the request before issuing any token. The frontend never receives a JWT for the wrong portal.
+
+### Password Reset
+
+1. `POST /auth/forgot-password` — sends reset link to the provided email (always returns 200 to prevent email enumeration)
+2. `POST /auth/reset-password` — validates the token and updates the password
+
+### Token Details
+
+- Valid for **24 hours** (`pasa.jwt.expiration-ms=86400000`)
+- Contains: `sub` (user ID), `role`, `iat`, `exp`
+- Signed with HMAC-SHA using `JWT_SECRET`
 
 ---
 
@@ -241,7 +353,7 @@ PASA uses **JWT-based stateless authentication**.
 | `teacher` | Everything a parent can see for their school's learners. Create calendar events, record attendance, marks, discipline. |
 | `principal` | All teacher abilities + manage staff, approve link requests, manage classes, delete records, view audit log. |
 | `school_admin` | Same as principal (administrative peer). |
-| `super_admin` | Full access. Create/manage schools, districts, provinces. Platform-wide administration. |
+| `super_admin` | Full access. Create/manage schools, districts, users, roles. Platform-wide administration. |
 
 Roles are enforced via `@PreAuthorize` annotations on controllers and the `SecurityConfig` request matchers.
 
@@ -283,6 +395,8 @@ java -jar target/pasa-backend-0.0.1-SNAPSHOT.jar
 | Security | Spring Security + JWT (jjwt 0.12) |
 | Data | Spring Data JPA + PostgreSQL |
 | Validation | Jakarta Bean Validation |
+| API docs | Springdoc OpenAPI (Swagger UI) |
+| Monitoring | Spring Boot Actuator |
 | Boilerplate | Lombok |
 | Build | Maven (wrapper included) |
 | Database | Supabase PostgreSQL |

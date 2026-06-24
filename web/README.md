@@ -49,7 +49,8 @@ src/
 │   ├── shared/          # Reusable composed components (page headers, data tables, etc.)
 │   └── ui/              # Primitive UI kit — shadcn/ui components (Button, Dialog, etc.)
 ├── features/            # Domain-specific modules (one folder per domain)
-│   ├── admin/
+│   ├── admin/           # Super admin pages (districts, users, school management)
+│   ├── admissions/
 │   ├── attendance/
 │   ├── audit/
 │   ├── auth/
@@ -64,6 +65,7 @@ src/
 │   ├── marks/
 │   ├── notifications/
 │   ├── profile/
+│   ├── schools/
 │   ├── staff/
 │   └── transfers/
 ├── hooks/               # Custom React hooks (use-mobile, use-push-notifications)
@@ -74,7 +76,7 @@ src/
 │   ├── auth-errors.ts   # Auth error message mapping
 │   ├── db-errors.ts     # Database error message mapping
 │   └── utils.ts         # cn() and general helpers
-├── routes/              # TanStack Router file-based routes
+├── routes/              # TanStack Router file-based routes (thin wrappers, ~5 lines each)
 ├── main.tsx             # React entry point
 ├── router.tsx           # Router instance creation
 ├── routeTree.gen.ts     # Auto-generated route tree (do not edit)
@@ -83,11 +85,70 @@ src/
 
 ---
 
+## Routes
+
+The app has three top-level route groups:
+
+| Route Group | Purpose | Auth Required |
+|---|---|---|
+| `/` | Public pages (landing, pricing, about, school directory) | No |
+| `/auth`, `/school/auth`, `/superadmin/auth` | Sign-in pages (portal-separated) | No |
+| `/app/*` | Parent + staff portal (dashboard, calendar, etc.) | Yes |
+| `/admin/*` | Super admin portal (districts, users, schools) | Yes (super_admin) |
+
+### All Route Files
+
+```
+routes/
+├── __root.tsx                  # Root layout
+├── index.tsx                   # Landing page
+├── about.tsx                   # About page
+├── pricing.tsx                 # Pricing page
+├── auth.tsx                    # Parent sign-in/register
+├── school.auth.tsx             # Staff sign-in
+├── superadmin.auth.tsx         # Super admin sign-in
+├── reset-password.tsx          # Password reset
+├── schools.tsx                 # School directory (public)
+├── schools.$schoolId.tsx       # School detail (public)
+├── app.tsx                     # Authenticated layout wrapper
+├── app.index.tsx               # Dashboard
+├── app.calendar.tsx            # School calendar
+├── app.exam-timetable.tsx      # Exam timetable
+├── app.attendance.tsx          # Attendance (parent view)
+├── app.attendance-capture.tsx  # Attendance capture (staff)
+├── app.marks.tsx               # Marks (parent view)
+├── app.marks-capture.tsx       # Marks capture (staff)
+├── app.discipline.tsx          # Discipline (parent view)
+├── app.discipline-school.tsx   # Discipline (school view)
+├── app.children.tsx            # My children (parent)
+├── app.learners.tsx            # Learner list (staff)
+├── app.learner.$learnerId.tsx  # Learner detail
+├── app.classes.tsx             # Class management
+├── app.staff.tsx               # Staff management
+├── app.link-requests.tsx       # Link request management
+├── app.transfers.tsx           # Transfer management
+├── app.alerts.tsx              # Notifications
+├── app.audit.tsx               # Audit log
+├── app.profile.tsx             # User profile
+├── app.schools.tsx             # School selector
+├── app.admissions.tsx          # Admissions
+├── app.assistant.tsx           # AI Assistant (Coming Soon)
+├── app.upgrade.tsx             # Premium upgrade
+├── admin.tsx                   # Admin layout wrapper
+├── admin.index.tsx             # Admin dashboard
+├── admin.districts.tsx         # District management
+├── admin.users.tsx             # User management
+├── admin.schools.tsx           # School management
+└── admin.schools.$schoolId.tsx # School detail (admin)
+```
+
+---
+
 ## Conventions
 
 ### Route files are thin wrappers
 
-Route files in `src/routes/` define the route and point to a page component inside `features/`. They contain no page logic themselves.
+Route files in `src/routes/` define the route and point to a page component inside `features/`. They contain no page logic themselves (~5 lines each).
 
 ```tsx
 // src/routes/app.calendar.tsx
@@ -102,6 +163,8 @@ export const Route = createFileRoute("/app/calendar")({
 ### Page logic lives in `features/`
 
 Each feature folder contains the page component, sub-components, types, hooks, and API calls relevant to that domain. This keeps routes clean and features self-contained.
+
+Large pages are split into sub-components (e.g., DisciplinePage splits into DisciplineSchoolView, CalendarPage into CalendarDays, ExamTimetable into ExamTimetableForm).
 
 ### Path alias
 
@@ -125,6 +188,15 @@ export function CalendarPage() { ... }
 - `components/ui/` — atomic building blocks (shadcn/ui). Do not add app-specific logic here.
 - `components/shared/` — composed components used across multiple features.
 - `components/layout/` — app-level layout (sidebar, nav bars, logo).
+
+### Portal-separated authentication
+
+The web app has three separate sign-in pages:
+- `/auth` — parent sign-in and registration
+- `/school/auth` — staff sign-in (teachers, principals, school admins)
+- `/superadmin/auth` — super admin sign-in
+
+Each calls a different backend endpoint, and the server enforces role boundaries. If a staff member tries to sign into the parent portal, they get a 403 — no dashboard flash.
 
 ---
 

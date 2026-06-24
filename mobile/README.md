@@ -124,6 +124,8 @@ mobile/
 - Secure token storage with expo-secure-store
 - Shared Supabase backend with the web app
 - File-based routing with typed routes
+- Password reset flow
+- Document picker for report card uploads
 
 ---
 
@@ -131,4 +133,5 @@ mobile/
 
 - The mobile app shares the same Supabase backend and database as the web app.
 - Authentication tokens are stored securely using `expo-secure-store`.
-- The app supports both portrait orientation on phones (tablets not currently supported).
+- The app supports portrait orientation on phones (tablets not currently supported).
+- The backend Spring Boot API (see `/backend`) serves the same data to both web and mobile clients.
