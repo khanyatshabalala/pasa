@@ -1,15 +1,13 @@
 package com.pasa.backend.controller;
 
-import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.domain.entity.Staff;
-import com.pasa.backend.repository.SchoolRepository;
-import com.pasa.backend.repository.StaffRepository;
+import com.pasa.backend.dto.request.AddStaffRequest;
+import com.pasa.backend.dto.response.StaffResponse;
+import com.pasa.backend.service.StaffService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,54 +16,45 @@ import java.util.UUID;
 @RequestMapping("/api/v1/schools/{schoolId}/staff")
 public class StaffController {
 
-    private final StaffRepository staffRepo;
-    private final SchoolRepository schoolRepo;
+    private final StaffService staffService;
 
-    public StaffController(StaffRepository staffRepo, SchoolRepository schoolRepo) {
-        this.staffRepo = staffRepo;
-        this.schoolRepo = schoolRepo;
+    public StaffController(StaffService staffService) {
+        this.staffService = staffService;
     }
 
     @GetMapping
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public List<Staff> getStaff(@PathVariable UUID schoolId) {
-        schoolRepo.findById(schoolId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        return staffRepo.findBySchoolId(schoolId);
+    public List<StaffResponse> getStaff(@PathVariable UUID schoolId) {
+        return staffService.getStaff(schoolId);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<Staff> addStaff(
+    public ResponseEntity<StaffResponse> addStaff(
             @PathVariable UUID schoolId,
-            @Valid @RequestBody Staff staff
+            @Valid @RequestBody AddStaffRequest req
     ) {
-        School school = schoolRepo.findById(schoolId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        staff.setSchool(school);
-        return ResponseEntity.status(HttpStatus.CREATED).body(staffRepo.save(staff));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(staffService.addStaff(schoolId, req));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public Staff updateStaff(
+    public StaffResponse updateStaff(
             @PathVariable UUID schoolId,
             @PathVariable UUID id,
-            @Valid @RequestBody Staff updated
+            @Valid @RequestBody AddStaffRequest req
     ) {
-        Staff existing = staffRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff not found"));
-        existing.setPosition(updated.getPosition());
-        existing.setStaffNumber(updated.getStaffNumber());
-        return staffRepo.save(existing);
+        return staffService.updateStaff(id, req);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<Void> removeStaff(@PathVariable UUID schoolId, @PathVariable UUID id) {
-        Staff staff = staffRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Staff not found"));
-        staffRepo.delete(staff);
+    public ResponseEntity<Void> removeStaff(
+            @PathVariable UUID schoolId,
+            @PathVariable UUID id
+    ) {
+        staffService.removeStaff(id);
         return ResponseEntity.noContent().build();
     }
 }

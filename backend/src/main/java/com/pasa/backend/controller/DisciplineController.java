@@ -1,16 +1,14 @@
 package com.pasa.backend.controller;
 
-import com.pasa.backend.domain.entity.DisciplineRecord;
-import com.pasa.backend.domain.entity.Learner;
-import com.pasa.backend.repository.DisciplineRepository;
-import com.pasa.backend.repository.LearnerRepository;
+import com.pasa.backend.dto.request.CreateDisciplineRequest;
+import com.pasa.backend.dto.response.DisciplineResponse;
+import com.pasa.backend.service.DisciplineService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,42 +17,32 @@ import java.util.UUID;
 @RequestMapping("/api/v1/learners/{learnerId}/discipline")
 public class DisciplineController {
 
-    private final DisciplineRepository disciplineRepo;
-    private final LearnerRepository learnerRepo;
+    private final DisciplineService disciplineService;
 
-    public DisciplineController(DisciplineRepository disciplineRepo, LearnerRepository learnerRepo) {
-        this.disciplineRepo = disciplineRepo;
-        this.learnerRepo = learnerRepo;
+    public DisciplineController(DisciplineService disciplineService) {
+        this.disciplineService = disciplineService;
     }
 
     @GetMapping
-    public List<DisciplineRecord> getDiscipline(@PathVariable UUID learnerId) {
-        learnerRepo.findById(learnerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
-        return disciplineRepo.findByLearnerIdOrderByDateDesc(learnerId);
+    public List<DisciplineResponse> getDiscipline(@PathVariable UUID learnerId) {
+        return disciplineService.getDiscipline(learnerId);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('TEACHER','PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<DisciplineRecord> createRecord(
+    public ResponseEntity<DisciplineResponse> createRecord(
             @PathVariable UUID learnerId,
-            @Valid @RequestBody DisciplineRecord record,
+            @Valid @RequestBody CreateDisciplineRequest req,
             Authentication auth
     ) {
-        Learner learner = learnerRepo.findById(learnerId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
-
-        record.setLearner(learner);
-        record.setRecordedBy((UUID) auth.getPrincipal());
-        return ResponseEntity.status(HttpStatus.CREATED).body(disciplineRepo.save(record));
+        UUID userId = (UUID) auth.getPrincipal();
+        return ResponseEntity.status(HttpStatus.CREATED).body(disciplineService.createRecord(learnerId, req, userId));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
     public ResponseEntity<Void> deleteRecord(@PathVariable UUID learnerId, @PathVariable UUID id) {
-        DisciplineRecord record = disciplineRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
-        disciplineRepo.delete(record);
+        disciplineService.deleteRecord(id);
         return ResponseEntity.noContent().build();
     }
 }

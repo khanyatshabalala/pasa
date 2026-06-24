@@ -1,13 +1,13 @@
 package com.pasa.backend.controller;
 
-import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.repository.SchoolRepository;
+import com.pasa.backend.dto.request.CreateSchoolRequest;
+import com.pasa.backend.dto.response.SchoolResponse;
+import com.pasa.backend.service.SchoolService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,44 +16,34 @@ import java.util.UUID;
 @RequestMapping("/api/v1/schools")
 public class SchoolController {
 
-    private final SchoolRepository schoolRepo;
+    private final SchoolService schoolService;
 
-    public SchoolController(SchoolRepository schoolRepo) {
-        this.schoolRepo = schoolRepo;
+    public SchoolController(SchoolService schoolService) {
+        this.schoolService = schoolService;
     }
 
     @GetMapping
-    public List<School> listSchools(
+    public List<SchoolResponse> listSchools(
             @RequestParam(required = false) String province,
             @RequestParam(required = false) String district
     ) {
-        if (province != null) return schoolRepo.findByProvince(province);
-        if (district != null) return schoolRepo.findByDistrict(district);
-        return schoolRepo.findAll();
+        return schoolService.listSchools(province, district);
     }
 
     @GetMapping("/{id}")
-    public School getSchool(@PathVariable UUID id) {
-        return schoolRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
+    public SchoolResponse getSchool(@PathVariable UUID id) {
+        return schoolService.getSchool(id);
     }
 
     @PostMapping
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<School> createSchool(@Valid @RequestBody School school) {
-        if (schoolRepo.existsByEmisNumber(school.getEmisNumber())) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "EMIS number already registered");
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(schoolRepo.save(school));
+    public ResponseEntity<SchoolResponse> createSchool(@Valid @RequestBody CreateSchoolRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(schoolService.createSchool(req));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','PRINCIPAL','SCHOOL_ADMIN')")
-    public School updateSchool(@PathVariable UUID id, @Valid @RequestBody School updated) {
-        School existing = schoolRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        updated.setId(existing.getId());
-        updated.setCreatedAt(existing.getCreatedAt());
-        return schoolRepo.save(updated);
+    public SchoolResponse updateSchool(@PathVariable UUID id, @Valid @RequestBody CreateSchoolRequest req) {
+        return schoolService.updateSchool(id, req);
     }
 }

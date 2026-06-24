@@ -1,18 +1,15 @@
 package com.pasa.backend.controller;
 
-import com.pasa.backend.domain.entity.ExamTimetable;
-import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.repository.ExamTimetableRepository;
-import com.pasa.backend.repository.SchoolRepository;
+import com.pasa.backend.dto.request.CreateExamEntryRequest;
+import com.pasa.backend.dto.response.ExamEntryResponse;
+import com.pasa.backend.service.ExamService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.time.Year;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,73 +17,46 @@ import java.util.UUID;
 @RequestMapping("/api/v1/schools/{schoolId}/exam-timetable")
 public class ExamTimetableController {
 
-    private final ExamTimetableRepository examRepo;
-    private final SchoolRepository schoolRepo;
+    private final ExamService examService;
 
-    public ExamTimetableController(ExamTimetableRepository examRepo, SchoolRepository schoolRepo) {
-        this.examRepo = examRepo;
-        this.schoolRepo = schoolRepo;
+    public ExamTimetableController(ExamService examService) {
+        this.examService = examService;
     }
 
     @GetMapping
-    public List<ExamTimetable> getTimetable(
+    public List<ExamEntryResponse> getTimetable(
             @PathVariable UUID schoolId,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer term
     ) {
-        schoolRepo.findById(schoolId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        int academicYear = year != null ? year : Year.now().getValue();
-
-        if (term != null) {
-            return examRepo.findBySchoolIdAndAcademicYearAndTermOrderByExamDateAsc(schoolId, academicYear, term);
-        }
-        return examRepo.findBySchoolIdAndAcademicYearOrderByExamDateAsc(schoolId, academicYear);
+        return examService.getTimetable(schoolId, year, term);
     }
 
     @PostMapping
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<ExamTimetable> createEntry(
+    public ResponseEntity<ExamEntryResponse> createEntry(
             @PathVariable UUID schoolId,
-            @Valid @RequestBody ExamTimetable entry,
+            @Valid @RequestBody CreateExamEntryRequest req,
             Authentication auth
     ) {
-        School school = schoolRepo.findById(schoolId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        entry.setSchool(school);
-        entry.setCreatedBy((UUID) auth.getPrincipal());
-        if (entry.getAcademicYear() == null) {
-            entry.setAcademicYear(Year.now().getValue());
-        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(examRepo.save(entry));
+        UUID userId = (UUID) auth.getPrincipal();
+        return ResponseEntity.status(HttpStatus.CREATED).body(examService.createEntry(schoolId, req, userId));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ExamTimetable updateEntry(
+    public ExamEntryResponse updateEntry(
             @PathVariable UUID schoolId,
             @PathVariable UUID id,
-            @Valid @RequestBody ExamTimetable updated
+            @Valid @RequestBody CreateExamEntryRequest req
     ) {
-        ExamTimetable existing = examRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found"));
-        existing.setSubject(updated.getSubject());
-        existing.setGradeId(updated.getGradeId());
-        existing.setExamDate(updated.getExamDate());
-        existing.setStartTime(updated.getStartTime());
-        existing.setEndTime(updated.getEndTime());
-        existing.setVenue(updated.getVenue());
-        existing.setNotes(updated.getNotes());
-        existing.setTerm(updated.getTerm());
-        return examRepo.save(existing);
+        return examService.updateEntry(id, req);
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
     public ResponseEntity<Void> deleteEntry(@PathVariable UUID schoolId, @PathVariable UUID id) {
-        ExamTimetable entry = examRepo.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Entry not found"));
-        examRepo.delete(entry);
+        examService.deleteEntry(id);
         return ResponseEntity.noContent().build();
     }
 }
