@@ -52,12 +52,20 @@ Copy `.env.example` for reference. Environment variables are injected via `appli
 ```
 src/main/java/com/pasa/backend/
 ├── config/          # Spring configuration (SecurityConfig, CORS)
-├── controller/      # REST controllers — one per domain
+├── controller/      # REST controllers — thin routing + delegation
 ├── domain/
 │   ├── entity/      # JPA entities (Learner, School, Attendance, etc.)
 │   └── enums/       # Java enums (AppRole, AttendanceStatus, TransferStatus, etc.)
+├── dto/
+│   ├── request/     # Incoming request DTOs (validated with Jakarta annotations)
+│   └── response/    # Outgoing response DTOs (immutable records)
 ├── exception/       # Custom exception classes and global handler
+├── mapper/          # Entity ↔ DTO conversion
 ├── repository/      # Spring Data JPA repositories
+├── security/        # JWT filter, JWT utility, JWT properties
+├── service/         # Business logic services (one per domain)
+└── PasaApplication.java  # Main Spring Boot entry point
+```
 ├── security/        # JWT filter, JWT utility, JWT properties
 ├── service/         # Business logic services
 └── PasaApplication.java  # Main Spring Boot entry point
@@ -73,8 +81,12 @@ Base URL: `/api/v1`
 
 | Method | Path | Description |
 |---|---|---|
-| POST | `/auth/register` | Register a new parent account → returns JWT |
-| POST | `/auth/signin` | Sign in with email/password → returns JWT |
+| POST | `/auth/parent/register` | Register a new parent account → returns JWT |
+| POST | `/auth/parent/signin` | Parent sign in → rejects staff/admin with 403 |
+| POST | `/auth/staff/signin` | Staff sign in (teacher/principal/school_admin) → rejects parents with 403 |
+| POST | `/auth/admin/signin` | Super admin sign in → rejects non-admins with 403 |
+
+> **Security note:** Each portal endpoint enforces role boundaries server-side. A valid credential on the wrong portal returns 403 — no token is ever issued, preventing dashboard flash bugs.
 
 ### Schools (`/api/v1/schools`) — GET public, write requires role
 

@@ -150,7 +150,7 @@ web/src/
 
 | Controller | Base Path | Key Operations |
 |---|---|---|
-| AuthController | `/api/v1/auth` | `POST /signin`, `POST /register` |
+| AuthController | `/api/v1/auth` | `POST /parent/register`, `POST /parent/signin`, `POST /staff/signin`, `POST /admin/signin` |
 | SchoolController | `/api/v1/schools` | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}` |
 | LearnerController | `/api/v1` | `GET /children`, `GET /schools/{id}/learners`, `POST /schools/{id}/learners`, `PUT /learners/{id}` |
 | CalendarController | `/api/v1/schools/{id}/calendar` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
