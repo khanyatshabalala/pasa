@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /admin/
+
+Sitemap: https://pasa.netlify.app/sitemap.xml
