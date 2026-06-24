@@ -34,10 +34,10 @@ export function AuthPage() {
   const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // If already signed in (e.g. page refresh), redirect immediately
+  // If already signed in (e.g. page refresh), redirect — but NOT while actively logging in
   useEffect(() => {
-    if (!authLoading && user) navigate({ to: "/app" });
-  }, [user, authLoading, navigate]);
+    if (!authLoading && user && !loading) navigate({ to: "/app" });
+  }, [user, authLoading, loading, navigate]);
 
   const onSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
