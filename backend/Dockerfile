@@ -12,6 +12,9 @@ RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
 COPY src/ src/
 RUN ./mvnw clean package -DskipTests -B
 
+# Ensure the packaged jar exists before runtime
+RUN test -f /app/target/pasa-backend-0.0.1-SNAPSHOT.jar
+
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
