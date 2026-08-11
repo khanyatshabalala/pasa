@@ -4,12 +4,12 @@ FROM eclipse-temurin:21-jdk-alpine AS build
 WORKDIR /app
 
 # Copy Maven wrapper and pom first (cache dependencies layer)
-COPY .mvn/ .mvn/
-COPY mvnw pom.xml ./
+COPY backend/.mvn/ .mvn/
+COPY backend/mvnw backend/pom.xml ./
 RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
 
 # Copy source and build
-COPY src/ src/
+COPY backend/src/ src/
 RUN ./mvnw clean package -DskipTests -B
 
 # Ensure the packaged jar exists before runtime
@@ -21,7 +21,7 @@ FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup --system pasa && adduser --system --ingroup pasa pasa
+RUN addgroup -S pasa && adduser -S pasa -G pasa
 USER pasa
 
 # Copy the fat JAR from build stage
