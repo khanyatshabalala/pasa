@@ -45,6 +45,7 @@ import { Route as AppAlertsRouteImport } from './routes/app.alerts'
 import { Route as AppAdmissionsRouteImport } from './routes/app.admissions'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminSchoolsRouteImport } from './routes/admin.schools'
+import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
 import { Route as AdminDistrictsRouteImport } from './routes/admin.districts'
 import { Route as AppLearnerLearnerIdRouteImport } from './routes/app.learner.$learnerId'
 import { Route as AdminSchoolsSchoolIdRouteImport } from './routes/admin.schools.$schoolId'
@@ -229,6 +230,11 @@ const AdminSchoolsRoute = AdminSchoolsRouteImport.update({
   path: '/schools',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminRequestsRoute = AdminRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDistrictsRoute = AdminDistrictsRouteImport.update({
   id: '/districts',
   path: '/districts',
@@ -255,6 +261,7 @@ export interface FileRoutesByFullPath {
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/admin/districts': typeof AdminDistrictsRoute
+  '/admin/requests': typeof AdminRequestsRoute
   '/admin/schools': typeof AdminSchoolsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/admissions': typeof AppAdmissionsRoute
@@ -294,6 +301,7 @@ export interface FileRoutesByTo {
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/admin/districts': typeof AdminDistrictsRoute
+  '/admin/requests': typeof AdminRequestsRoute
   '/admin/schools': typeof AdminSchoolsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/admissions': typeof AppAdmissionsRoute
@@ -336,6 +344,7 @@ export interface FileRoutesById {
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/admin/districts': typeof AdminDistrictsRoute
+  '/admin/requests': typeof AdminRequestsRoute
   '/admin/schools': typeof AdminSchoolsRouteWithChildren
   '/admin/users': typeof AdminUsersRoute
   '/app/admissions': typeof AppAdmissionsRoute
@@ -379,6 +388,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/schools'
     | '/admin/districts'
+    | '/admin/requests'
     | '/admin/schools'
     | '/admin/users'
     | '/app/admissions'
@@ -418,6 +428,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/schools'
     | '/admin/districts'
+    | '/admin/requests'
     | '/admin/schools'
     | '/admin/users'
     | '/app/admissions'
@@ -459,6 +470,7 @@ export interface FileRouteTypes {
     | '/reset-password'
     | '/schools'
     | '/admin/districts'
+    | '/admin/requests'
     | '/admin/schools'
     | '/admin/users'
     | '/app/admissions'
@@ -758,6 +770,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSchoolsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/requests': {
+      id: '/admin/requests'
+      path: '/requests'
+      fullPath: '/admin/requests'
+      preLoaderRoute: typeof AdminRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/districts': {
       id: '/admin/districts'
       path: '/districts'
@@ -796,6 +815,7 @@ const AdminSchoolsRouteWithChildren = AdminSchoolsRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminDistrictsRoute: typeof AdminDistrictsRoute
+  AdminRequestsRoute: typeof AdminRequestsRoute
   AdminSchoolsRoute: typeof AdminSchoolsRouteWithChildren
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -803,6 +823,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDistrictsRoute: AdminDistrictsRoute,
+  AdminRequestsRoute: AdminRequestsRoute,
   AdminSchoolsRoute: AdminSchoolsRouteWithChildren,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

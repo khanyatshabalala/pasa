@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ArrowRight, BookOpen, Users, Shield, Bell, GraduationCap, CalendarDays, TrendingUp, MessageCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowRight, BookOpen, Users, Shield, Bell, GraduationCap, CalendarDays, TrendingUp, MessageCircle, School } from "lucide-react";
+import { SchoolRegistrationForm } from "@/features/schools/SchoolRegistrationForm";
 
 export const Route = createFileRoute("/")({
   component: Landing
@@ -30,6 +33,8 @@ function Feature({ icon: Icon, title, body }: { icon: any; title: string; body: 
 }
 
 function Landing() {
+  const [schoolFormOpen, setSchoolFormOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       <PublicHeader />
@@ -91,6 +96,48 @@ function Landing() {
           <Feature icon={MessageCircle} title="AI assistant" body="AI-powered helper for parents and staff, in context." />
         </div>
       </section>
+
+      {/* SCHOOL REGISTRATION */}
+      <section className="container mx-auto px-4 pb-16">
+        <div className="rounded-2xl border border-accent/20 bg-accent/5 p-10 md:p-14 flex flex-col md:flex-row items-start md:items-center gap-8">
+          <div className="flex-1">
+            <div className="size-12 rounded-xl bg-accent/15 text-accent grid place-items-center mb-4">
+              <School className="size-6" />
+            </div>
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Is your school not on PASA yet?</h3>
+            <p className="text-muted-foreground mt-2 max-w-lg">
+              Submit a request and we'll reach out to get your school set up. It's free — no hidden costs, no contracts.
+            </p>
+            <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />Free for schools</li>
+              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />We handle the setup</li>
+              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />Ready in days, not weeks</li>
+            </ul>
+          </div>
+          <div className="shrink-0">
+            <Button
+              size="lg"
+              className="bg-accent text-accent-foreground hover:bg-accent/90"
+              onClick={() => setSchoolFormOpen(true)}
+            >
+              Register your school <ArrowRight className="ml-2 size-4" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* School registration dialog */}
+      <Dialog open={schoolFormOpen} onOpenChange={setSchoolFormOpen}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Register your school on PASA</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2 mb-4">
+            Fill in your details and we'll be in touch to get your school set up.
+          </p>
+          <SchoolRegistrationForm onClose={() => setSchoolFormOpen(false)} />
+        </DialogContent>
+      </Dialog>
 
       {/* CTA */}
       <section className="container mx-auto px-4 pb-24">

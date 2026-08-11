@@ -1,33 +1,40 @@
 import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { FundaLogo } from "@/components/layout/Logo";
-import { Building2, Map, Users, LayoutDashboard, LogOut, ArrowLeft, Settings, Trophy } from "lucide-react";
+import { Building2, Map, Users, LayoutDashboard, LogOut, ArrowLeft, Settings, School } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   component: AdminLayout
 });
 
 const items = [
-  { to: "/admin",          title: "Overview",   icon: LayoutDashboard, exact: true },
-  { to: "/admin/schools",  title: "Schools",    icon: Building2 },
-  { to: "/admin/districts",title: "Districts",  icon: Map },
-  { to: "/admin/users",    title: "Users & roles", icon: Users },
+  { to: "/admin",           title: "Overview",         icon: LayoutDashboard, exact: true },
+  { to: "/admin/schools",   title: "Schools",          icon: Building2 },
+  { to: "/admin/districts", title: "Districts",        icon: Map },
+  { to: "/admin/users",     title: "Users & roles",    icon: Users },
+  { to: "/admin/requests",  title: "School requests",  icon: School },
 ];
 
 function AdminLayout() {
   const { user, loading, primaryRole, roles, signOut, profile, displayName } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: r => r.location.pathname });
+  const [pendingRequests, setPendingRequests] = useState(0);
 
-  // Wait for: auth loading AND roles to be fetched (roles array populated)
   const rolesLoaded = !loading && (roles.length > 0 || user === null);
 
   useEffect(() => {
     if (!rolesLoaded) return;
     if (!user) navigate({ to: "/superadmin/auth" });
     else if (primaryRole !== "super_admin") navigate({ to: "/app" });
+    else {
+      // Load pending school request count
+      (supabase as any).from("school_requests").select("*", { count: "exact", head: true }).eq("status", "pending")
+        .then(({ count }: { count: number | null }) => setPendingRequests(count ?? 0));
+    }
   }, [user, rolesLoaded, primaryRole, navigate]);
 
   if (!rolesLoaded || !user || primaryRole !== "super_admin") {
@@ -54,6 +61,11 @@ function AdminLayout() {
               >
                 <it.icon className="size-4" />
                 {it.title}
+                {it.to === "/admin/requests" && pendingRequests > 0 && (
+                  <span className="ml-auto bg-orange-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 leading-none">
+                    {pendingRequests}
+                  </span>
+                )}
               </Link>
             );
           })}
