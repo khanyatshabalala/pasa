@@ -21,7 +21,7 @@ FROM eclipse-temurin:21-jre-alpine AS runtime
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -S pasa && adduser -S pasa -G pasa
+RUN addgroup --system pasa && adduser --system --ingroup pasa pasa
 USER pasa
 
 # Copy the fat JAR from build stage
