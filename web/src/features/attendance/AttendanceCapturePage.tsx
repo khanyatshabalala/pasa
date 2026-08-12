@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -8,11 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ClipboardList, ShieldAlert, Loader2, CheckCircle2, Clock, XCircle } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
+import type { ClassResponse, LearnerResponse, AttendanceResponse } from "@/lib/api";
 
 type AttendanceStatus = "present" | "late" | "absent";
-type Learner = { id: string; first_name: string; last_name: string; grade_id: number };
-type ClassOption = { id: string; name: string; grade_id: number | null };
 
 const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; icon: React.ReactNode }[] = [
   { value: "present", label: "Present", color: "bg-green-600 hover:bg-green-700 text-white",        icon: <CheckCircle2 className="size-3.5" /> },
@@ -23,32 +21,28 @@ const STATUS_OPTIONS: { value: AttendanceStatus; label: string; color: string; i
 function todayIso() { return new Date().toISOString().slice(0, 10); }
 
 export function AttendanceCapturePage() {
-  const { primaryRole, primarySchoolId, user } = useAuth();
+  const { primaryRole, primarySchoolId } = useAuth();
   const isStaff = ["teacher", "principal", "school_admin", "super_admin"].includes(primaryRole);
 
-  const [classes, setClasses]         = useState<ClassOption[]>([]);
-  const [selectedClass, setSelectedClass] = useState<ClassOption | null>(null);
-  const [learners, setLearners]       = useState<Learner[]>([]);
-  const [attendance, setAttendance]   = useState<Record<string, AttendanceStatus>>({});
-  const [existing, setExisting]       = useState<Record<string, string>>({}); // learner_id → record id
-  const [loading, setLoading]         = useState(true);
-  const [saving, setSaving]           = useState(false);
-  const [date]                        = useState(todayIso());
+  const [classes, setClasses]             = useState<ClassResponse[]>([]);
+  const [selectedClass, setSelectedClass] = useState<ClassResponse | null>(null);
+  const [learners, setLearners]           = useState<LearnerResponse[]>([]);
+  const [attendance, setAttendance]       = useState<Record<string, AttendanceStatus>>({});
+  const [existingIds, setExistingIds]     = useState<Record<string, string>>({});
+  const [loading, setLoading]             = useState(true);
+  const [saving, setSaving]               = useState(false);
+  const [date]                            = useState(todayIso());
 
   // Load classes
   useEffect(() => {
     if (!primarySchoolId || !isStaff) { setLoading(false); return; }
-    supabase
-      .from("classes")
-      .select("id, name, grade_id")
-      .eq("school_id", primarySchoolId)
-      .order("name")
-      .then(({ data }) => {
-        const list = (data ?? []) as ClassOption[];
+    api.get<ClassResponse[]>(`/api/v1/schools/${primarySchoolId}/classes`)
+      .then(list => {
         setClasses(list);
         if (list.length > 0) setSelectedClass(list[0]);
         else setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
   }, [primarySchoolId, isStaff]);
 
   // Load learners + existing attendance when class changes
@@ -56,35 +50,23 @@ export function AttendanceCapturePage() {
     if (!selectedClass || !primarySchoolId) return;
     setLoading(true);
 
-    const gradeId = selectedClass.grade_id;
-    const learnerQ = gradeId !== null
-      ? supabase.from("learners").select("id, first_name, last_name, grade_id")
-          .eq("school_id", primarySchoolId).eq("grade_id", gradeId).order("last_name")
-      : supabase.from("learners").select("id, first_name, last_name, grade_id")
-          .eq("school_id", primarySchoolId).order("last_name");
-
-    learnerQ.then(async ({ data: lData }) => {
-      const list = (lData ?? []) as Learner[];
-      setLearners(list);
-      if (!list.length) { setLoading(false); return; }
-
-      const { data: attData } = await supabase
-        .from("attendance")
-        .select("id, learner_id, status")
-        .in("learner_id", list.map(l => l.id))
-        .eq("date", date);
-
+    const gradeParam = selectedClass.gradeId ? `?gradeId=${selectedClass.gradeId}` : "";
+    Promise.all([
+      api.get<LearnerResponse[]>(`/api/v1/schools/${primarySchoolId}/learners${gradeParam}`),
+      api.get<AttendanceResponse[]>(`/api/v1/schools/${primarySchoolId}/attendance?date=${date}&classId=${selectedClass.id}`),
+    ]).then(([learnersData, attData]) => {
+      setLearners(learnersData);
       const statusMap: Record<string, AttendanceStatus> = {};
       const idMap: Record<string, string> = {};
-      for (const row of (attData ?? []) as any[]) {
-        statusMap[row.learner_id] = row.status;
-        idMap[row.learner_id] = row.id;
+      for (const row of attData) {
+        statusMap[row.learnerId] = row.status as AttendanceStatus;
+        idMap[row.learnerId] = row.id;
       }
       setAttendance(statusMap);
-      setExisting(idMap);
+      setExistingIds(idMap);
       setLoading(false);
-    });
-  }, [selectedClass, primarySchoolId]);
+    }).catch(() => setLoading(false));
+  }, [selectedClass, primarySchoolId, date]);
 
   const setStatus = (learnerId: string, status: AttendanceStatus) =>
     setAttendance(prev => ({ ...prev, [learnerId]: status }));
@@ -97,32 +79,28 @@ export function AttendanceCapturePage() {
 
   const doSave = async (statusMap: Record<string, AttendanceStatus>) => {
     setSaving(true);
-    const upserts = learners.map(l => ({
-      ...(existing[l.id] ? { id: existing[l.id] } : {}),
-      learner_id:  l.id,
-      date,
-      status:      statusMap[l.id] ?? "absent",
-      recorded_by: user?.id,
-    }));
-    const { error } = await supabase
-      .from("attendance")
-      .upsert(upserts as any, { onConflict: "learner_id,date" });
-    setSaving(false);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success(`Attendance saved for ${new Date(date + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}`);
+    try {
+      await Promise.all(
+        learners.map(l =>
+          api.post(`/api/v1/learners/${l.id}/attendance`, {
+            date,
+            status: statusMap[l.id] ?? "absent",
+          })
+        )
+      );
+      toast.success(`Attendance saved for ${new Date(date + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}`);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to save attendance");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onSave = async () => {
-    const unmarked = learners.filter(l => !attendance[l.id]);
-    if (unmarked.length > 0) {
-      // Mark all unmarked as absent automatically
-      const updated = { ...attendance };
-      unmarked.forEach(l => { updated[l.id] = "absent"; });
-      setAttendance(updated);
-      await doSave(updated);
-    } else {
-      await doSave(attendance);
-    }
+    const updated = { ...attendance };
+    learners.filter(l => !updated[l.id]).forEach(l => { updated[l.id] = "absent"; });
+    setAttendance(updated);
+    await doSave(updated);
   };
 
   if (!isStaff) {
@@ -158,7 +136,6 @@ export function AttendanceCapturePage() {
         }
       />
 
-      {/* Class selector */}
       {classes.length > 0 && (
         <div className="flex items-center gap-3 mb-5 flex-wrap">
           <span className="text-sm text-muted-foreground">Class:</span>
@@ -183,17 +160,11 @@ export function AttendanceCapturePage() {
         </div>
       )}
 
-      {/* Quick mark all */}
       {learners.length > 0 && (
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <span className="text-xs text-muted-foreground">Mark all:</span>
           {STATUS_OPTIONS.map(opt => (
-            <Button
-              key={opt.value}
-              size="sm"
-              className={`h-7 text-xs gap-1 ${opt.color}`}
-              onClick={() => markAll(opt.value)}
-            >
+            <Button key={opt.value} size="sm" className={`h-7 text-xs gap-1 ${opt.color}`} onClick={() => markAll(opt.value)}>
               {opt.icon}{opt.label}
             </Button>
           ))}
@@ -218,7 +189,6 @@ export function AttendanceCapturePage() {
             <thead className="bg-muted/50 text-left text-xs text-muted-foreground">
               <tr>
                 <th className="p-3">Learner</th>
-                <th className="p-3">Grade</th>
                 <th className="p-3 text-right">Status</th>
               </tr>
             </thead>
@@ -227,12 +197,7 @@ export function AttendanceCapturePage() {
                 const status = attendance[l.id];
                 return (
                   <tr key={l.id} className="border-t align-middle">
-                    <td className="p-3 font-medium">
-                      {l.first_name} {l.last_name}
-                    </td>
-                    <td className="p-3 text-muted-foreground text-xs">
-                      Grade {l.grade_id === 0 ? "R" : l.grade_id}
-                    </td>
+                    <td className="p-3 font-medium">{l.firstName} {l.lastName}</td>
                     <td className="p-3">
                       <div className="flex gap-1.5 justify-end">
                         {STATUS_OPTIONS.map(opt => (
@@ -240,9 +205,7 @@ export function AttendanceCapturePage() {
                             key={opt.value}
                             size="sm"
                             className={`h-7 px-2.5 text-xs gap-1 transition-opacity ${
-                              status === opt.value
-                                ? opt.color
-                                : "bg-muted text-muted-foreground hover:bg-muted/80"
+                              status === opt.value ? opt.color : "bg-muted text-muted-foreground hover:bg-muted/80"
                             }`}
                             onClick={() => setStatus(l.id, opt.value)}
                           >

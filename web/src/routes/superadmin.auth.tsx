@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,6 @@ import { Card } from "@/components/ui/card";
 import { FundaLogo } from "@/components/layout/Logo";
 import { toast } from "sonner";
 import { Loader2, ShieldAlert } from "lucide-react";
-import { friendlyAuthError } from "@/lib/auth-errors";
 
 export const Route = createFileRoute("/superadmin/auth")({
   component: AdminAuth
@@ -23,46 +22,33 @@ const schema = z.object({
 
 function AdminAuth() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, onSignIn } = useAuth();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user) navigate({ to: "/admin" });
   }, [user, authLoading, navigate]);
 
-  const onSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSignInSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const parsed = schema.safeParse({ email: fd.get("email"), password: fd.get("password") });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
 
     setLoading(true);
-
-    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-    if (error) {
+    try {
+      const resp = await api.post<{ token: string; userId: string; role: string }>(
+        "/api/v1/auth/admin/signin",
+        parsed.data,
+        { skipAuth: true }
+      );
+      await onSignIn(resp);
+      navigate({ to: "/admin" });
+    } catch (err: any) {
+      toast.error(err.message ?? "Access denied");
+    } finally {
       setLoading(false);
-      return toast.error(friendlyAuthError(error));
     }
-
-    const { data: roleRows, error: roleError } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", data.user.id);
-
-    console.log("user id:", data.user.id);
-    console.log("role rows:", roleRows);
-    console.log("role error:", roleError);
-
-    const isSuperAdmin = (roleRows ?? []).some((r) => r.role === "super_admin");
-
-    if (!isSuperAdmin) {
-      await supabase.auth.signOut();
-      setLoading(false);
-      toast.error("Access denied. This portal is for super admins only.");
-      return;
-    }
-
-    navigate({ to: "/admin" });
   };
 
   return (
@@ -80,7 +66,7 @@ function AdminAuth() {
         </div>
 
         <Card className="p-6">
-          <form onSubmit={onSignIn} className="space-y-4">
+          <form onSubmit={onSignInSubmit} className="space-y-4">
             <div>
               <Label htmlFor="ae">Email</Label>
               <Input id="ae" name="email" type="email" required autoComplete="email" />
@@ -105,4 +91,3 @@ function AdminAuth() {
     </div>
   );
 }
-

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,8 +12,6 @@ import { BarefootLoader } from "@/components/shared/Loader";
 import { toast } from "sonner";
 import { ShieldCheck } from "lucide-react";
 
-import { friendlyAuthError } from "@/lib/auth-errors";
-
 export const Route = createFileRoute("/school/auth")({
   component: SchoolAuth
 });
@@ -23,52 +21,35 @@ const schema = z.object({
   password: z.string().min(6).max(72),
 });
 
-const STAFF_ROLES = ["super_admin", "school_admin", "principal", "teacher"];
-
 function SchoolAuth() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, onSignIn } = useAuth();
   const [loading, setLoading] = useState(false);
 
-  // If already signed in (e.g. page refresh), redirect immediately
   useEffect(() => {
     if (!authLoading && user) navigate({ to: "/app" });
   }, [user, authLoading, navigate]);
 
-  const onSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
+  const onSignInSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const parsed = schema.safeParse({ email: fd.get("email"), password: fd.get("password") });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
 
     setLoading(true);
-
-    const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
-    if (error) {
+    try {
+      const resp = await api.post<{ token: string; userId: string; role: string; schoolId?: string }>(
+        "/api/v1/auth/staff/signin",
+        parsed.data,
+        { skipAuth: true }
+      );
+      await onSignIn(resp);
+      navigate({ to: "/app" });
+    } catch (err: any) {
+      toast.error(err.message ?? "Invalid email or password");
+    } finally {
       setLoading(false);
-      return toast.error(friendlyAuthError(error));
     }
-
-    // Fetch roles immediately — we have the session right now
-    const { data: roleRows } = await supabase
-      .from("user_roles")
-      .select("role, school_id")
-      .eq("user_id", data.user.id);
-
-    const roles = roleRows ?? [];
-    const isStaff = roles.some((r) => STAFF_ROLES.includes(r.role));
-
-    if (!isStaff) {
-      await supabase.auth.signOut();
-      setLoading(false);
-      toast.error("This portal is for school staff only. Please use the parent sign-in.");
-      navigate({ to: "/auth" });
-      return;
-    }
-
-    // Route super_admin to the admin console, everyone else to the app
-    const isSuperAdmin = roles.some((r) => r.role === "super_admin");
-    navigate({ to: isSuperAdmin ? "/admin" : "/app" });
   };
 
   return (
@@ -100,7 +81,7 @@ function SchoolAuth() {
           <p className="text-xs text-muted-foreground mt-1">
             Parents: <Link to="/auth" className="text-accent hover:underline">sign up here</Link>
           </p>
-          <form onSubmit={onSignIn} className="space-y-4 mt-6">
+          <form onSubmit={onSignInSubmit} className="space-y-4 mt-6">
             <div>
               <Label htmlFor="se">Work email</Label>
               <Input id="se" name="email" type="email" required autoComplete="email" />
@@ -126,4 +107,3 @@ function SchoolAuth() {
     </div>
   );
 }
-

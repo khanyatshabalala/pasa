@@ -1,26 +1,14 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
 import type { Learner, DisciplineType, LogRecordFormState } from "./types";
 import { DISCIPLINE_TYPES } from "./types";
 
@@ -88,23 +76,23 @@ export function DisciplineForm({
       return toast.error("Points must be a non-negative number");
 
     setSaving(true);
-    const { error } = await supabase.from("discipline_records").insert({
-      learner_id:  form.learnerId,
-      type:        form.type as DisciplineType,
-      title:       form.title.trim(),
-      description: form.description.trim() || null,
-      points,
-      date:        form.date,
-      recorded_by: user?.id,
-    });
-    setSaving(false);
-
-    if (error) return toast.error(friendlyDbError(error));
-
-    toast.success("Record logged successfully");
-    resetForm();
-    onOpenChange(false);
-    onSaved();
+    try {
+      await api.post(`/api/v1/learners/${form.learnerId}/discipline`, {
+        type:        form.type,
+        title:       form.title.trim(),
+        description: form.description.trim() || null,
+        points,
+        date:        form.date,
+      });
+      toast.success("Record logged successfully");
+      resetForm();
+      onOpenChange(false);
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to log record");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

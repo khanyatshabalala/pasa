@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type DistrictResponse } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,8 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Loader2, Trash2 } from "lucide-react";
-
-import { friendlyDbError } from "@/lib/db-errors";
 
 const PROVINCES = [
   "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo",
@@ -23,51 +21,56 @@ const schema = z.object({
   code: z.string().trim().max(20).optional().or(z.literal("")),
 });
 
-type District = { id: string; name: string; province: string; code: string | null; created_at: string };
-
 export function DistrictsPage() {
-  const [rows, setRows] = useState<District[]>([]);
+  const [rows, setRows] = useState<DistrictResponse[]>([]);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [province, setProvince] = useState<string>("Western Cape");
 
   const load = async () => {
-    const { data } = await supabase.from("districts").select("*").order("province").order("name");
-    setRows((data ?? []) as District[]);
+    try {
+      const data = await api.get<DistrictResponse[]>("/api/v1/admin/districts");
+      setRows(data);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to load districts");
+    }
   };
   useEffect(() => { load(); }, []);
 
   const onCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const parsed = schema.safeParse({
-      name: fd.get("name"),
-      province,
-      code: fd.get("code") || "",
-    });
+    const parsed = schema.safeParse({ name: fd.get("name"), province, code: fd.get("code") || "" });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
     setSaving(true);
-    const { error } = await supabase.from("districts").insert({
-      name: parsed.data.name,
-      province: parsed.data.province as any,
-      code: parsed.data.code || null,
-    });
-    setSaving(false);
-    if (error) return toast.error(friendlyDbError(error, { duplicate: "A district with that name already exists in this province." }));
-    toast.success("District created");
-    setOpen(false);
-    load();
+    try {
+      await api.post("/api/v1/admin/districts", {
+        name: parsed.data.name,
+        province: parsed.data.province,
+        code: parsed.data.code || null,
+      });
+      toast.success("District created");
+      setOpen(false);
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to create district");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onDelete = async (id: string) => {
     if (!confirm("Delete this district? Schools linked to it will be unlinked.")) return;
-    const { error } = await supabase.from("districts").delete().eq("id", id);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success("Deleted");
-    load();
+    try {
+      await api.delete(`/api/v1/admin/districts/${id}`);
+      toast.success("Deleted");
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete district");
+    }
   };
 
-  const grouped = rows.reduce<Record<string, District[]>>((acc, r) => {
+  const grouped = rows.reduce<Record<string, DistrictResponse[]>>((acc, r) => {
     (acc[r.province] ??= []).push(r);
     return acc;
   }, {});
@@ -81,7 +84,9 @@ export function DistrictsPage() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90"><Plus className="size-4 mr-1" /> New district</Button>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Plus className="size-4 mr-1" /> New district
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Create district</DialogTitle></DialogHeader>

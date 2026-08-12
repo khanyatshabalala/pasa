@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -11,20 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Trash2, Loader2, GraduationCap, ShieldAlert, Users } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
-
-type ClassRow = {
-  id: string;
-  name: string;
-  grade_id: number;
-  academic_year: number;
-  teacher_user_id: string | null;
-  teacher_name: string | null;
-};
-
-type Grade = { id: number; label: string };
-
-type StaffMember = { id: string; full_name: string | null };
+import type { ClassResponse, GradeResponse, StaffResponse } from "@/lib/api";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -32,62 +19,34 @@ export function ClassesPage() {
   const { primaryRole, primarySchoolId } = useAuth();
   const canManage = ["principal", "school_admin", "super_admin"].includes(primaryRole);
 
-  const [classes, setClasses]   = useState<ClassRow[]>([]);
-  const [grades, setGrades]     = useState<Grade[]>([]);
-  const [staff, setStaff]       = useState<StaffMember[]>([]);
+  const [classes, setClasses]   = useState<ClassResponse[]>([]);
+  const [grades, setGrades]     = useState<GradeResponse[]>([]);
+  const [staff, setStaff]       = useState<StaffResponse[]>([]);
   const [loading, setLoading]   = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving]     = useState(false);
 
-  // Form state
   const [name, setName]               = useState("");
-  const [gradeId, setGradeId]         = useState<string>("");
-  const [teacherId, setTeacherId]     = useState<string>("none");
+  const [gradeId, setGradeId]         = useState("");
+  const [teacherId, setTeacherId]     = useState("none");
   const [academicYear, setAcademicYear] = useState(String(CURRENT_YEAR));
 
   const load = async () => {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
-
-    const [{ data: classData }, { data: gradeData }, { data: roleData }] = await Promise.all([
-      supabase
-        .from("classes")
-        .select("id, name, grade_id, academic_year, teacher_user_id")
-        .eq("school_id", primarySchoolId)
-        .order("grade_id")
-        .order("name"),
-      supabase.from("grades").select("id, label").order("id"),
-      supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("school_id", primarySchoolId)
-        .in("role", ["teacher", "school_admin", "principal"]),
-    ]);
-
-    setGrades((gradeData ?? []) as Grade[]);
-
-    // Load staff profiles
-    const staffIds = [...new Set((roleData ?? []).map((r: any) => r.user_id))];
-    let staffList: StaffMember[] = [];
-    if (staffIds.length > 0) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", staffIds)
-        .order("full_name");
-      staffList = (profileData ?? []) as StaffMember[];
+    try {
+      const [classData, gradeData, staffData] = await Promise.all([
+        api.get<ClassResponse[]>(`/api/v1/schools/${primarySchoolId}/classes`),
+        api.get<GradeResponse[]>("/api/v1/grades"),
+        api.get<StaffResponse[]>(`/api/v1/schools/${primarySchoolId}/staff`),
+      ]);
+      setClasses(classData);
+      setGrades(gradeData);
+      setStaff(staffData);
+    } finally {
+      setLoading(false);
     }
-    setStaff(staffList);
-
-    // Enrich classes with teacher names
-    const staffMap = Object.fromEntries(staffList.map((s) => [s.id, s.full_name]));
-    const enriched: ClassRow[] = (classData ?? []).map((c: any) => ({
-      ...c,
-      teacher_name: c.teacher_user_id ? (staffMap[c.teacher_user_id] ?? "Unknown") : null,
-    }));
-    setClasses(enriched);
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
@@ -104,29 +63,35 @@ export function ClassesPage() {
     if (!primarySchoolId) return;
 
     setSaving(true);
-    const { error } = await supabase.from("classes").insert({
-      school_id:       primarySchoolId,
-      name:            name.trim(),
-      grade_id:        parseInt(gradeId),
-      teacher_user_id: teacherId === "none" ? null : teacherId,
-      academic_year:   parseInt(academicYear),
-    });
-    setSaving(false);
-
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success(`Class "${name.trim()}" created`);
-    setDialogOpen(false);
-    resetForm();
-    load();
+    try {
+      await api.post(`/api/v1/schools/${primarySchoolId}/classes`, {
+        name: name.trim(),
+        gradeId,
+        teacherUserId: teacherId === "none" ? null : teacherId,
+        academicYear:  parseInt(academicYear),
+      });
+      toast.success(`Class "${name.trim()}" created`);
+      setDialogOpen(false);
+      resetForm();
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to create class");
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const onDelete = async (cls: ClassRow) => {
+  const onDelete = async (cls: ClassResponse) => {
     setDeleting(cls.id);
-    const { error } = await supabase.from("classes").delete().eq("id", cls.id);
-    setDeleting(null);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success(`"${cls.name}" deleted`);
-    load();
+    try {
+      await api.delete(`/api/v1/schools/${primarySchoolId}/classes/${cls.id}`);
+      toast.success(`"${cls.name}" deleted`);
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete class");
+    } finally {
+      setDeleting(null);
+    }
   };
 
   if (!canManage) {
@@ -141,15 +106,18 @@ export function ClassesPage() {
     );
   }
 
-  // Group by grade for display
-  const byGrade = classes.reduce<Record<number, ClassRow[]>>((acc, c) => {
-    (acc[c.grade_id] ??= []).push(c);
-    return acc;
-  }, {});
-  const sortedGrades = Object.keys(byGrade).map(Number).sort((a, b) => a - b);
+  const gradeLabel = (id: string | null) =>
+    grades.find(g => g.id === id)?.name ?? id ?? "—";
 
-  const gradeLabel = (id: number) =>
-    grades.find((g) => g.id === id)?.label ?? (id === 0 ? "Grade R" : `Grade ${id}`);
+  const staffName = (uid: string | null) =>
+    staff.find(s => s.userId === uid)?.fullName ?? "Unknown";
+
+  // Group by gradeId
+  const byGrade: Record<string, ClassResponse[]> = {};
+  for (const c of classes) {
+    const key = c.gradeId ?? "unset";
+    (byGrade[key] ??= []).push(c);
+  }
 
   return (
     <div className="max-w-4xl">
@@ -157,14 +125,9 @@ export function ClassesPage() {
         title="Classes"
         sub={`Manage class groups · ${CURRENT_YEAR}`}
         action={
-          canManage && (
-            <Button
-              className="bg-accent text-accent-foreground hover:bg-accent/90"
-              onClick={() => setDialogOpen(true)}
-            >
-              <Plus className="size-4 mr-1.5" /> Add class
-            </Button>
-          )
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={() => setDialogOpen(true)}>
+            <Plus className="size-4 mr-1.5" /> Add class
+          </Button>
         }
       />
 
@@ -178,10 +141,10 @@ export function ClassesPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {sortedGrades.map((gId) => (
+          {Object.entries(byGrade).map(([gId, list]) => (
             <div key={gId}>
               <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                {gradeLabel(gId)}
+                {gradeLabel(gId === "unset" ? null : gId)}
               </h2>
               <Card className="overflow-hidden">
                 <table className="w-full text-sm">
@@ -194,7 +157,7 @@ export function ClassesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {byGrade[gId].map((cls) => (
+                    {list.map(cls => (
                       <tr key={cls.id} className="border-t align-middle">
                         <td className="p-3">
                           <div className="flex items-center gap-2">
@@ -205,26 +168,14 @@ export function ClassesPage() {
                           </div>
                         </td>
                         <td className="p-3">
-                          {cls.teacher_name ? (
-                            <Badge variant="secondary">{cls.teacher_name}</Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-xs">Unassigned</span>
-                          )}
+                          {cls.teacherUserId
+                            ? <Badge variant="secondary">{staffName(cls.teacherUserId)}</Badge>
+                            : <span className="text-muted-foreground text-xs">Unassigned</span>}
                         </td>
-                        <td className="p-3 text-muted-foreground text-xs">
-                          {cls.academic_year}
-                        </td>
+                        <td className="p-3 text-muted-foreground text-xs">{cls.academicYear}</td>
                         <td className="p-3 text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            disabled={deleting === cls.id}
-                            onClick={() => onDelete(cls)}
-                            title="Delete class"
-                          >
-                            {deleting === cls.id
-                              ? <Loader2 className="size-4 animate-spin" />
-                              : <Trash2 className="size-4 text-destructive" />}
+                          <Button size="icon" variant="ghost" disabled={deleting === cls.id} onClick={() => onDelete(cls)}>
+                            {deleting === cls.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4 text-destructive" />}
                           </Button>
                         </td>
                       </tr>
@@ -237,79 +188,48 @@ export function ClassesPage() {
         </div>
       )}
 
-      {/* ── Add class dialog ── */}
-      <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) resetForm(); }}>
+      <Dialog open={dialogOpen} onOpenChange={v => { setDialogOpen(v); if (!v) resetForm(); }}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Add class</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Add class</DialogTitle></DialogHeader>
           <form onSubmit={onSave} className="space-y-4 mt-1">
             <div>
               <Label htmlFor="cls-name">Class name</Label>
-              <Input
-                id="cls-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. 10A or Grade 4 Maths"
-                required
-                autoFocus
-              />
+              <Input id="cls-name" value={name} onChange={e => setName(e.target.value)} placeholder="e.g. 10A or Grade 4 Maths" required autoFocus />
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Grade</Label>
                 <Select value={gradeId} onValueChange={setGradeId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select grade" />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {grades.map((g) => (
-                      <SelectItem key={g.id} value={String(g.id)}>{g.label}</SelectItem>
-                    ))}
+                    {grades.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
                 <Label>Year</Label>
                 <Select value={academicYear} onValueChange={setAcademicYear}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map((y) => (
+                    {[CURRENT_YEAR - 1, CURRENT_YEAR, CURRENT_YEAR + 1].map(y => (
                       <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             </div>
-
             <div>
               <Label>Assign teacher <span className="text-muted-foreground text-xs">(optional)</span></Label>
               <Select value={teacherId} onValueChange={setTeacherId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Unassigned" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Unassigned" /></SelectTrigger>
                 <SelectContent className="max-h-60">
                   <SelectItem value="none">Unassigned</SelectItem>
-                  {staff.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.full_name ?? s.id}
-                    </SelectItem>
-                  ))}
+                  {staff.map(s => <SelectItem key={s.id} value={s.userId}>{s.fullName ?? s.userId}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-
-            <Button
-              type="submit"
-              disabled={saving || !name.trim() || !gradeId}
-              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
-            >
-              {saving
-                ? <><Loader2 className="size-4 animate-spin mr-2" />Saving…</>
-                : <><Plus className="size-4 mr-2" />Create class</>}
+            <Button type="submit" disabled={saving || !name.trim() || !gradeId} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+              {saving ? <><Loader2 className="size-4 animate-spin mr-2" />Saving…</> : <><Plus className="size-4 mr-2" />Create class</>}
             </Button>
           </form>
         </DialogContent>

@@ -1,109 +1,143 @@
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import { api, clearToken, getToken, setToken, type ProfileResponse, type TokenResponse } from "./api";
 
-export type UserRole = "parent" | "teacher" | "principal" | "school_admin" | "super_admin";
+export type UserRole =
+  | "parent"
+  | "teacher"
+  | "principal"
+  | "school_admin"
+  | "super_admin";
 
-export interface RoleRow {
+export interface AuthUser {
+  id: string;
+  email: string;
   role: UserRole;
-  school_id: string | null;
+  /** school_id extracted from profile/roles — null for super_admin and parent without a school */
+  schoolId: string | null;
 }
 
 interface AuthCtx {
-  user: User | null;
-  session: Session | null;
-  /** True only during the very first session check on mount (page refresh) */
+  user: AuthUser | null;
+  profile: ProfileResponse | null;
   loading: boolean;
-  roles: RoleRow[];
-  profile: { full_name: string | null; avatar_url: string | null; subscription_tier: "free" | "premium"; phone?: string | null } | null;
-  refresh: () => Promise<void>;
-  signOut: () => Promise<void>;
   primaryRole: UserRole;
   primarySchoolId: string | null;
-  /** Name available immediately from auth metadata — no DB round-trip needed */
   displayName: string | null;
+  /** Call after a successful sign-in to store token + hydrate context */
+  onSignIn: (resp: TokenResponse & { schoolId?: string | null }) => Promise<void>;
+  signOut: () => void;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthCtx | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [roles, setRoles] = useState<RoleRow[]>([]);
-  const [profile, setProfile] = useState<AuthCtx["profile"]>(null);
+// Decode JWT payload without verifying (we trust our own backend)
+function decodeJwt(token: string): { sub: string; email: string; role: string; exp: number } | null {
+  try {
+    const payload = token.split(".")[1];
+    return JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+  } catch {
+    return null;
+  }
+}
 
-  // Prevent double-fetching for the same user
+function isExpired(token: string): boolean {
+  const decoded = decodeJwt(token);
+  if (!decoded) return true;
+  return decoded.exp * 1000 < Date.now();
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [loading, setLoading] = useState(true);
   const fetchedUid = useRef<string | null>(null);
 
-  const loadUserData = async (uid: string) => {
+  const loadProfile = async (uid: string) => {
     if (fetchedUid.current === uid) return;
     fetchedUid.current = uid;
-    const [{ data: roleRows }, { data: prof }] = await Promise.all([
-      supabase.from("user_roles").select("role, school_id").eq("user_id", uid),
-      (supabase as any).from("profiles").select("full_name, avatar_url, subscription_tier, phone").eq("id", uid).maybeSingle(),
-    ]);
-    setRoles((roleRows ?? []) as RoleRow[]);
-    setProfile(prof as AuthCtx["profile"]);
+    try {
+      const p = await api.get<ProfileResponse>("/api/v1/profile");
+      setProfile(p);
+    } catch {
+      // non-fatal — profile may not be available yet
+    }
   };
 
-  const clearUserData = () => {
+  const hydrateFromToken = async (token: string) => {
+    const decoded = decodeJwt(token);
+    if (!decoded) return;
+    const u: AuthUser = {
+      id: decoded.sub,
+      email: decoded.email,
+      role: decoded.role as UserRole,
+      schoolId: null, // will be filled after profile load if needed
+    };
+    setUser(u);
+    await loadProfile(decoded.sub);
+  };
+
+  // Restore session on mount
+  useEffect(() => {
+    const token = getToken();
+    if (token && !isExpired(token)) {
+      hydrateFromToken(token).finally(() => setLoading(false));
+    } else {
+      clearToken();
+      setLoading(false);
+    }
+  }, []);
+
+  const onSignIn = async (resp: TokenResponse & { schoolId?: string | null }) => {
+    setToken(resp.token);
+    const decoded = decodeJwt(resp.token);
+    if (!decoded) return;
+    const u: AuthUser = {
+      id: decoded.sub,
+      email: decoded.email,
+      role: decoded.role as UserRole,
+      schoolId: resp.schoolId ?? null,
+    };
+    setUser(u);
+    fetchedUid.current = null; // force profile reload
+    await loadProfile(decoded.sub);
+  };
+
+  const signOut = () => {
+    clearToken();
     fetchedUid.current = null;
-    setRoles([]);
+    setUser(null);
     setProfile(null);
   };
 
-  useEffect(() => {
-    // Listen for future auth changes (token refresh, sign-out from another tab, etc.)
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, sess) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        loadUserData(sess.user.id);
-      } else {
-        clearUserData();
-      }
-    });
+  const refresh = async () => {
+    if (!user) return;
+    fetchedUid.current = null;
+    await loadProfile(user.id);
+  };
 
-    // Restore session on mount (page refresh / returning user)
-    supabase.auth.getSession().then(({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) loadUserData(sess.user.id);
-      setLoading(false);
-    });
-
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
-  // Role priority: super_admin > principal > school_admin > teacher > parent
-  const order: UserRole[] = ["super_admin", "principal", "school_admin", "teacher", "parent"];
-  const sorted = [...roles].sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role));
-  const primary = sorted[0];
-  const primaryRole: UserRole = primary?.role ?? "parent";
-  const primarySchoolId = primary?.school_id ?? null;
+  const primaryRole: UserRole = user?.role ?? "parent";
+  const primarySchoolId = user?.schoolId ?? profile ? null : null;
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        session,
-        loading,
-        roles,
         profile,
+        loading,
         primaryRole,
-        primarySchoolId,
-        // Use DB profile name if loaded, fall back to auth metadata immediately
-        displayName: profile?.full_name ?? user?.user_metadata?.full_name ?? null,
-        refresh: async () => {
-          if (user) {
-            fetchedUid.current = null;
-            await loadUserData(user.id);
-          }
-        },
-        signOut: async () => {
-          await supabase.auth.signOut();
-        },
+        primarySchoolId: user?.schoolId ?? null,
+        displayName: profile?.fullName ?? null,
+        onSignIn,
+        signOut,
+        refresh,
       }}
     >
       {children}

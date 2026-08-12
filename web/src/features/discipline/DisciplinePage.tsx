@@ -1,20 +1,13 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Search, Star, AlertTriangle, ShieldAlert, Zap } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
 import type { DisciplineRow, DisciplineType, Learner, TermStats } from "./types";
 import { DISCIPLINE_TYPES } from "./types";
 import { DisciplineTable } from "./DisciplineTable";
@@ -89,7 +82,7 @@ function StatCard({
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export function DisciplinePage() {
-  const { primaryRole, primarySchoolId, user } = useAuth();
+  const { primaryRole, primarySchoolId } = useAuth();
 
   const [learners, setLearners] = useState<Learner[]>([]);
   const [records, setRecords]   = useState<DisciplineRow[]>([]);
@@ -107,45 +100,44 @@ export function DisciplinePage() {
     if (!primarySchoolId) return;
     setLoading(true);
 
-    // Fetch learners first to get IDs for the records query
-    const { data: lData } = await supabase
-      .from("learners")
-      .select("id, first_name, last_name, grade_id, learner_number")
-      .eq("school_id", primarySchoolId)
-      .order("last_name");
+    try {
+      const learnersData = await api.get<{ id: string; firstName: string; lastName: string; gradeId: string | null; learnerNumber: string | null }[]>(
+        `/api/v1/schools/${primarySchoolId}/learners`
+      );
 
-    const learnerList = (lData ?? []) as Learner[];
-    setLearners(learnerList);
+      // Map to local Learner shape
+      const learnerList: Learner[] = learnersData.map(l => ({
+        id: l.id,
+        first_name: l.firstName,
+        last_name: l.lastName,
+        grade_id: parseInt(l.gradeId ?? "0") || 0,
+        learner_number: l.learnerNumber,
+      }));
+      setLearners(learnerList);
 
-    const ids = learnerList.map((l) => l.id);
-
-    if (ids.length > 0) {
-      const { data: rData } = await supabase
-        .from("discipline_records")
-        .select("id, date, title, description, type, points, recorded_at, recorded_by, learner_id, learners(first_name, last_name, grade_id)")
-        .in("learner_id", ids)
-        .order("date", { ascending: false });
-      setRecords((rData ?? []) as DisciplineRow[]);
-    } else {
-      setRecords([]);
+      // Fetch discipline records for all learners at once via school endpoint
+      const records = await api.get<any[]>(`/api/v1/schools/${primarySchoolId}/discipline`);
+      setRecords(records);
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to load discipline records");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
 
   const handleDelete = async (record: DisciplineRow) => {
-    if (!user) return;
     setDeleting(record.id);
-    const { error } = await supabase
-      .from("discipline_records")
-      .delete()
-      .eq("id", record.id);
-    setDeleting(null);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success("Record deleted");
-    load();
+    try {
+      await api.delete(`/api/v1/learners/${record.learner_id}/discipline/${record.id}`);
+      toast.success("Record deleted");
+      load();
+    } catch (err: any) {
+      toast.error(err.message ?? "Failed to delete record");
+    } finally {
+      setDeleting(null);
+    }
   };
 
   // No school guard

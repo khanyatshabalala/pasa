@@ -1,9 +1,11 @@
 package com.pasa.backend.controller;
 
+import com.pasa.backend.dto.request.ChangePasswordRequest;
 import com.pasa.backend.dto.request.UpdateProfileRequest;
 import com.pasa.backend.dto.response.ProfileResponse;
 import com.pasa.backend.service.ProfileService;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,5 +32,14 @@ public class ProfileController {
             Authentication auth
     ) {
         return profileService.updateProfile((UUID) auth.getPrincipal(), req);
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(
+            @Valid @RequestBody ChangePasswordRequest req,
+            Authentication auth
+    ) {
+        profileService.changePassword((UUID) auth.getPrincipal(), req);
+        return ResponseEntity.noContent().build();
     }
 }

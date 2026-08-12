@@ -33,6 +33,12 @@ public class DisciplineService {
                 .toList();
     }
 
+    public List<DisciplineResponse> getDisciplineForSchool(UUID schoolId) {
+        return disciplineRepo.findBySchoolIdOrderByDateDesc(schoolId).stream()
+                .map(DisciplineMapper::toResponse)
+                .toList();
+    }
+
     public DisciplineResponse createRecord(UUID learnerId, CreateDisciplineRequest req, UUID userId) {
         Learner learner = learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));

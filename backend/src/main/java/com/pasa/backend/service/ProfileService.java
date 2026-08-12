@@ -1,9 +1,11 @@
 package com.pasa.backend.service;
 
+import com.pasa.backend.dto.request.ChangePasswordRequest;
 import com.pasa.backend.dto.request.UpdateProfileRequest;
 import com.pasa.backend.dto.response.ProfileResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -13,9 +15,11 @@ import java.util.UUID;
 public class ProfileService {
 
     private final JdbcTemplate jdbc;
+    private final BCryptPasswordEncoder encoder;
 
-    public ProfileService(JdbcTemplate jdbc) {
+    public ProfileService(JdbcTemplate jdbc, BCryptPasswordEncoder encoder) {
         this.jdbc = jdbc;
+        this.encoder = encoder;
     }
 
     public ProfileResponse getProfile(UUID userId) {
@@ -63,5 +67,20 @@ public class ProfileService {
         );
 
         return getProfile(userId);
+    }
+
+    public void changePassword(UUID userId, ChangePasswordRequest req) {
+        var rows = jdbc.queryForList(
+            "SELECT encrypted_password FROM auth.users WHERE id = ?", userId
+        );
+        if (rows.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+        String hash = (String) rows.get(0).get("encrypted_password");
+        if (!encoder.matches(req.currentPassword(), hash)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Current password is incorrect");
+        }
+        String newHash = encoder.encode(req.newPassword());
+        jdbc.update("UPDATE auth.users SET encrypted_password = ?, updated_at = now() WHERE id = ?", newHash, userId);
     }
 }
