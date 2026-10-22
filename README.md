@@ -73,19 +73,16 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 - ✅ Staff invite (creates account + assigns role in one step)
 - ✅ Calendar management
 - ✅ Examination timetable management
-- ✅ Test scheduling
 - ✅ Extra class management
 - ✅ Learner conduct visibility
 - ✅ Attendance tracking
-- ✅ Marks recording
 - ✅ Learner transfers
 - ✅ Push notifications
 - ✅ Role-based access control
 - ✅ Row-level security
-- ✅ Portal-separated authentication (parent / staff / admin sign-in)
+- ✅ Portal-separated authentication (parent / school staff / admin sign-in)
 - ✅ Password reset flow
 - ✅ User profile management
-- ✅ Swagger/OpenAPI interactive documentation
 - ✅ Actuator health/metrics endpoints
 - ✅ Audit logging
 
@@ -97,7 +94,7 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 |---|---|---|
 | Schools | Free | R0 — removing barriers to adoption |
 | Parents | Free | One learner profile |
-| Parents | Premium | R19.99/month — multiple learner profiles, advanced notifications, cross-school scheduling intelligence, AI-powered educational assistance |
+| Parents | Premium | R19.99/month — multiple learner profiles, advanced notifications, no ads, cross-school scheduling intelligence |
 
 ---
 
