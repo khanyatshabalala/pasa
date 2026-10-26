@@ -1,5 +1,6 @@
 package com.pasa.backend.controller;
 
+import com.pasa.backend.dto.response.ChildDetailResponse;
 import com.pasa.backend.dto.response.ParentDashboardResponse;
 import com.pasa.backend.dto.response.SchoolDashboardResponse;
 import com.pasa.backend.service.DashboardService;
@@ -29,5 +30,11 @@ public class DashboardController {
     @PreAuthorize("hasRole('PARENT')")
     public ParentDashboardResponse parentDashboard(Authentication auth) {
         return dashboardService.parentDashboard((UUID) auth.getPrincipal());
+    }
+
+    @GetMapping("/children/{learnerId}/detail")
+    @PreAuthorize("hasRole('PARENT')")
+    public ChildDetailResponse childDetail(@PathVariable UUID learnerId, Authentication auth) {
+        return dashboardService.childDetail(learnerId, (UUID) auth.getPrincipal());
     }
 }

@@ -46,6 +46,7 @@ import { Route as SchoolAuthRouteImport } from './routes/school.auth'
 import { Route as SchoolsSchoolIdRouteImport } from './routes/schools.$schoolId'
 import { Route as SuperadminAuthRouteImport } from './routes/superadmin.auth'
 import { Route as AdminSchoolsSchoolIdRouteImport } from './routes/admin.schools.$schoolId'
+import { Route as AppChildLearnerIdRouteImport } from './routes/app.child.$learnerId'
 import { Route as AppLearnerLearnerIdRouteImport } from './routes/app.learner.$learnerId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -233,6 +234,11 @@ const AdminSchoolsSchoolIdRoute = AdminSchoolsSchoolIdRouteImport.update({
   path: '/$schoolId',
   getParentRoute: () => AdminSchoolsRoute,
 } as any)
+const AppChildLearnerIdRoute = AppChildLearnerIdRouteImport.update({
+  id: '/child/$learnerId',
+  path: '/child/$learnerId',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppLearnerLearnerIdRoute = AppLearnerLearnerIdRouteImport.update({
   id: '/learner/$learnerId',
   path: '/learner/$learnerId',
@@ -277,6 +283,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/admin/schools/$schoolId': typeof AdminSchoolsSchoolIdRoute
+  '/app/child/$learnerId': typeof AppChildLearnerIdRoute
   '/app/learner/$learnerId': typeof AppLearnerLearnerIdRoute
 }
 export interface FileRoutesByTo {
@@ -315,6 +322,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
   '/admin/schools/$schoolId': typeof AdminSchoolsSchoolIdRoute
+  '/app/child/$learnerId': typeof AppChildLearnerIdRoute
   '/app/learner/$learnerId': typeof AppLearnerLearnerIdRoute
 }
 export interface FileRoutesById {
@@ -356,6 +364,7 @@ export interface FileRoutesById {
   '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
   '/admin/schools/$schoolId': typeof AdminSchoolsSchoolIdRoute
+  '/app/child/$learnerId': typeof AppChildLearnerIdRoute
   '/app/learner/$learnerId': typeof AppLearnerLearnerIdRoute
 }
 export interface FileRouteTypes {
@@ -398,6 +407,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/app/'
     | '/admin/schools/$schoolId'
+    | '/app/child/$learnerId'
     | '/app/learner/$learnerId'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -436,6 +446,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/admin/schools/$schoolId'
+    | '/app/child/$learnerId'
     | '/app/learner/$learnerId'
   id:
     | '__root__'
@@ -476,6 +487,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/app/'
     | '/admin/schools/$schoolId'
+    | '/app/child/$learnerId'
     | '/app/learner/$learnerId'
   fileRoutesById: FileRoutesById
 }
@@ -753,6 +765,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSchoolsSchoolIdRouteImport
       parentRoute: typeof AdminSchoolsRoute
     }
+    '/app/child/$learnerId': {
+      id: '/app/child/$learnerId'
+      path: '/child/$learnerId'
+      fullPath: '/app/child/$learnerId'
+      preLoaderRoute: typeof AppChildLearnerIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/learner/$learnerId': {
       id: '/app/learner/$learnerId'
       path: '/learner/$learnerId'
@@ -814,6 +833,7 @@ interface AppRouteChildren {
   AppTransfersRoute: typeof AppTransfersRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppChildLearnerIdRoute: typeof AppChildLearnerIdRoute
   AppLearnerLearnerIdRoute: typeof AppLearnerLearnerIdRoute
 }
 
@@ -838,6 +858,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppTransfersRoute: AppTransfersRoute,
   AppUpgradeRoute: AppUpgradeRoute,
   AppIndexRoute: AppIndexRoute,
+  AppChildLearnerIdRoute: AppChildLearnerIdRoute,
   AppLearnerLearnerIdRoute: AppLearnerLearnerIdRoute,
 }
 

@@ -363,19 +363,16 @@ export interface SchoolRequestResponse {
   createdAt: string;
 }
 
-export interface ParentDashboardResponse {
-  children: Array<{
-    id: string;
-    firstName: string;
-    lastName: string;
-    schoolId: string | null;
-    schoolName: string | null;
-    gradeId: number | null;
-    relationship: string | null;
-    isPrimary: boolean | null;
-  }>;
-  todayAttendance: Record<string, string>;
-  unreadCount: number;
+export interface ParentDashboardChild {
+  id: string;
+  firstName: string;
+  lastName: string;
+  schoolId: string | null;
+  schoolName: string | null;
+  gradeId: number | null;
+  relationship: string | null;
+  isPrimary: boolean | null;
+  todayStatus: string | null;
   nextEvent: {
     id: string;
     title: string;
@@ -384,6 +381,12 @@ export interface ParentDashboardResponse {
     eventType: string | null;
     schoolName: string | null;
   } | null;
+}
+
+export interface ParentDashboardResponse {
+  children: ParentDashboardChild[];
+  todayAttendance: Record<string, string>;
+  unreadCount: number;
   recentAlerts: Array<{
     id: string;
     title: string;
@@ -391,6 +394,30 @@ export interface ParentDashboardResponse {
     category: string | null;
     createdAt: string;
   }>;
+}
+
+export interface ChildDetailResponse {
+  child: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    gradeId: number | null;
+    learnerNumber: string | null;
+    schoolId: string | null;
+    schoolName: string | null;
+    todayStatus: string | null;
+  };
+  attendanceSummary: {
+    present: number;
+    late: number;
+    absent: number;
+    total: number;
+    ratePercent: number | null;
+  };
+  recentAttendance: Array<{ id: string; date: string; status: string; notes: string | null }>;
+  discipline: Array<{ id: string; date: string; type: string; title: string; points: number | null }>;
+  reportCards: Array<{ id: string; academicYear: number | null; term: number | null; fileName: string; uploadedAt: string }>;
+  upcomingEvents: Array<{ id: string; title: string; eventDate: string; eventTime: string | null; eventType: string | null }>;
 }
 
 export interface SchoolDashboardResponse {
