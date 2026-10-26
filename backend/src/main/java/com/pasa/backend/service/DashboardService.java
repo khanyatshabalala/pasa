@@ -3,6 +3,7 @@ package com.pasa.backend.service;
 import com.pasa.backend.dto.response.ChildDetailResponse;
 import com.pasa.backend.dto.response.ParentDashboardResponse;
 import com.pasa.backend.dto.response.SchoolDashboardResponse;
+import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -17,9 +18,11 @@ import java.util.UUID;
 public class DashboardService {
 
     private final JdbcTemplate jdbc;
+    private final LearnerAccessGuard accessGuard;
 
-    public DashboardService(JdbcTemplate jdbc) {
+    public DashboardService(JdbcTemplate jdbc, LearnerAccessGuard accessGuard) {
         this.jdbc = jdbc;
+        this.accessGuard = accessGuard;
     }
 
     // ── School dashboard ──────────────────────────────────────────────────
@@ -159,7 +162,7 @@ public class DashboardService {
     // ── Parent-facing single-child detail ────────────────────────────────
 
     public ChildDetailResponse childDetail(UUID learnerId, UUID parentUserId) {
-        assertParentOf(learnerId, parentUserId);
+        accessGuard.assertParentOf(learnerId, parentUserId);
 
         String today = LocalDate.now().toString();
 
@@ -246,19 +249,6 @@ public class DashboardService {
                     str(r.get("event_time")), str(r.get("event_type")))).toList();
 
         return new ChildDetailResponse(child, summary, recentAttendance, discipline, reportCards, upcomingEvents);
-    }
-
-    /** Ensures the parent is linked to the learner; 403 otherwise. */
-    private void assertParentOf(UUID learnerId, UUID parentUserId) {
-        Boolean linked = jdbc.queryForObject("""
-            SELECT EXISTS (
-              SELECT 1 FROM public.parent_links
-              WHERE learner_id = ? AND parent_user_id = ?
-            )
-            """, Boolean.class, learnerId, parentUserId);
-        if (linked == null || !linked) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to view this learner");
-        }
     }
 
     /** The soonest upcoming event for a child's school (today or later), or null. */

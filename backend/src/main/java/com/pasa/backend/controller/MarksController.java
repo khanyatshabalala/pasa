@@ -26,9 +26,10 @@ public class MarksController {
     @GetMapping
     public List<MarkResponse> getMarks(
             @PathVariable UUID learnerId,
-            @RequestParam(required = false) Integer term
+            @RequestParam(required = false) Integer term,
+            Authentication auth
     ) {
-        return markService.getMarks(learnerId, term);
+        return markService.getMarks(learnerId, term, (UUID) auth.getPrincipal());
     }
 
     @PostMapping

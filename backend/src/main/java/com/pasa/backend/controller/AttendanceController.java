@@ -29,9 +29,10 @@ public class AttendanceController {
     public List<AttendanceResponse> getAttendance(
             @PathVariable UUID learnerId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            Authentication auth
     ) {
-        return attendanceService.getAttendance(learnerId, from, to);
+        return attendanceService.getAttendance(learnerId, from, to, (UUID) auth.getPrincipal());
     }
 
     @PostMapping

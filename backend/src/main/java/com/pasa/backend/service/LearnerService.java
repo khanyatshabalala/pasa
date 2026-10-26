@@ -7,6 +7,7 @@ import com.pasa.backend.dto.response.LearnerResponse;
 import com.pasa.backend.mapper.LearnerMapper;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.repository.SchoolRepository;
+import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,10 +20,13 @@ public class LearnerService {
 
     private final LearnerRepository learnerRepo;
     private final SchoolRepository schoolRepo;
+    private final LearnerAccessGuard accessGuard;
 
-    public LearnerService(LearnerRepository learnerRepo, SchoolRepository schoolRepo) {
+    public LearnerService(LearnerRepository learnerRepo, SchoolRepository schoolRepo,
+                          LearnerAccessGuard accessGuard) {
         this.learnerRepo = learnerRepo;
         this.schoolRepo = schoolRepo;
+        this.accessGuard = accessGuard;
     }
 
     public List<LearnerResponse> getMyChildren(UUID parentId) {
@@ -40,9 +44,10 @@ public class LearnerService {
                 .toList();
     }
 
-    public LearnerResponse getLearner(UUID id) {
+    public LearnerResponse getLearner(UUID id, UUID userId) {
         Learner learner = learnerRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanAccessLearner(id, userId);
         return LearnerMapper.toResponse(learner);
     }
 

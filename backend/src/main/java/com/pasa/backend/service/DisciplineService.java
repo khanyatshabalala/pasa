@@ -7,6 +7,7 @@ import com.pasa.backend.dto.response.DisciplineResponse;
 import com.pasa.backend.mapper.DisciplineMapper;
 import com.pasa.backend.repository.DisciplineRepository;
 import com.pasa.backend.repository.LearnerRepository;
+import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,15 +20,19 @@ public class DisciplineService {
 
     private final DisciplineRepository disciplineRepo;
     private final LearnerRepository learnerRepo;
+    private final LearnerAccessGuard accessGuard;
 
-    public DisciplineService(DisciplineRepository disciplineRepo, LearnerRepository learnerRepo) {
+    public DisciplineService(DisciplineRepository disciplineRepo, LearnerRepository learnerRepo,
+                             LearnerAccessGuard accessGuard) {
         this.disciplineRepo = disciplineRepo;
         this.learnerRepo = learnerRepo;
+        this.accessGuard = accessGuard;
     }
 
-    public List<DisciplineResponse> getDiscipline(UUID learnerId) {
+    public List<DisciplineResponse> getDiscipline(UUID learnerId, UUID userId) {
         learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanAccessLearner(learnerId, userId);
         return disciplineRepo.findByLearnerIdOrderByDateDesc(learnerId).stream()
                 .map(DisciplineMapper::toResponse)
                 .toList();

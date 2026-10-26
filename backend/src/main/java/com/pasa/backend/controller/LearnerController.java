@@ -37,8 +37,8 @@ public class LearnerController {
     }
 
     @GetMapping("/learners/{id}")
-    public LearnerResponse getLearner(@PathVariable UUID id) {
-        return learnerService.getLearner(id);
+    public LearnerResponse getLearner(@PathVariable UUID id, Authentication auth) {
+        return learnerService.getLearner(id, (UUID) auth.getPrincipal());
     }
 
     @PostMapping("/schools/{schoolId}/learners")

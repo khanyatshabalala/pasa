@@ -6,6 +6,7 @@ import com.pasa.backend.dto.response.ReportCardResponse;
 import com.pasa.backend.mapper.ReportCardMapper;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.repository.ReportCardRepository;
+import com.pasa.backend.security.LearnerAccessGuard;
 import com.pasa.backend.storage.StorageObject;
 import com.pasa.backend.storage.StorageService;
 import org.slf4j.Logger;
@@ -35,15 +36,18 @@ public class ReportCardService {
     private final ReportCardRepository reportCardRepo;
     private final LearnerRepository learnerRepo;
     private final JdbcTemplate jdbc;
+    private final LearnerAccessGuard accessGuard;
 
     public ReportCardService(StorageService storage,
                              ReportCardRepository reportCardRepo,
                              LearnerRepository learnerRepo,
-                             JdbcTemplate jdbc) {
+                             JdbcTemplate jdbc,
+                             LearnerAccessGuard accessGuard) {
         this.storage = storage;
         this.reportCardRepo = reportCardRepo;
         this.learnerRepo = learnerRepo;
         this.jdbc = jdbc;
+        this.accessGuard = accessGuard;
     }
 
     // ── Queries ───────────────────────────────────────────────────────────
@@ -51,7 +55,7 @@ public class ReportCardService {
     public List<ReportCardResponse> listByLearner(UUID learnerId, UUID userId) {
         learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
-        assertCanAccess(learnerId, userId);
+        accessGuard.assertCanAccessLearner(learnerId, userId);
         return reportCardRepo.findByLearnerIdOrderByAcademicYearDescTermDesc(learnerId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -69,7 +73,7 @@ public class ReportCardService {
         if (!rc.getLearnerId().equals(learnerId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found");
         }
-        assertCanAccess(learnerId, userId);
+        accessGuard.assertCanAccessLearner(learnerId, userId);
         return storage.download(rc.getFilePath());
     }
 
@@ -154,35 +158,6 @@ public class ReportCardService {
         }
     }
 
-    /**
-     * Allow access when the caller is: a linked parent of the learner, a staff member
-     * (any role) at the learner's school, or a super admin. The backend uses the service
-     * role which bypasses RLS, so ownership MUST be enforced here.
-     */
-    private void assertCanAccess(UUID learnerId, UUID userId) {
-        Boolean allowed = jdbc.queryForObject(
-            """
-            SELECT EXISTS (
-              SELECT 1 FROM public.parent_links pl
-              WHERE pl.learner_id = ? AND pl.parent_user_id = ?
-            )
-            OR EXISTS (
-              SELECT 1 FROM public.learners l
-              JOIN public.user_roles ur ON ur.school_id = l.school_id
-              WHERE l.id = ? AND ur.user_id = ?
-            )
-            OR EXISTS (
-              SELECT 1 FROM public.user_roles ur
-              WHERE ur.user_id = ? AND ur.role = 'super_admin'
-            )
-            """,
-            Boolean.class,
-            learnerId, userId, learnerId, userId, userId
-        );
-        if (allowed == null || !allowed) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to access this learner's report cards");
-        }
-    }
 
     // ── Helpers ───────────────────────────────────────────────────────────
 

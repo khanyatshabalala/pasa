@@ -24,8 +24,8 @@ public class DisciplineController {
     }
 
     @GetMapping
-    public List<DisciplineResponse> getDiscipline(@PathVariable UUID learnerId) {
-        return disciplineService.getDiscipline(learnerId);
+    public List<DisciplineResponse> getDiscipline(@PathVariable UUID learnerId, Authentication auth) {
+        return disciplineService.getDiscipline(learnerId, (UUID) auth.getPrincipal());
     }
 
     @PostMapping

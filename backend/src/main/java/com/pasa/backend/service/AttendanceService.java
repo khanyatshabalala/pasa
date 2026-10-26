@@ -7,6 +7,7 @@ import com.pasa.backend.dto.response.AttendanceResponse;
 import com.pasa.backend.mapper.AttendanceMapper;
 import com.pasa.backend.repository.AttendanceRepository;
 import com.pasa.backend.repository.LearnerRepository;
+import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -20,15 +21,19 @@ public class AttendanceService {
 
     private final AttendanceRepository attendanceRepo;
     private final LearnerRepository learnerRepo;
+    private final LearnerAccessGuard accessGuard;
 
-    public AttendanceService(AttendanceRepository attendanceRepo, LearnerRepository learnerRepo) {
+    public AttendanceService(AttendanceRepository attendanceRepo, LearnerRepository learnerRepo,
+                             LearnerAccessGuard accessGuard) {
         this.attendanceRepo = attendanceRepo;
         this.learnerRepo = learnerRepo;
+        this.accessGuard = accessGuard;
     }
 
-    public List<AttendanceResponse> getAttendance(UUID learnerId, LocalDate from, LocalDate to) {
+    public List<AttendanceResponse> getAttendance(UUID learnerId, LocalDate from, LocalDate to, UUID userId) {
         learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanAccessLearner(learnerId, userId);
 
         List<Attendance> records;
         if (from != null && to != null) {

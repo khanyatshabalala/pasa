@@ -7,6 +7,7 @@ import com.pasa.backend.dto.response.MarkResponse;
 import com.pasa.backend.mapper.MarkMapper;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.repository.MarkRepository;
+import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -19,15 +20,19 @@ public class MarkService {
 
     private final MarkRepository markRepo;
     private final LearnerRepository learnerRepo;
+    private final LearnerAccessGuard accessGuard;
 
-    public MarkService(MarkRepository markRepo, LearnerRepository learnerRepo) {
+    public MarkService(MarkRepository markRepo, LearnerRepository learnerRepo,
+                       LearnerAccessGuard accessGuard) {
         this.markRepo = markRepo;
         this.learnerRepo = learnerRepo;
+        this.accessGuard = accessGuard;
     }
 
-    public List<MarkResponse> getMarks(UUID learnerId, Integer term) {
+    public List<MarkResponse> getMarks(UUID learnerId, Integer term, UUID userId) {
         learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanAccessLearner(learnerId, userId);
 
         List<Mark> marks;
         if (term != null) {
