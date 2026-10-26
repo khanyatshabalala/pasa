@@ -97,6 +97,13 @@
       <version>2.6.0</version>
     </dependency>
 
+    <!-- AWS SDK v2 — S3-compatible storage (Supabase storage endpoint) -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <version>2.28.16</version>
+    </dependency>
+
     <!-- Actuator -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

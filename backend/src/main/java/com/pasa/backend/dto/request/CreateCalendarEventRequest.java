@@ -5,11 +5,13 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.UUID;
 
 public record CreateCalendarEventRequest(
     @NotBlank String title,
     String description,
     @NotNull LocalDate eventDate,
     LocalTime eventTime,
-    String eventType
+    String eventType,
+    UUID classId
 ) {}

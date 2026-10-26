@@ -1,5 +1,6 @@
 package com.pasa.backend.controller;
 
+import com.pasa.backend.dto.response.AdminStatsResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;
@@ -22,6 +23,25 @@ public class AdminController {
 
     public AdminController(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────────────
+
+    @GetMapping("/stats")
+    public AdminStatsResponse getStats() {
+        return new AdminStatsResponse(
+            count("SELECT COUNT(*) FROM public.schools"),
+            count("SELECT COUNT(*) FROM public.districts"),
+            count("SELECT COUNT(*) FROM public.profiles"),
+            count("SELECT COUNT(*) FROM public.learners"),
+            count("SELECT COUNT(*) FROM public.parent_link_requests WHERE status = 'pending'"),
+            count("SELECT COUNT(*) FROM public.school_requests WHERE status = 'pending'")
+        );
+    }
+
+    private long count(String sql) {
+        Long n = jdbc.queryForObject(sql, Long.class);
+        return n == null ? 0L : n;
     }
 
     // ── Districts ─────────────────────────────────────────────────────────

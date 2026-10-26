@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type SchoolRequestResponse } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,19 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { School, Search, Clock, Phone, Mail, MessageSquare, Loader2 } from "lucide-react";
 
-type SchoolRequest = {
-  id: string;
-  school_name: string;
-  province: string;
-  district: string;
-  contact_name: string;
-  contact_role: string;
-  contact_email: string;
-  contact_phone: string | null;
-  message: string | null;
+type SchoolRequest = SchoolRequestResponse & {
   status: "pending" | "contacted" | "onboarded" | "declined";
-  admin_notes: string | null;
-  created_at: string;
 };
 
 const STATUS_CONFIG = {
@@ -46,43 +35,49 @@ export function SchoolRequestsPage() {
 
   const load = async () => {
     setLoading(true);
-    const { data } = await (supabase as any)
-      .from("school_requests")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setRequests(data ?? []);
-    setLoading(false);
+    try {
+      const data = await api.get<SchoolRequest[]>("/api/v1/school-requests");
+      setRequests(data);
+    } catch {
+      setRequests([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const openRequest = (req: SchoolRequest) => {
     setSelected(req);
-    setNotes(req.admin_notes ?? "");
+    setNotes(req.adminNotes ?? "");
     setNewStatus(req.status);
   };
 
   const saveUpdate = async () => {
     if (!selected) return;
     setSaving(true);
-    const { error } = await (supabase as any)
-      .from("school_requests")
-      .update({ status: newStatus, admin_notes: notes.trim() || null, reviewed_at: new Date().toISOString() })
-      .eq("id", selected.id);
-    setSaving(false);
-    if (error) { toast.error("Failed to update"); return; }
-    toast.success("Updated");
-    setSelected(null);
-    load();
+    try {
+      await api.patch(`/api/v1/school-requests/${selected.id}`, {
+        status: newStatus,
+        adminNotes: notes.trim() || null,
+      });
+      toast.success("Updated");
+      setSelected(null);
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Failed to update");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const filtered = requests.filter(r => {
     const matchStatus = statusFilter === "all" || r.status === statusFilter;
     const q = search.toLowerCase();
     const matchSearch = !q ||
-      r.school_name.toLowerCase().includes(q) ||
-      r.contact_name.toLowerCase().includes(q) ||
-      r.contact_email.toLowerCase().includes(q) ||
+      r.schoolName.toLowerCase().includes(q) ||
+      r.contactName.toLowerCase().includes(q) ||
+      r.contactEmail.toLowerCase().includes(q) ||
       r.province.toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
@@ -158,16 +153,16 @@ export function SchoolRequestsPage() {
                 const cfg = STATUS_CONFIG[req.status];
                 return (
                   <tr key={req.id} className="border-t">
-                    <td className="p-3 font-medium">{req.school_name}</td>
+                    <td className="p-3 font-medium">{req.schoolName}</td>
                     <td className="p-3 text-muted-foreground text-xs">
                       {req.district}<br />{req.province}
                     </td>
                     <td className="p-3 text-xs">
-                      <div className="font-medium">{req.contact_name}</div>
-                      <div className="text-muted-foreground capitalize">{req.contact_role.replace("_", " ")}</div>
+                      <div className="font-medium">{req.contactName}</div>
+                      <div className="text-muted-foreground capitalize">{req.contactRole.replace("_", " ")}</div>
                     </td>
                     <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
-                      {new Date(req.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+                      {new Date(req.createdAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
                     </td>
                     <td className="p-3">
                       <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
@@ -191,7 +186,7 @@ export function SchoolRequestsPage() {
       <Dialog open={!!selected} onOpenChange={v => { if (!v) setSelected(null); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{selected?.school_name}</DialogTitle>
+            <DialogTitle>{selected?.schoolName}</DialogTitle>
           </DialogHeader>
           {selected && (
             <div className="space-y-4">
@@ -206,22 +201,22 @@ export function SchoolRequestsPage() {
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Contact</div>
-                  <div>{selected.contact_name} · <span className="capitalize">{selected.contact_role.replace("_", " ")}</span></div>
+                  <div>{selected.contactName} · <span className="capitalize">{selected.contactRole.replace("_", " ")}</span></div>
                 </div>
                 <div>
                   <div className="text-xs text-muted-foreground">Submitted</div>
-                  <div>{new Date(selected.created_at).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</div>
+                  <div>{new Date(selected.createdAt).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</div>
                 </div>
               </div>
 
               {/* Contact info */}
               <div className="flex flex-col gap-2">
-                <a href={`mailto:${selected.contact_email}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
-                  <Mail className="size-4" />{selected.contact_email}
+                <a href={`mailto:${selected.contactEmail}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
+                  <Mail className="size-4" />{selected.contactEmail}
                 </a>
-                {selected.contact_phone && (
-                  <a href={`tel:${selected.contact_phone}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
-                    <Phone className="size-4" />{selected.contact_phone}
+                {selected.contactPhone && (
+                  <a href={`tel:${selected.contactPhone}`} className="flex items-center gap-2 text-sm text-accent hover:underline">
+                    <Phone className="size-4" />{selected.contactPhone}
                   </a>
                 )}
                 {selected.message && (

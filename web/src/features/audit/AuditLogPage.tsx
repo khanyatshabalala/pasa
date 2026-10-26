@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type PageResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -13,11 +13,10 @@ type AuditRow = {
   id: string;
   action: string;
   entity: string | null;
-  entity_id: string | null;
+  entityId: string | null;
   metadata: Record<string, unknown> | null;
-  created_at: string;
-  actor_user_id: string | null;
-  actor_name: string | null;
+  createdAt: string;
+  actorUserId: string | null;
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -53,49 +52,29 @@ export function AuditLogPage() {
   const load = async (p = 0) => {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
-
-    let q = supabase
-      .from("audit_log")
-      .select("id, action, entity, entity_id, metadata, created_at, actor_user_id", { count: "exact" })
-      .eq("school_id", primarySchoolId)
-      .order("created_at", { ascending: false })
-      .range(p * PAGE_SIZE, p * PAGE_SIZE + PAGE_SIZE - 1);
-
-    if (entityFilter !== "all") q = q.eq("entity", entityFilter);
-    if (search.trim()) q = q.ilike("action", `%${search.trim()}%`);
-
-    const { data, count } = await q;
-    const auditRows = (data ?? []) as Omit<AuditRow, "actor_name">[];
-
-    // Enrich with actor names
-    const actorIds = [...new Set(auditRows.map(r => r.actor_user_id).filter(Boolean))] as string[];
-    let nameMap: Record<string, string> = {};
-    if (actorIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", actorIds);
-      nameMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p.full_name ?? "Unknown"]));
-    }
-
-    setRows(auditRows.map(r => ({ ...r, actor_name: r.actor_user_id ? (nameMap[r.actor_user_id] ?? "Unknown") : null })));
-    setTotal(count ?? 0);
-    setLoading(false);
-  };
-
-  // Load distinct entities for filter
-  useEffect(() => {
-    if (!primarySchoolId) return;
-    supabase
-      .from("audit_log")
-      .select("entity")
-      .eq("school_id", primarySchoolId)
-      .not("entity", "is", null)
-      .then(({ data }) => {
-        const unique = [...new Set((data ?? []).map((r: any) => r.entity).filter(Boolean))].sort();
-        setEntities(unique as string[]);
+    try {
+      const actionParam = search.trim() ? `&action=${encodeURIComponent(search.trim())}` : "";
+      const pageData = await api.get<PageResponse<AuditRow>>(
+        `/api/v1/schools/${primarySchoolId}/audit?page=${p}&size=${PAGE_SIZE}${actionParam}`
+      );
+      // The backend action filter is an exact match; entity filtering is applied client-side.
+      let content = pageData.content;
+      if (entityFilter !== "all") content = content.filter(r => r.entity === entityFilter);
+      setRows(content);
+      setTotal(pageData.totalElements);
+      // Build the entity filter options from whatever is on this page.
+      setEntities(prev => {
+        const merged = new Set(prev);
+        pageData.content.forEach(r => { if (r.entity) merged.add(r.entity); });
+        return [...merged].sort();
       });
-  }, [primarySchoolId]);
+    } catch {
+      setRows([]);
+      setTotal(0);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => { setPage(0); load(0); }, [search, entityFilter, primarySchoolId]);
 
@@ -182,17 +161,17 @@ export function AuditLogPage() {
                       ) : "—"}
                     </td>
                     <td className="p-3 text-muted-foreground text-xs">
-                      {r.actor_name ?? "System"}
+                      {r.actorUserId ?? "System"}
                     </td>
                     <td className="p-3 text-muted-foreground text-xs max-w-[220px]">
                       {r.metadata
                         ? <span className="font-mono text-[10px] line-clamp-2 break-all">{JSON.stringify(r.metadata)}</span>
-                        : r.entity_id
-                        ? <span className="font-mono text-[10px] text-muted-foreground/60">{r.entity_id}</span>
+                        : r.entityId
+                        ? <span className="font-mono text-[10px] text-muted-foreground/60">{r.entityId}</span>
                         : "—"}
                     </td>
                     <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
-                      {new Date(r.created_at).toLocaleString("en-ZA", {
+                      {new Date(r.createdAt).toLocaleString("en-ZA", {
                         day: "numeric", month: "short", year: "numeric",
                         hour: "2-digit", minute: "2-digit",
                       })}

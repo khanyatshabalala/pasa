@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   Home, Users, BookOpen, CalendarDays, Bell, Shield,
   ArrowLeftRight, GraduationCap, ClipboardList, FileText,
-  MessageCircle, Crown, Settings, LogOut, MoreHorizontal,
+  Crown, Settings, LogOut, MoreHorizontal,
   ShieldCheck, X, UserCog, ClipboardCheck, LayoutList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,6 @@ const parentPrimary: NavItem[] = [
   { to: "/app/calendar", title: "Calendar",      icon: CalendarDays },
   { to: "/app/alerts",   title: "Notifications", icon: Bell },
   { to: "/app/discipline", title: "Discipline",  icon: Shield },
-  { to: "/app/assistant", title: "Assistant",    icon: MessageCircle },
 ];
 const parentMore: NavItem[] = [
   { to: "/app/children",   title: "Children",    icon: Users },
@@ -46,7 +45,6 @@ const schoolMore: NavItem[] = [
   { to: "/app/marks-capture",      title: "Reports",    icon: BookOpen },
   { to: "/app/attendance-capture", title: "Attendance", icon: ClipboardList },
   { to: "/app/classes",            title: "Classes",    icon: LayoutList },
-  { to: "/app/assistant",          title: "Assistant",  icon: MessageCircle },
   { to: "/app/transfers",          title: "Transfers",  icon: ArrowLeftRight },
   { to: "/app/staff",              title: "Staff",      icon: UserCog },
   { to: "/app/audit",              title: "Audit",      icon: FileText },

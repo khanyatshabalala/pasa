@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type TransferResponse, type LearnerResponse, type SchoolResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -11,26 +11,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ArrowLeftRight, Plus, Loader2, CheckCircle2, XCircle, Clock, ShieldAlert, Check, X } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
 
 type TransferStatus = "pending" | "approved" | "rejected" | "completed";
 
-type Transfer = {
-  id: string;
-  status: TransferStatus;
-  reason: string | null;
-  requested_at: string;
-  resolved_at: string | null;
-  learner_id: string;
-  from_school_id: string;
-  to_school_id: string;
-  learners: { first_name: string; last_name: string; grade_id: number } | null;
-  from_school: { name: string } | null;
-  to_school: { name: string } | null;
-};
-
-type Learner = { id: string; first_name: string; last_name: string; grade_id: number };
-type School  = { id: string; name: string };
+type Transfer = TransferResponse;
+type Learner = LearnerResponse;
+type School  = SchoolResponse;
 
 const STATUS_CONFIG: Record<TransferStatus, { label: string; color: string; icon: React.ReactNode }> = {
   pending:   { label: "Pending",   color: "text-orange-500 bg-orange-500/10", icon: <Clock className="size-3.5" /> },
@@ -60,29 +46,20 @@ export function TransfersPage() {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
 
-    const [{ data: tData }, { data: lData }, { data: sData }] = await Promise.all([
-      supabase
-        .from("transfers")
-        .select("id, status, reason, requested_at, resolved_at, learner_id, from_school_id, to_school_id, learners(first_name, last_name, grade_id), from_school:schools!transfers_from_school_id_fkey(name), to_school:schools!transfers_to_school_id_fkey(name)")
-        .or(`from_school_id.eq.${primarySchoolId},to_school_id.eq.${primarySchoolId}`)
-        .order("requested_at", { ascending: false }),
-      supabase
-        .from("learners")
-        .select("id, first_name, last_name, grade_id")
-        .eq("school_id", primarySchoolId)
-        .order("last_name"),
-      supabase
-        .from("schools")
-        .select("id, name")
-        .neq("id", primarySchoolId)
-        .order("name")
-        .limit(200),
-    ]);
-
-    setTransfers((tData ?? []) as Transfer[]);
-    setLearners((lData ?? []) as Learner[]);
-    setSchools((sData ?? []) as School[]);
-    setLoading(false);
+    try {
+      const [tData, lData, sData] = await Promise.all([
+        api.get<Transfer[]>(`/api/v1/transfers/school/${primarySchoolId}`),
+        api.get<Learner[]>(`/api/v1/schools/${primarySchoolId}/learners`),
+        api.get<School[]>("/api/v1/schools"),
+      ]);
+      setTransfers(tData);
+      setLearners(lData);
+      setSchools(sData.filter(s => s.id !== primarySchoolId));
+    } catch {
+      // leave lists empty on failure
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
@@ -93,31 +70,35 @@ export function TransfersPage() {
     if (!toSchoolId)  return toast.error("Select destination school");
     if (!primarySchoolId) return;
     setSaving(true);
-    const { error } = await supabase.from("transfers").insert({
-      learner_id:     learnerId,
-      from_school_id: primarySchoolId,
-      to_school_id:   toSchoolId,
-      reason:         reason.trim() || null,
-      requested_by:   user?.id,
-    });
-    setSaving(false);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success("Transfer request submitted");
-    setDialogOpen(false);
-    setLearnerId(""); setToSchoolId(""); setReason("");
-    load();
+    try {
+      await api.post("/api/v1/transfers", {
+        learnerId,
+        fromSchoolId: primarySchoolId,
+        toSchoolId,
+        reason: reason.trim() || null,
+      });
+      toast.success("Transfer request submitted");
+      setDialogOpen(false);
+      setLearnerId(""); setToSchoolId(""); setReason("");
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateStatus = async (id: string, status: TransferStatus) => {
     setActing(id);
-    const { error } = await supabase
-      .from("transfers")
-      .update({ status, approved_by: user?.id, resolved_at: new Date().toISOString() })
-      .eq("id", id);
-    setActing(null);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success(`Transfer ${status}`);
-    load();
+    try {
+      await api.patch(`/api/v1/transfers/${id}/status?status=${status}`);
+      toast.success(`Transfer ${status}`);
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setActing(null);
+    }
   };
 
   if (!canManage) {
@@ -182,18 +163,15 @@ export function TransfersPage() {
                     {pending.map(t => (
                       <tr key={t.id} className="border-t align-middle">
                         <td className="p-3 font-medium">
-                          {t.learners?.first_name} {t.learners?.last_name}
-                          <div className="text-xs text-muted-foreground">
-                            Grade {t.learners?.grade_id === 0 ? "R" : t.learners?.grade_id}
-                          </div>
+                          {t.learnerName ?? "—"}
                         </td>
-                        <td className="p-3 text-muted-foreground text-xs">{(t.from_school as any)?.name ?? "—"}</td>
-                        <td className="p-3 text-muted-foreground text-xs">{(t.to_school as any)?.name ?? "—"}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{t.fromSchoolName ?? "—"}</td>
+                        <td className="p-3 text-muted-foreground text-xs">{t.toSchoolName ?? "—"}</td>
                         <td className="p-3 text-muted-foreground text-xs max-w-[160px]">
                           <span className="line-clamp-2">{t.reason ?? "—"}</span>
                         </td>
                         <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
-                          {new Date(t.requested_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+                          {new Date(t.requestedAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
                         </td>
                         <td className="p-3">
                           <div className="flex gap-1.5 justify-end">
@@ -244,14 +222,14 @@ export function TransfersPage() {
                   </thead>
                   <tbody>
                     {resolved.map(t => {
-                      const cfg = STATUS_CONFIG[t.status];
+                      const cfg = STATUS_CONFIG[t.status as TransferStatus];
                       return (
                         <tr key={t.id} className="border-t align-middle">
                           <td className="p-3 font-medium">
-                            {t.learners?.first_name} {t.learners?.last_name}
+                            {t.learnerName ?? "—"}
                           </td>
                           <td className="p-3 text-muted-foreground text-xs">
-                            {(t.from_school as any)?.name} → {(t.to_school as any)?.name}
+                            {t.fromSchoolName} → {t.toSchoolName}
                           </td>
                           <td className="p-3">
                             <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.color}`}>
@@ -259,9 +237,7 @@ export function TransfersPage() {
                             </span>
                           </td>
                           <td className="p-3 text-muted-foreground text-xs">
-                            {t.resolved_at
-                              ? new Date(t.resolved_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })
-                              : "—"}
+                            {new Date(t.requestedAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
                           </td>
                         </tr>
                       );
@@ -290,7 +266,7 @@ export function TransfersPage() {
                 <SelectContent className="max-h-60">
                   {learners.map(l => (
                     <SelectItem key={l.id} value={l.id}>
-                      {l.first_name} {l.last_name} · Grade {l.grade_id === 0 ? "R" : l.grade_id}
+                      {l.firstName} {l.lastName} · Grade {l.gradeId === 0 ? "R" : l.gradeId}
                     </SelectItem>
                   ))}
                 </SelectContent>

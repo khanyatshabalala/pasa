@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type SchoolResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -8,13 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { GraduationCap, ShieldAlert, Search, Bell, Loader2 } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
 
-type School = {
-  id: string; name: string; district: string; province: string;
-  grade_from: number | null; grade_to: number | null;
-  application_open: string | null; application_close: string | null;
-  application_contact: string | null;
+type School = SchoolResponse;
+type AppEdits = {
+  applicationOpen?: string | null;
+  applicationClose?: string | null;
+  applicationContact?: string | null;
 };
 
 export function AdmissionsPage() {
@@ -25,16 +24,17 @@ export function AdmissionsPage() {
   const [search, setSearch]     = useState("");
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState<string | null>(null);
-  const [editing, setEditing]   = useState<Record<string, Partial<School>>>({});
+  const [editing, setEditing]   = useState<Record<string, AppEdits>>({});
 
-  useEffect(() => {
-    supabase.from("schools")
-      .select("id, name, district, province, grade_from, grade_to, application_open, application_close, application_contact")
-      .order("name")
-      .then(({ data }) => { setSchools((data ?? []) as School[]); setLoading(false); });
-  }, []);
+  const loadSchools = () =>
+    api.get<School[]>("/api/v1/schools")
+      .then((data) => setSchools([...data].sort((a, b) => a.name.localeCompare(b.name))))
+      .catch(() => setSchools([]))
+      .finally(() => setLoading(false));
 
-  const setField = (id: string, field: keyof School, value: string) => {
+  useEffect(() => { loadSchools(); }, []);
+
+  const setField = (id: string, field: keyof AppEdits, value: string) => {
     setEditing(prev => ({ ...prev, [id]: { ...prev[id], [field]: value || null } }));
   };
 
@@ -42,16 +42,34 @@ export function AdmissionsPage() {
     const changes = editing[school.id];
     if (!changes) return;
     setSaving(school.id);
-    const { error } = await (supabase as any).from("schools").update(changes).eq("id", school.id);
-    setSaving(null);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success(`${school.name} updated. Parents of Grade ${(changes.grade_from ?? school.grade_from ?? 1) - 1} learners will be notified.`);
-    setEditing(prev => { const n = { ...prev }; delete n[school.id]; return n; });
-    // Refresh
-    supabase.from("schools")
-      .select("id, name, district, province, grade_from, grade_to, application_open, application_close, application_contact")
-      .order("name")
-      .then(({ data }) => setSchools((data ?? []) as School[]));
+    try {
+      // PUT requires the full school payload; merge the edited application fields.
+      await api.put(`/api/v1/schools/${school.id}`, {
+        name: school.name,
+        emisNumber: school.emisNumber,
+        district: school.district,
+        province: school.province,
+        phase: school.phase,
+        schoolType: school.schoolType,
+        city: school.city,
+        email: school.email,
+        phone: school.phone,
+        districtId: school.districtId,
+        gradeFrom: school.gradeFrom,
+        gradeTo: school.gradeTo,
+        applicationOpen:  changes.applicationOpen  !== undefined ? changes.applicationOpen  : school.applicationOpen,
+        applicationClose: changes.applicationClose !== undefined ? changes.applicationClose : school.applicationClose,
+        admissionRequirements: school.admissionRequirements,
+        applicationContact: changes.applicationContact !== undefined ? changes.applicationContact : school.applicationContact,
+      });
+      toast.success(`${school.name} updated.`);
+      setEditing(prev => { const n = { ...prev }; delete n[school.id]; return n; });
+      loadSchools();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSaving(null);
+    }
   };
 
   const filtered = schools.filter(s => {
@@ -61,9 +79,9 @@ export function AdmissionsPage() {
   });
 
   const today = new Date().toISOString().slice(0, 10);
-  const isOpen = (s: School) =>
-    s.application_open && s.application_open <= today &&
-    (!s.application_close || s.application_close >= today);
+  const isOpen = (s: { applicationOpen: string | null; applicationClose: string | null }) =>
+    !!s.applicationOpen && s.applicationOpen <= today &&
+    (!s.applicationClose || s.applicationClose >= today);
 
   if (!isSuperAdmin) {
     return (
@@ -102,10 +120,10 @@ export function AdmissionsPage() {
         <div className="space-y-3">
           {filtered.map(s => {
             const e = editing[s.id] ?? {};
-            const open = isOpen({ ...s, ...e });
-            const appOpen  = e.application_open  !== undefined ? e.application_open  : s.application_open;
-            const appClose = e.application_close !== undefined ? e.application_close : s.application_close;
-            const contact  = e.application_contact !== undefined ? e.application_contact : s.application_contact;
+            const appOpen  = e.applicationOpen  !== undefined ? e.applicationOpen  : s.applicationOpen;
+            const appClose = e.applicationClose !== undefined ? e.applicationClose : s.applicationClose;
+            const contact  = e.applicationContact !== undefined ? e.applicationContact : s.applicationContact;
+            const open = isOpen({ applicationOpen: appOpen, applicationClose: appClose });
             const isDirty  = !!editing[s.id];
 
             return (
@@ -122,7 +140,7 @@ export function AdmissionsPage() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {s.district} · {s.province}
-                        {s.grade_from !== null && s.grade_to !== null && ` · Grade ${s.grade_from === 0 ? "R" : s.grade_from}–${s.grade_to}`}
+                        {s.gradeFrom !== null && s.gradeTo !== null && ` · Grade ${s.gradeFrom === 0 ? "R" : s.gradeFrom}–${s.gradeTo}`}
                       </div>
                     </div>
                   </div>
@@ -145,7 +163,7 @@ export function AdmissionsPage() {
                     <Input
                       type="date"
                       value={appOpen ?? ""}
-                      onChange={e => setField(s.id, "application_open", e.target.value)}
+                      onChange={e => setField(s.id, "applicationOpen", e.target.value)}
                       className="h-8 text-xs"
                     />
                   </div>
@@ -154,7 +172,7 @@ export function AdmissionsPage() {
                     <Input
                       type="date"
                       value={appClose ?? ""}
-                      onChange={e => setField(s.id, "application_close", e.target.value)}
+                      onChange={e => setField(s.id, "applicationClose", e.target.value)}
                       className="h-8 text-xs"
                     />
                   </div>
@@ -162,7 +180,7 @@ export function AdmissionsPage() {
                     <label className="text-xs text-muted-foreground block mb-1">Contact / apply at</label>
                     <Input
                       value={contact ?? ""}
-                      onChange={e => setField(s.id, "application_contact", e.target.value)}
+                      onChange={e => setField(s.id, "applicationContact", e.target.value)}
                       placeholder="e.g. admin@school.co.za"
                       className="h-8 text-xs"
                     />

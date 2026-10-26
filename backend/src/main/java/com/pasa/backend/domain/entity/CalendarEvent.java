@@ -34,6 +34,9 @@ public class CalendarEvent {
     @Column(name = "event_type")
     private String eventType;
 
+    @Column(name = "class_id")
+    private UUID classId;
+
     @Column(name = "created_by")
     private UUID createdBy;
 
@@ -57,6 +60,8 @@ public class CalendarEvent {
     public void setEventTime(LocalTime eventTime) { this.eventTime = eventTime; }
     public String getEventType() { return eventType; }
     public void setEventType(String eventType) { this.eventType = eventType; }
+    public UUID getClassId() { return classId; }
+    public void setClassId(UUID classId) { this.classId = classId; }
     public UUID getCreatedBy() { return createdBy; }
     public void setCreatedBy(UUID createdBy) { this.createdBy = createdBy; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

@@ -29,10 +29,10 @@ public class AdminService {
         String sql;
         Object[] params;
         if (province != null && !province.isBlank()) {
-            sql = "SELECT id, name, province, created_at FROM public.districts WHERE province = ? ORDER BY name";
+            sql = "SELECT id, name, province, code FROM public.districts WHERE province = ?::sa_province ORDER BY name";
             params = new Object[]{province};
         } else {
-            sql = "SELECT id, name, province, created_at FROM public.districts ORDER BY name";
+            sql = "SELECT id, name, province, code FROM public.districts ORDER BY name";
             params = new Object[]{};
         }
 
@@ -41,7 +41,7 @@ public class AdminService {
                 str(row.get("id")),
                 str(row.get("name")),
                 str(row.get("province")),
-                str(row.get("created_at"))
+                str(row.get("code"))
             ))
             .toList();
     }
@@ -49,7 +49,7 @@ public class AdminService {
     public DistrictResponse createDistrict(CreateDistrictRequest req) {
         UUID id = UUID.randomUUID();
         jdbc.update(
-            "INSERT INTO public.districts (id, name, province, created_at) VALUES (?, ?, ?, now())",
+            "INSERT INTO public.districts (id, name, province, created_at) VALUES (?, ?, ?::sa_province, now())",
             id, req.name(), req.province()
         );
         return new DistrictResponse(id.toString(), req.name(), req.province(), null);
@@ -57,7 +57,7 @@ public class AdminService {
 
     public DistrictResponse updateDistrict(UUID id, CreateDistrictRequest req) {
         int updated = jdbc.update(
-            "UPDATE public.districts SET name = ?, province = ? WHERE id = ?",
+            "UPDATE public.districts SET name = ?, province = ?::sa_province WHERE id = ?",
             req.name(), req.province(), id
         );
         if (updated == 0) {

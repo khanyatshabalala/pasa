@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type LinkRequestResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -12,19 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Users, CheckCircle2, XCircle, Clock, ShieldAlert, Search, Loader2 } from "lucide-react";
 
-type LinkRequest = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  learner_number: string;
-  relationship: string;
-  status: "pending" | "approved" | "rejected";
-  rejection_reason: string | null;
-  created_at: string;
-  parent_user_id: string;
-  parent_name: string | null;
-  parent_email: string | null;
-};
+type LinkRequest = LinkRequestResponse;
 
 export function LinkRequestsPage() {
   const { primaryRole, primarySchoolId, user } = useAuth();
@@ -45,69 +33,48 @@ export function LinkRequestsPage() {
   const load = async () => {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
-
-    const { data: reqData } = await (supabase as any)
-      .from("parent_link_requests")
-      .select("id, first_name, last_name, learner_number, relationship, status, rejection_reason, created_at, parent_user_id")
-      .eq("school_id", primarySchoolId)
-      .order("created_at", { ascending: false });
-
-    const rows = (reqData ?? []) as Omit<LinkRequest, "parent_name" | "parent_email">[];
-
-    // Enrich with parent profile info
-    const parentIds = [...new Set(rows.map(r => r.parent_user_id))];
-    let profileMap: Record<string, { full_name: string | null; email: string | null }> = {};
-    if (parentIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, full_name")
-        .in("id", parentIds);
-      (profiles ?? []).forEach((p: any) => {
-        profileMap[p.id] = { full_name: p.full_name, email: null };
-      });
+    try {
+      const data = await api.get<LinkRequest[]>(`/api/v1/schools/${primarySchoolId}/link-requests`);
+      setRequests(data);
+    } catch {
+      setRequests([]);
+    } finally {
+      setLoading(false);
     }
-
-    setRequests(rows.map(r => ({
-      ...r,
-      parent_name:  profileMap[r.parent_user_id]?.full_name ?? null,
-      parent_email: profileMap[r.parent_user_id]?.email ?? null,
-    })));
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
 
   const onApprove = async (req: LinkRequest) => {
     setActing(req.id);
-    const { data, error } = await supabase.rpc("approve_link_request", {
-      _request_id:  req.id,
-      _reviewer_id: user!.id,
-    });
-    setActing(null);
-    if (error) return toast.error(error.message);
-    const result = data as any;
-    if (result?.error) return toast.error(result.error);
-    toast.success(`${req.first_name} ${req.last_name} linked to parent successfully`);
-    load();
+    try {
+      await api.post(`/api/v1/link-requests/${req.id}/approve`);
+      toast.success(`${req.firstName ?? ""} ${req.lastName ?? ""} linked to parent successfully`);
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setActing(null);
+    }
   };
 
   const onRejectConfirm = async () => {
     if (!rejectTarget) return;
     setRejecting(true);
-    const { data, error } = await (supabase as any).rpc("reject_link_request", {
-      _request_id:  rejectTarget.id,
-      _reviewer_id: user!.id,
-      _reason:      rejectReason.trim() || undefined,
-    });
-    setRejecting(false);
-    if (error) return toast.error(error.message);
-    const result = data as any;
-    if (result?.error) return toast.error(result.error);
-    toast.success("Request rejected");
-    setRejectOpen(false);
-    setRejectTarget(null);
-    setRejectReason("");
-    load();
+    try {
+      await api.post(`/api/v1/link-requests/${rejectTarget.id}/reject`, {
+        reason: rejectReason.trim() || null,
+      });
+      toast.success("Request rejected");
+      setRejectOpen(false);
+      setRejectTarget(null);
+      setRejectReason("");
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setRejecting(false);
+    }
   };
 
   if (!canManage) {
@@ -129,9 +96,8 @@ export function LinkRequestsPage() {
     if (!search.trim()) return rows;
     const q = search.toLowerCase();
     return rows.filter(r =>
-      `${r.first_name} ${r.last_name}`.toLowerCase().includes(q) ||
-      r.learner_number.toLowerCase().includes(q) ||
-      (r.parent_name ?? "").toLowerCase().includes(q)
+      `${r.firstName ?? ""} ${r.lastName ?? ""}`.toLowerCase().includes(q) ||
+      (r.learnerNumber ?? "").toLowerCase().includes(q)
     );
   };
 
@@ -207,19 +173,19 @@ export function LinkRequestsPage() {
               {displayed.map(r => (
                 <tr key={r.id} className="border-t align-middle">
                   <td className="p-3 font-medium">
-                    {r.first_name} {r.last_name}
+                    {r.firstName} {r.lastName}
                   </td>
                   <td className="p-3 font-mono text-xs text-muted-foreground">
-                    {r.learner_number}
+                    {r.learnerNumber}
                   </td>
                   <td className="p-3 text-muted-foreground text-xs">
-                    {r.parent_name ?? "—"}
+                    {r.schoolName ?? "—"}
                   </td>
                   <td className="p-3 text-muted-foreground text-xs capitalize">
-                    {r.relationship}
+                    {r.relationship ?? "—"}
                   </td>
                   <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
-                    {new Date(r.created_at).toLocaleDateString("en-ZA", {
+                    {new Date(r.createdAt).toLocaleDateString("en-ZA", {
                       day: "numeric", month: "short", year: "numeric",
                     })}
                   </td>
@@ -235,16 +201,9 @@ export function LinkRequestsPage() {
                       </span>
                     )}
                     {r.status === "rejected" && (
-                      <div>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-red-500 bg-red-500/10">
-                          <XCircle className="size-3" />Rejected
-                        </span>
-                        {r.rejection_reason && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5 max-w-[160px]">
-                            {r.rejection_reason}
-                          </p>
-                        )}
-                      </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-red-500 bg-red-500/10">
+                        <XCircle className="size-3" />Rejected
+                      </span>
                     )}
                   </td>
                   {tab === "pending" && (
@@ -287,7 +246,7 @@ export function LinkRequestsPage() {
           </DialogHeader>
           <p className="text-sm text-muted-foreground -mt-2">
             Rejecting the request for <span className="font-medium text-foreground">
-              {rejectTarget?.first_name} {rejectTarget?.last_name}
+              {rejectTarget?.firstName} {rejectTarget?.lastName}
             </span>. The parent will be notified.
           </p>
           <div className="space-y-3 mt-2">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type ExamEntryResponse, type GradeResponse, type SchoolResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -14,16 +14,33 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Search } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
 import type { ExamEntry, Grade } from "./types";
 import { CURRENT_YEAR, YEARS, TERMS, currentTerm } from "./types";
 import { ExamTable } from "./ExamTable";
 import { ExamForm } from "./ExamForm";
 
+// Map the backend exam DTO into the page's local snake_case shape.
+// The backend endpoint is not year-scoped, so academic_year defaults to the current year.
+function toExamEntry(e: ExamEntryResponse): ExamEntry {
+  return {
+    id: e.id,
+    subject: e.subject,
+    grade_id: e.gradeId,
+    exam_date: e.examDate,
+    start_time: e.startTime,
+    end_time: e.endTime,
+    venue: e.venue,
+    notes: e.notes,
+    term: e.term,
+    academic_year: CURRENT_YEAR,
+    created_by: null,
+  };
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export function ExamTimetablePage() {
-  const { primaryRole, primarySchoolId, user } = useAuth();
+  const { primaryRole, primarySchoolId } = useAuth();
 
   const canManage = ["principal", "school_admin", "super_admin"].includes(primaryRole);
 
@@ -42,46 +59,46 @@ export function ExamTimetablePage() {
   const load = async () => {
     if (!primarySchoolId) return;
     setLoading(true);
+    try {
+      const [school, g, e] = await Promise.all([
+        api.get<SchoolResponse>(`/api/v1/schools/${primarySchoolId}`),
+        api.get<GradeResponse[]>("/api/v1/grades"),
+        api.get<ExamEntryResponse[]>(`/api/v1/schools/${primarySchoolId}/exam-timetable`),
+      ]);
 
-    const [{ data: schoolData }, { data: g }, { data: e }] = await Promise.all([
-      supabase.from("schools").select("phase").eq("id", primarySchoolId).maybeSingle(),
-      supabase.from("grades").select("id, label").order("id"),
-      (supabase as any)
-        .from("exam_timetables")
-        .select("id, subject, grade_id, exam_date, start_time, end_time, venue, notes, term, academic_year, created_by")
-        .eq("school_id", primarySchoolId)
-        .order("exam_date", { ascending: true })
-        .order("start_time", { ascending: true }),
-    ]);
+      // Filter grades to those matching the school's phase
+      const schoolPhase: string = school?.phase ?? "";
+      const allGrades = g as Grade[];
+      const filteredGrades = schoolPhase === "combined" || !schoolPhase
+        ? allGrades
+        : allGrades.filter((gr) => {
+            if (schoolPhase === "primary")   return gr.id <= 7;
+            if (schoolPhase === "secondary") return gr.id >= 8;
+            return true;
+          });
 
-    // Filter grades to those matching the school's phase
-    const schoolPhase: string = (schoolData as any)?.phase ?? "";
-    const allGrades = (g ?? []) as Grade[];
-    const filteredGrades = schoolPhase === "combined" || !schoolPhase
-      ? allGrades
-      : allGrades.filter((gr) => {
-          if (schoolPhase === "primary")   return gr.id <= 7;
-          if (schoolPhase === "secondary") return gr.id >= 8;
-          return true;
-        });
-
-    setGrades(filteredGrades);
-    setExams((e ?? []) as ExamEntry[]);
-    setLoading(false);
+      setGrades(filteredGrades);
+      setExams(e.map(toExamEntry));
+    } catch {
+      setExams([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
 
   const handleDelete = async (exam: ExamEntry) => {
     setDeleting(exam.id);
-    const { error } = await (supabase as any)
-      .from("exam_timetables")
-      .delete()
-      .eq("id", exam.id);
-    setDeleting(null);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success("Exam removed");
-    load();
+    try {
+      await api.delete(`/api/v1/schools/${primarySchoolId}/exam-timetable/${exam.id}`);
+      toast.success("Exam removed");
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setDeleting(null);
+    }
   };
 
   if (!primarySchoolId) {

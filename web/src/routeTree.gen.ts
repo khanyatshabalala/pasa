@@ -9,75 +9,49 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SchoolsRouteImport } from './routes/schools'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as PricingRouteImport } from './routes/pricing'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AppRouteImport } from './routes/app'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PricingRouteImport } from './routes/pricing'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as SchoolsRouteImport } from './routes/schools'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as SuperadminAuthRouteImport } from './routes/superadmin.auth'
-import { Route as SchoolsSchoolIdRouteImport } from './routes/schools.$schoolId'
-import { Route as SchoolAuthRouteImport } from './routes/school.auth'
-import { Route as AppUpgradeRouteImport } from './routes/app.upgrade'
-import { Route as AppTransfersRouteImport } from './routes/app.transfers'
-import { Route as AppStaffRouteImport } from './routes/app.staff'
-import { Route as AppSchoolsRouteImport } from './routes/app.schools'
-import { Route as AppProfileRouteImport } from './routes/app.profile'
-import { Route as AppMarksCaptureRouteImport } from './routes/app.marks-capture'
-import { Route as AppMarksRouteImport } from './routes/app.marks'
-import { Route as AppLinkRequestsRouteImport } from './routes/app.link-requests'
-import { Route as AppLearnersRouteImport } from './routes/app.learners'
-import { Route as AppExamTimetableRouteImport } from './routes/app.exam-timetable'
-import { Route as AppDisciplineSchoolRouteImport } from './routes/app.discipline-school'
-import { Route as AppDisciplineRouteImport } from './routes/app.discipline'
-import { Route as AppClassesRouteImport } from './routes/app.classes'
-import { Route as AppChildrenRouteImport } from './routes/app.children'
-import { Route as AppCalendarRouteImport } from './routes/app.calendar'
-import { Route as AppAuditRouteImport } from './routes/app.audit'
-import { Route as AppAttendanceCaptureRouteImport } from './routes/app.attendance-capture'
-import { Route as AppAttendanceRouteImport } from './routes/app.attendance'
-import { Route as AppAssistantRouteImport } from './routes/app.assistant'
-import { Route as AppAlertsRouteImport } from './routes/app.alerts'
-import { Route as AppAdmissionsRouteImport } from './routes/app.admissions'
-import { Route as AdminUsersRouteImport } from './routes/admin.users'
-import { Route as AdminSchoolsRouteImport } from './routes/admin.schools'
-import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
 import { Route as AdminDistrictsRouteImport } from './routes/admin.districts'
-import { Route as AppLearnerLearnerIdRouteImport } from './routes/app.learner.$learnerId'
+import { Route as AdminRequestsRouteImport } from './routes/admin.requests'
+import { Route as AdminSchoolsRouteImport } from './routes/admin.schools'
+import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppAdmissionsRouteImport } from './routes/app.admissions'
+import { Route as AppAlertsRouteImport } from './routes/app.alerts'
+import { Route as AppAttendanceRouteImport } from './routes/app.attendance'
+import { Route as AppAttendanceCaptureRouteImport } from './routes/app.attendance-capture'
+import { Route as AppAuditRouteImport } from './routes/app.audit'
+import { Route as AppCalendarRouteImport } from './routes/app.calendar'
+import { Route as AppChildrenRouteImport } from './routes/app.children'
+import { Route as AppClassesRouteImport } from './routes/app.classes'
+import { Route as AppDisciplineRouteImport } from './routes/app.discipline'
+import { Route as AppDisciplineSchoolRouteImport } from './routes/app.discipline-school'
+import { Route as AppExamTimetableRouteImport } from './routes/app.exam-timetable'
+import { Route as AppLearnersRouteImport } from './routes/app.learners'
+import { Route as AppLinkRequestsRouteImport } from './routes/app.link-requests'
+import { Route as AppMarksRouteImport } from './routes/app.marks'
+import { Route as AppMarksCaptureRouteImport } from './routes/app.marks-capture'
+import { Route as AppProfileRouteImport } from './routes/app.profile'
+import { Route as AppSchoolsRouteImport } from './routes/app.schools'
+import { Route as AppStaffRouteImport } from './routes/app.staff'
+import { Route as AppTransfersRouteImport } from './routes/app.transfers'
+import { Route as AppUpgradeRouteImport } from './routes/app.upgrade'
+import { Route as SchoolAuthRouteImport } from './routes/school.auth'
+import { Route as SchoolsSchoolIdRouteImport } from './routes/schools.$schoolId'
+import { Route as SuperadminAuthRouteImport } from './routes/superadmin.auth'
 import { Route as AdminSchoolsSchoolIdRouteImport } from './routes/admin.schools.$schoolId'
+import { Route as AppLearnerLearnerIdRouteImport } from './routes/app.learner.$learnerId'
 
-const SchoolsRoute = SchoolsRouteImport.update({
-  id: '/schools',
-  path: '/schools',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/app',
-  path: '/app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -85,154 +59,39 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRoute,
+const AppRoute = AppRouteImport.update({
+  id: '/app',
+  path: '/app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchoolsRoute = SchoolsRouteImport.update({
+  id: '/schools',
+  path: '/schools',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const SuperadminAuthRoute = SuperadminAuthRouteImport.update({
-  id: '/superadmin/auth',
-  path: '/superadmin/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SchoolsSchoolIdRoute = SchoolsSchoolIdRouteImport.update({
-  id: '/$schoolId',
-  path: '/$schoolId',
-  getParentRoute: () => SchoolsRoute,
-} as any)
-const SchoolAuthRoute = SchoolAuthRouteImport.update({
-  id: '/school/auth',
-  path: '/school/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppUpgradeRoute = AppUpgradeRouteImport.update({
-  id: '/upgrade',
-  path: '/upgrade',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppTransfersRoute = AppTransfersRouteImport.update({
-  id: '/transfers',
-  path: '/transfers',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppStaffRoute = AppStaffRouteImport.update({
-  id: '/staff',
-  path: '/staff',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSchoolsRoute = AppSchoolsRouteImport.update({
-  id: '/schools',
-  path: '/schools',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMarksCaptureRoute = AppMarksCaptureRouteImport.update({
-  id: '/marks-capture',
-  path: '/marks-capture',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppMarksRoute = AppMarksRouteImport.update({
-  id: '/marks',
-  path: '/marks',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppLinkRequestsRoute = AppLinkRequestsRouteImport.update({
-  id: '/link-requests',
-  path: '/link-requests',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppLearnersRoute = AppLearnersRouteImport.update({
-  id: '/learners',
-  path: '/learners',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppExamTimetableRoute = AppExamTimetableRouteImport.update({
-  id: '/exam-timetable',
-  path: '/exam-timetable',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDisciplineSchoolRoute = AppDisciplineSchoolRouteImport.update({
-  id: '/discipline-school',
-  path: '/discipline-school',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppDisciplineRoute = AppDisciplineRouteImport.update({
-  id: '/discipline',
-  path: '/discipline',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppClassesRoute = AppClassesRouteImport.update({
-  id: '/classes',
-  path: '/classes',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppChildrenRoute = AppChildrenRouteImport.update({
-  id: '/children',
-  path: '/children',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppCalendarRoute = AppCalendarRouteImport.update({
-  id: '/calendar',
-  path: '/calendar',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAuditRoute = AppAuditRouteImport.update({
-  id: '/audit',
-  path: '/audit',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAttendanceCaptureRoute = AppAttendanceCaptureRouteImport.update({
-  id: '/attendance-capture',
-  path: '/attendance-capture',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAttendanceRoute = AppAttendanceRouteImport.update({
-  id: '/attendance',
-  path: '/attendance',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAssistantRoute = AppAssistantRouteImport.update({
-  id: '/assistant',
-  path: '/assistant',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAlertsRoute = AppAlertsRouteImport.update({
-  id: '/alerts',
-  path: '/alerts',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppAdmissionsRoute = AppAdmissionsRouteImport.update({
-  id: '/admissions',
-  path: '/admissions',
-  getParentRoute: () => AppRoute,
-} as any)
-const AdminUsersRoute = AdminUsersRouteImport.update({
-  id: '/users',
-  path: '/users',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSchoolsRoute = AdminSchoolsRouteImport.update({
-  id: '/schools',
-  path: '/schools',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminRequestsRoute = AdminRequestsRouteImport.update({
-  id: '/requests',
-  path: '/requests',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDistrictsRoute = AdminDistrictsRouteImport.update({
@@ -240,15 +99,150 @@ const AdminDistrictsRoute = AdminDistrictsRouteImport.update({
   path: '/districts',
   getParentRoute: () => AdminRoute,
 } as any)
-const AppLearnerLearnerIdRoute = AppLearnerLearnerIdRouteImport.update({
-  id: '/learner/$learnerId',
-  path: '/learner/$learnerId',
+const AdminRequestsRoute = AdminRequestsRouteImport.update({
+  id: '/requests',
+  path: '/requests',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSchoolsRoute = AdminSchoolsRouteImport.update({
+  id: '/schools',
+  path: '/schools',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const AppAdmissionsRoute = AppAdmissionsRouteImport.update({
+  id: '/admissions',
+  path: '/admissions',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAlertsRoute = AppAlertsRouteImport.update({
+  id: '/alerts',
+  path: '/alerts',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAttendanceRoute = AppAttendanceRouteImport.update({
+  id: '/attendance',
+  path: '/attendance',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAttendanceCaptureRoute = AppAttendanceCaptureRouteImport.update({
+  id: '/attendance-capture',
+  path: '/attendance-capture',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAuditRoute = AppAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCalendarRoute = AppCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppChildrenRoute = AppChildrenRouteImport.update({
+  id: '/children',
+  path: '/children',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClassesRoute = AppClassesRouteImport.update({
+  id: '/classes',
+  path: '/classes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDisciplineRoute = AppDisciplineRouteImport.update({
+  id: '/discipline',
+  path: '/discipline',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDisciplineSchoolRoute = AppDisciplineSchoolRouteImport.update({
+  id: '/discipline-school',
+  path: '/discipline-school',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExamTimetableRoute = AppExamTimetableRouteImport.update({
+  id: '/exam-timetable',
+  path: '/exam-timetable',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLearnersRoute = AppLearnersRouteImport.update({
+  id: '/learners',
+  path: '/learners',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLinkRequestsRoute = AppLinkRequestsRouteImport.update({
+  id: '/link-requests',
+  path: '/link-requests',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarksRoute = AppMarksRouteImport.update({
+  id: '/marks',
+  path: '/marks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMarksCaptureRoute = AppMarksCaptureRouteImport.update({
+  id: '/marks-capture',
+  path: '/marks-capture',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSchoolsRoute = AppSchoolsRouteImport.update({
+  id: '/schools',
+  path: '/schools',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppStaffRoute = AppStaffRouteImport.update({
+  id: '/staff',
+  path: '/staff',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppTransfersRoute = AppTransfersRouteImport.update({
+  id: '/transfers',
+  path: '/transfers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppUpgradeRoute = AppUpgradeRouteImport.update({
+  id: '/upgrade',
+  path: '/upgrade',
+  getParentRoute: () => AppRoute,
+} as any)
+const SchoolAuthRoute = SchoolAuthRouteImport.update({
+  id: '/school/auth',
+  path: '/school/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SchoolsSchoolIdRoute = SchoolsSchoolIdRouteImport.update({
+  id: '/$schoolId',
+  path: '/$schoolId',
+  getParentRoute: () => SchoolsRoute,
+} as any)
+const SuperadminAuthRoute = SuperadminAuthRouteImport.update({
+  id: '/superadmin/auth',
+  path: '/superadmin/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AdminSchoolsSchoolIdRoute = AdminSchoolsSchoolIdRouteImport.update({
   id: '/$schoolId',
   path: '/$schoolId',
   getParentRoute: () => AdminSchoolsRoute,
+} as any)
+const AppLearnerLearnerIdRoute = AppLearnerLearnerIdRouteImport.update({
+  id: '/learner/$learnerId',
+  path: '/learner/$learnerId',
+  getParentRoute: () => AppRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -266,7 +260,6 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AdminUsersRoute
   '/app/admissions': typeof AppAdmissionsRoute
   '/app/alerts': typeof AppAlertsRoute
-  '/app/assistant': typeof AppAssistantRoute
   '/app/attendance': typeof AppAttendanceRoute
   '/app/attendance-capture': typeof AppAttendanceCaptureRoute
   '/app/audit': typeof AppAuditRoute
@@ -306,7 +299,6 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AdminUsersRoute
   '/app/admissions': typeof AppAdmissionsRoute
   '/app/alerts': typeof AppAlertsRoute
-  '/app/assistant': typeof AppAssistantRoute
   '/app/attendance': typeof AppAttendanceRoute
   '/app/attendance-capture': typeof AppAttendanceCaptureRoute
   '/app/audit': typeof AppAuditRoute
@@ -349,7 +341,6 @@ export interface FileRoutesById {
   '/admin/users': typeof AdminUsersRoute
   '/app/admissions': typeof AppAdmissionsRoute
   '/app/alerts': typeof AppAlertsRoute
-  '/app/assistant': typeof AppAssistantRoute
   '/app/attendance': typeof AppAttendanceRoute
   '/app/attendance-capture': typeof AppAttendanceCaptureRoute
   '/app/audit': typeof AppAuditRoute
@@ -393,7 +384,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/admissions'
     | '/app/alerts'
-    | '/app/assistant'
     | '/app/attendance'
     | '/app/attendance-capture'
     | '/app/audit'
@@ -433,7 +423,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/admissions'
     | '/app/alerts'
-    | '/app/assistant'
     | '/app/attendance'
     | '/app/attendance-capture'
     | '/app/audit'
@@ -475,7 +464,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/app/admissions'
     | '/app/alerts'
-    | '/app/assistant'
     | '/app/attendance'
     | '/app/attendance-capture'
     | '/app/audit'
@@ -518,46 +506,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/schools': {
-      id: '/schools'
-      path: '/schools'
-      fullPath: '/schools'
-      preLoaderRoute: typeof SchoolsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app': {
-      id: '/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -567,214 +520,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/': {
-      id: '/app/'
-      path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRoute
+    '/app': {
+      id: '/app'
+      path: '/app'
+      fullPath: '/app'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schools': {
+      id: '/schools'
+      path: '/schools'
+      fullPath: '/schools'
+      preLoaderRoute: typeof SchoolsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/': {
       id: '/admin/'
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/superadmin/auth': {
-      id: '/superadmin/auth'
-      path: '/superadmin/auth'
-      fullPath: '/superadmin/auth'
-      preLoaderRoute: typeof SuperadminAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/schools/$schoolId': {
-      id: '/schools/$schoolId'
-      path: '/$schoolId'
-      fullPath: '/schools/$schoolId'
-      preLoaderRoute: typeof SchoolsSchoolIdRouteImport
-      parentRoute: typeof SchoolsRoute
-    }
-    '/school/auth': {
-      id: '/school/auth'
-      path: '/school/auth'
-      fullPath: '/school/auth'
-      preLoaderRoute: typeof SchoolAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/upgrade': {
-      id: '/app/upgrade'
-      path: '/upgrade'
-      fullPath: '/app/upgrade'
-      preLoaderRoute: typeof AppUpgradeRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/transfers': {
-      id: '/app/transfers'
-      path: '/transfers'
-      fullPath: '/app/transfers'
-      preLoaderRoute: typeof AppTransfersRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/staff': {
-      id: '/app/staff'
-      path: '/staff'
-      fullPath: '/app/staff'
-      preLoaderRoute: typeof AppStaffRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/schools': {
-      id: '/app/schools'
-      path: '/schools'
-      fullPath: '/app/schools'
-      preLoaderRoute: typeof AppSchoolsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/profile': {
-      id: '/app/profile'
-      path: '/profile'
-      fullPath: '/app/profile'
-      preLoaderRoute: typeof AppProfileRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/marks-capture': {
-      id: '/app/marks-capture'
-      path: '/marks-capture'
-      fullPath: '/app/marks-capture'
-      preLoaderRoute: typeof AppMarksCaptureRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/marks': {
-      id: '/app/marks'
-      path: '/marks'
-      fullPath: '/app/marks'
-      preLoaderRoute: typeof AppMarksRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/link-requests': {
-      id: '/app/link-requests'
-      path: '/link-requests'
-      fullPath: '/app/link-requests'
-      preLoaderRoute: typeof AppLinkRequestsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/learners': {
-      id: '/app/learners'
-      path: '/learners'
-      fullPath: '/app/learners'
-      preLoaderRoute: typeof AppLearnersRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/exam-timetable': {
-      id: '/app/exam-timetable'
-      path: '/exam-timetable'
-      fullPath: '/app/exam-timetable'
-      preLoaderRoute: typeof AppExamTimetableRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/discipline-school': {
-      id: '/app/discipline-school'
-      path: '/discipline-school'
-      fullPath: '/app/discipline-school'
-      preLoaderRoute: typeof AppDisciplineSchoolRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/discipline': {
-      id: '/app/discipline'
-      path: '/discipline'
-      fullPath: '/app/discipline'
-      preLoaderRoute: typeof AppDisciplineRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/classes': {
-      id: '/app/classes'
-      path: '/classes'
-      fullPath: '/app/classes'
-      preLoaderRoute: typeof AppClassesRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/children': {
-      id: '/app/children'
-      path: '/children'
-      fullPath: '/app/children'
-      preLoaderRoute: typeof AppChildrenRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/calendar': {
-      id: '/app/calendar'
-      path: '/calendar'
-      fullPath: '/app/calendar'
-      preLoaderRoute: typeof AppCalendarRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/audit': {
-      id: '/app/audit'
-      path: '/audit'
-      fullPath: '/app/audit'
-      preLoaderRoute: typeof AppAuditRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/attendance-capture': {
-      id: '/app/attendance-capture'
-      path: '/attendance-capture'
-      fullPath: '/app/attendance-capture'
-      preLoaderRoute: typeof AppAttendanceCaptureRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/attendance': {
-      id: '/app/attendance'
-      path: '/attendance'
-      fullPath: '/app/attendance'
-      preLoaderRoute: typeof AppAttendanceRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/assistant': {
-      id: '/app/assistant'
-      path: '/assistant'
-      fullPath: '/app/assistant'
-      preLoaderRoute: typeof AppAssistantRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/alerts': {
-      id: '/app/alerts'
-      path: '/alerts'
-      fullPath: '/app/alerts'
-      preLoaderRoute: typeof AppAlertsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/admissions': {
-      id: '/app/admissions'
-      path: '/admissions'
-      fullPath: '/app/admissions'
-      preLoaderRoute: typeof AppAdmissionsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/admin/users': {
-      id: '/admin/users'
-      path: '/users'
-      fullPath: '/admin/users'
-      preLoaderRoute: typeof AdminUsersRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/schools': {
-      id: '/admin/schools'
-      path: '/schools'
-      fullPath: '/admin/schools'
-      preLoaderRoute: typeof AdminSchoolsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/requests': {
-      id: '/admin/requests'
-      path: '/requests'
-      fullPath: '/admin/requests'
-      preLoaderRoute: typeof AdminRequestsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/districts': {
@@ -784,12 +576,194 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDistrictsRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/app/learner/$learnerId': {
-      id: '/app/learner/$learnerId'
-      path: '/learner/$learnerId'
-      fullPath: '/app/learner/$learnerId'
-      preLoaderRoute: typeof AppLearnerLearnerIdRouteImport
+    '/admin/requests': {
+      id: '/admin/requests'
+      path: '/requests'
+      fullPath: '/admin/requests'
+      preLoaderRoute: typeof AdminRequestsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/schools': {
+      id: '/admin/schools'
+      path: '/schools'
+      fullPath: '/admin/schools'
+      preLoaderRoute: typeof AdminSchoolsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/app/admissions': {
+      id: '/app/admissions'
+      path: '/admissions'
+      fullPath: '/app/admissions'
+      preLoaderRoute: typeof AppAdmissionsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/alerts': {
+      id: '/app/alerts'
+      path: '/alerts'
+      fullPath: '/app/alerts'
+      preLoaderRoute: typeof AppAlertsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/attendance': {
+      id: '/app/attendance'
+      path: '/attendance'
+      fullPath: '/app/attendance'
+      preLoaderRoute: typeof AppAttendanceRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/attendance-capture': {
+      id: '/app/attendance-capture'
+      path: '/attendance-capture'
+      fullPath: '/app/attendance-capture'
+      preLoaderRoute: typeof AppAttendanceCaptureRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/audit': {
+      id: '/app/audit'
+      path: '/audit'
+      fullPath: '/app/audit'
+      preLoaderRoute: typeof AppAuditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/calendar': {
+      id: '/app/calendar'
+      path: '/calendar'
+      fullPath: '/app/calendar'
+      preLoaderRoute: typeof AppCalendarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/children': {
+      id: '/app/children'
+      path: '/children'
+      fullPath: '/app/children'
+      preLoaderRoute: typeof AppChildrenRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/classes': {
+      id: '/app/classes'
+      path: '/classes'
+      fullPath: '/app/classes'
+      preLoaderRoute: typeof AppClassesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/discipline': {
+      id: '/app/discipline'
+      path: '/discipline'
+      fullPath: '/app/discipline'
+      preLoaderRoute: typeof AppDisciplineRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/discipline-school': {
+      id: '/app/discipline-school'
+      path: '/discipline-school'
+      fullPath: '/app/discipline-school'
+      preLoaderRoute: typeof AppDisciplineSchoolRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/exam-timetable': {
+      id: '/app/exam-timetable'
+      path: '/exam-timetable'
+      fullPath: '/app/exam-timetable'
+      preLoaderRoute: typeof AppExamTimetableRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/learners': {
+      id: '/app/learners'
+      path: '/learners'
+      fullPath: '/app/learners'
+      preLoaderRoute: typeof AppLearnersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/link-requests': {
+      id: '/app/link-requests'
+      path: '/link-requests'
+      fullPath: '/app/link-requests'
+      preLoaderRoute: typeof AppLinkRequestsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/marks': {
+      id: '/app/marks'
+      path: '/marks'
+      fullPath: '/app/marks'
+      preLoaderRoute: typeof AppMarksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/marks-capture': {
+      id: '/app/marks-capture'
+      path: '/marks-capture'
+      fullPath: '/app/marks-capture'
+      preLoaderRoute: typeof AppMarksCaptureRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/profile': {
+      id: '/app/profile'
+      path: '/profile'
+      fullPath: '/app/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/schools': {
+      id: '/app/schools'
+      path: '/schools'
+      fullPath: '/app/schools'
+      preLoaderRoute: typeof AppSchoolsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/staff': {
+      id: '/app/staff'
+      path: '/staff'
+      fullPath: '/app/staff'
+      preLoaderRoute: typeof AppStaffRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/transfers': {
+      id: '/app/transfers'
+      path: '/transfers'
+      fullPath: '/app/transfers'
+      preLoaderRoute: typeof AppTransfersRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/upgrade': {
+      id: '/app/upgrade'
+      path: '/upgrade'
+      fullPath: '/app/upgrade'
+      preLoaderRoute: typeof AppUpgradeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/school/auth': {
+      id: '/school/auth'
+      path: '/school/auth'
+      fullPath: '/school/auth'
+      preLoaderRoute: typeof SchoolAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/schools/$schoolId': {
+      id: '/schools/$schoolId'
+      path: '/$schoolId'
+      fullPath: '/schools/$schoolId'
+      preLoaderRoute: typeof SchoolsSchoolIdRouteImport
+      parentRoute: typeof SchoolsRoute
+    }
+    '/superadmin/auth': {
+      id: '/superadmin/auth'
+      path: '/superadmin/auth'
+      fullPath: '/superadmin/auth'
+      preLoaderRoute: typeof SuperadminAuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/admin/schools/$schoolId': {
       id: '/admin/schools/$schoolId'
@@ -797,6 +771,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/schools/$schoolId'
       preLoaderRoute: typeof AdminSchoolsSchoolIdRouteImport
       parentRoute: typeof AdminSchoolsRoute
+    }
+    '/app/learner/$learnerId': {
+      id: '/app/learner/$learnerId'
+      path: '/learner/$learnerId'
+      fullPath: '/app/learner/$learnerId'
+      preLoaderRoute: typeof AppLearnerLearnerIdRouteImport
+      parentRoute: typeof AppRoute
     }
   }
 }
@@ -834,7 +815,6 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 interface AppRouteChildren {
   AppAdmissionsRoute: typeof AppAdmissionsRoute
   AppAlertsRoute: typeof AppAlertsRoute
-  AppAssistantRoute: typeof AppAssistantRoute
   AppAttendanceRoute: typeof AppAttendanceRoute
   AppAttendanceCaptureRoute: typeof AppAttendanceCaptureRoute
   AppAuditRoute: typeof AppAuditRoute
@@ -860,7 +840,6 @@ interface AppRouteChildren {
 const AppRouteChildren: AppRouteChildren = {
   AppAdmissionsRoute: AppAdmissionsRoute,
   AppAlertsRoute: AppAlertsRoute,
-  AppAssistantRoute: AppAssistantRoute,
   AppAttendanceRoute: AppAttendanceRoute,
   AppAttendanceCaptureRoute: AppAttendanceCaptureRoute,
   AppAuditRoute: AppAuditRoute,

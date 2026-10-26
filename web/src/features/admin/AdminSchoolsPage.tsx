@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type SchoolResponse, type DistrictResponse } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,24 +12,21 @@ import { toast } from "sonner";
 import { Plus, Loader2, Building2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-import { friendlyDbError } from "@/lib/db-errors";
-
 const PROVINCES = [
   "Eastern Cape", "Free State", "Gauteng", "KwaZulu-Natal", "Limpopo",
   "Mpumalanga", "Northern Cape", "North West", "Western Cape",
 ] as const;
-const PHASES = ["primary", "secondary", "combined", "ecd"] as const;
+// Backend SchoolPhase enum is lowercase: primary | secondary | combined.
+const PHASES = ["primary", "secondary", "combined"] as const;
 const PHASE_LABELS: Record<string, string> = {
   primary:   "Primary school (Grade R–7)",
   secondary: "High school (Grade 8–12)",
   combined:  "Combined (Grade R–12)",
-  ecd:       "ECD / Pre-school",
 };
 const PHASE_GRADE_HINT: Record<string, string> = {
   primary:   "Grades R to 7",
   secondary: "Grades 8 to 12",
   combined:  "Grades R to 12",
-  ecd:       "Pre-Grade R",
 };
 const TYPES = ["public", "independent", "private", "special"] as const;
 
@@ -45,8 +42,8 @@ const schema = z.object({
   phone: z.string().trim().max(30).optional().or(z.literal("")),
 });
 
-type School = { id: string; name: string; emis_number: string; district: string; province: string; phase: string; school_type: string; learner_count: number | null; district_id: string | null; districts?: { name: string } | null };
-type District = { id: string; name: string; province: string };
+type School = SchoolResponse;
+type District = DistrictResponse;
 
 export function AdminSchoolsPage() {
   const [rows, setRows] = useState<School[]>([]);
@@ -54,18 +51,22 @@ export function AdminSchoolsPage() {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [province, setProvince] = useState<string>("Western Cape");
-  const [phase, setPhase] = useState<string>("Primary");
+  const [phase, setPhase] = useState<string>("primary");
   const [type, setType] = useState<string>("public");
   const [districtId, setDistrictId] = useState<string>("");
   const [districtText, setDistrictText] = useState<string>("");
 
   const load = async () => {
-    const [{ data: s }, { data: d }] = await Promise.all([
-      supabase.from("schools").select("*, districts(name)").order("name"),
-      supabase.from("districts").select("id,name,province").order("name"),
-    ]);
-    setRows((s ?? []) as any);
-    setDistricts((d ?? []) as District[]);
+    try {
+      const [s, d] = await Promise.all([
+        api.get<School[]>("/api/v1/schools"),
+        api.get<District[]>("/api/v1/districts"),
+      ]);
+      setRows([...s].sort((a, b) => a.name.localeCompare(b.name)));
+      setDistricts(d);
+    } catch {
+      setRows([]);
+    }
   };
   useEffect(() => { load(); }, []);
 
@@ -91,25 +92,29 @@ export function AdminSchoolsPage() {
       return toast.error("Pick a district from the list or type one in.");
     }
     setSaving(true);
-    const { error } = await supabase.from("schools").insert({
-      name: parsed.data.name,
-      emis_number: parsed.data.emis_number,
-      district: parsed.data.district,
-      province: parsed.data.province as any,
-      phase: parsed.data.phase as any,
-      school_type: parsed.data.school_type as any,
-      city: parsed.data.city || null,
-      email: parsed.data.email || null,
-      phone: parsed.data.phone || null,
-      district_id: districtId || null,
-    });
-    setSaving(false);
-    if (error) return toast.error(friendlyDbError(error, { duplicate: "A school with that EMIS number already exists." }));
-    toast.success("School created");
-    setOpen(false);
-    setDistrictId("");
-    setDistrictText("");
-    load();
+    try {
+      await api.post("/api/v1/schools", {
+        name: parsed.data.name,
+        emisNumber: parsed.data.emis_number,
+        district: parsed.data.district,
+        province: parsed.data.province,
+        phase: parsed.data.phase,                    // lowercase enum
+        schoolType: parsed.data.school_type.toUpperCase(), // backend SchoolType is uppercase
+        city: parsed.data.city || null,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+        districtId: districtId || null,
+      });
+      toast.success("School created");
+      setOpen(false);
+      setDistrictId("");
+      setDistrictText("");
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not create school. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const districtOptions = districts.filter(d => d.province === province);
@@ -230,12 +235,12 @@ export function AdminSchoolsPage() {
               {rows.map(r => (
                 <tr key={r.id} className="border-t">
                   <td className="p-3 font-medium">{r.name}</td>
-                  <td className="p-3 text-muted-foreground">{r.emis_number}</td>
-                  <td className="p-3">{r.districts?.name ?? r.district}</td>
+                  <td className="p-3 text-muted-foreground">{r.emisNumber}</td>
+                  <td className="p-3">{r.district}</td>
                   <td className="p-3 text-muted-foreground">{r.province}</td>
-                  <td className="p-3"><Badge variant="secondary">{PHASE_LABELS[r.phase] ?? r.phase}</Badge></td>
-                  <td className="p-3 capitalize text-muted-foreground">{r.school_type}</td>
-                  <td className="p-3">{r.learner_count ?? 0}</td>
+                  <td className="p-3"><Badge variant="secondary">{PHASE_LABELS[r.phase ?? ""] ?? r.phase}</Badge></td>
+                  <td className="p-3 capitalize text-muted-foreground">{r.schoolType}</td>
+                  <td className="p-3">{r.learnerCount ?? 0}</td>
                   <td className="p-3 text-right">
                     <Button asChild size="icon" variant="ghost" className="size-7">
                       <Link to="/admin/schools/$schoolId" params={{ schoolId: r.id }}>

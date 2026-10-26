@@ -25,7 +25,7 @@ public class GradeController {
     @GetMapping
     public List<Map<String, Object>> listGrades() {
         return jdbc.queryForList(
-            "SELECT id::text, name, \"order\", phase FROM public.grades ORDER BY \"order\" ASC NULLS LAST, name ASC"
+            "SELECT id, label, phase FROM public.grades ORDER BY id"
         );
     }
 }

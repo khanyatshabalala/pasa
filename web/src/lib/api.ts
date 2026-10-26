@@ -70,6 +70,41 @@ export class ApiError extends Error {
 
 // ── Convenience methods ───────────────────────────────────────────────────────
 
+async function uploadRequest<T>(path: string, form: FormData): Promise<T> {
+  // No Content-Type header — the browser sets the multipart boundary itself.
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { method: "POST", headers, body: form });
+
+  if (!res.ok) {
+    let message = `${res.status} ${res.statusText}`;
+    try {
+      const err = await res.json();
+      message = err.message ?? err.error ?? message;
+    } catch {
+      // ignore parse failure
+    }
+    throw new ApiError(message, res.status);
+  }
+
+  if (res.status === 204) return undefined as T;
+  return res.json() as Promise<T>;
+}
+
+async function blobRequest(path: string): Promise<Blob> {
+  const headers: Record<string, string> = {};
+  const token = getToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { method: "GET", headers });
+  if (!res.ok) {
+    throw new ApiError(`${res.status} ${res.statusText}`, res.status);
+  }
+  return res.blob();
+}
+
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
   post: <T>(path: string, body?: unknown, opts?: { skipAuth?: boolean }) =>
@@ -77,6 +112,10 @@ export const api = {
   put: <T>(path: string, body?: unknown) => request<T>("PUT", path, body),
   patch: <T>(path: string, body?: unknown) => request<T>("PATCH", path, body),
   delete: <T = void>(path: string) => request<T>("DELETE", path),
+  /** Multipart file upload (JWT attached, no Content-Type so the boundary is set by the browser). */
+  upload: <T>(path: string, form: FormData) => uploadRequest<T>(path, form),
+  /** Fetch a binary payload (e.g. a report-card PDF) as a Blob with the JWT attached. */
+  getBlob: (path: string) => blobRequest(path),
 };
 
 // ── API types (mirrors backend DTOs) ─────────────────────────────────────────
@@ -107,11 +146,32 @@ export interface SchoolResponse {
   province: string | null;
   phase: string | null;
   schoolType: string | null;
-  gradeFrom: string | null;
-  gradeTo: string | null;
-  email: string | null;
-  phone: string | null;
+  address: string | null;
   city: string | null;
+  postalCode: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  principalName: string | null;
+  establishedYear: number | null;
+  learnerCount: number | null;
+  feesAnnual: number | null;
+  logoUrl: string | null;
+  motto: string | null;
+  description: string | null;
+  districtId: string | null;
+  gradeFrom: number | null;
+  gradeTo: number | null;
+  applicationOpen: string | null;
+  applicationClose: string | null;
+  admissionRequirements: string | null;
+  applicationContact: string | null;
+  performanceAvg: number | null;
+  performanceRankDistrict: number | null;
+  performanceRankProvince: number | null;
+  performanceRankNational: number | null;
+  createdAt: string | null;
+  updatedAt: string | null;
 }
 
 export interface DistrictResponse {
@@ -126,7 +186,7 @@ export interface LearnerResponse {
   schoolId: string;
   firstName: string;
   lastName: string;
-  gradeId: string | null;
+  gradeId: number | null;
   learnerNumber: string | null;
   gender: string | null;
   dateOfBirth: string | null;
@@ -164,7 +224,7 @@ export interface ClassResponse {
   id: string;
   schoolId: string;
   name: string;
-  gradeId: string | null;
+  gradeId: number | null;
   teacherUserId: string | null;
   academicYear: number;
 }
@@ -182,27 +242,26 @@ export interface CalendarEventResponse {
 
 export interface ExamEntryResponse {
   id: string;
-  schoolId: string;
   subject: string;
-  gradeId: string;
+  gradeId: number | null;
   examDate: string;
   startTime: string | null;
   endTime: string | null;
+  venue: string | null;
+  notes: string | null;
   term: number;
-  academicYear: number;
 }
 
 export interface LinkRequestResponse {
   id: string;
   parentUserId: string;
-  parentName: string | null;
   schoolId: string;
-  learnerId: string | null;
-  learnerFirstName: string | null;
-  learnerLastName: string | null;
+  schoolName: string | null;
   learnerNumber: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  relationship: string | null;
   status: string;
-  rejectionReason: string | null;
   createdAt: string;
 }
 
@@ -260,10 +319,118 @@ export interface AdminUserResponse {
 }
 
 export interface GradeResponse {
-  id: string;
-  name: string;
-  order: number;
+  id: number;
+  label: string;
   phase: string | null;
+}
+
+export interface ReportCardResponse {
+  id: string;
+  learnerId: string;
+  schoolId: string;
+  academicYear: number;
+  term: number;
+  fileName: string;
+  uploadedBy: string | null;
+  uploadedByName: string | null;
+  uploadedAt: string;
+  notes: string | null;
+  learnerFirstName: string | null;
+  learnerLastName: string | null;
+}
+
+export interface AdminStatsResponse {
+  schools: number;
+  districts: number;
+  users: number;
+  learners: number;
+  pendingLinkRequests: number;
+  pendingSchoolRequests: number;
+}
+
+export interface SchoolRequestResponse {
+  id: string;
+  schoolName: string;
+  province: string;
+  district: string;
+  contactName: string;
+  contactRole: string;
+  contactEmail: string;
+  contactPhone: string | null;
+  message: string | null;
+  status: string;
+  adminNotes: string | null;
+  createdAt: string;
+}
+
+export interface ParentDashboardResponse {
+  children: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    schoolId: string | null;
+    schoolName: string | null;
+    gradeId: number | null;
+    relationship: string | null;
+    isPrimary: boolean | null;
+  }>;
+  todayAttendance: Record<string, string>;
+  unreadCount: number;
+  nextEvent: {
+    id: string;
+    title: string;
+    eventDate: string;
+    eventTime: string | null;
+    eventType: string | null;
+    schoolName: string | null;
+  } | null;
+  recentAlerts: Array<{
+    id: string;
+    title: string;
+    body: string | null;
+    category: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface SchoolDashboardResponse {
+  school: {
+    id: string;
+    name: string | null;
+    district: string | null;
+    province: string | null;
+  };
+  learnerCount: number;
+  todayAttendance: {
+    present: number;
+    late: number;
+    absent: number;
+    total: number;
+    captured: boolean;
+  };
+  recentDiscipline: Array<{
+    id: string;
+    type: string | null;
+    title: string;
+    date: string;
+    learnerFirstName: string | null;
+    learnerLastName: string | null;
+  }>;
+  nextEvent: {
+    id: string;
+    title: string;
+    eventDate: string;
+    eventTime: string | null;
+    eventType: string | null;
+  } | null;
+  weekEvents: Array<{
+    id: string;
+    title: string;
+    eventDate: string;
+    eventTime: string | null;
+    eventType: string | null;
+  }>;
+  pendingLinkRequests: number;
 }
 
 export interface NationalCalendarEvent {
@@ -287,7 +454,7 @@ export interface ParentChildResponse {
   learnerFirstName: string;
   learnerLastName: string;
   learnerNumber: string | null;
-  gradeId: string | null;
+  gradeId: number | null;
   schoolId: string;
   schoolName: string | null;
   relationship: string | null;

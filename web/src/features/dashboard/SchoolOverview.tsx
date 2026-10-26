@@ -1,13 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type SchoolDashboardResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Users, ClipboardList, Shield, CalendarDays,
-  ArrowRight, CheckCircle2, AlertCircle, BookOpen, UserCheck,
+  ArrowRight, CheckCircle2, AlertCircle, UserCheck,
 } from "lucide-react";
 
 function currentTerm() {
@@ -25,94 +24,34 @@ function greetingTime() {
   return "Good evening";
 }
 
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 export function SchoolOverview() {
   const { primarySchoolId, primaryRole, displayName } = useAuth();
 
-  const [school, setSchool]             = useState<any>(null);
+  const [school, setSchool]             = useState<SchoolDashboardResponse["school"] | null>(null);
   const [learnerCount, setLearnerCount] = useState(0);
   const [todayAttStats, setTodayAttStats] = useState({ present: 0, absent: 0, late: 0, total: 0, captured: false });
-  const [recentDiscipline, setRecentDiscipline] = useState<any[]>([]);
-  const [nextEvent, setNextEvent]       = useState<any>(null);
-  const [weekEvents, setWeekEvents]     = useState<any[]>([]);
+  const [recentDiscipline, setRecentDiscipline] = useState<SchoolDashboardResponse["recentDiscipline"]>([]);
+  const [weekEvents, setWeekEvents]     = useState<SchoolDashboardResponse["weekEvents"]>([]);
   const [pendingLinkCount, setPendingLinkCount] = useState(0);
 
   useEffect(() => {
     if (!primarySchoolId) return;
-    (async () => {
-      const today = todayStr();
-      const weekEnd = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
-
-      const [
-        { data: s },
-        { count: lc },
-        { data: learnerIds },
-      ] = await Promise.all([
-        supabase.from("schools").select("name, district, province").eq("id", primarySchoolId).maybeSingle(),
-        supabase.from("learners").select("*", { count: "exact", head: true }).eq("school_id", primarySchoolId),
-        supabase.from("learners").select("id").eq("school_id", primarySchoolId),
-      ]);
-
-      setSchool(s);
-      setLearnerCount(lc ?? 0);
-
-      const ids = (learnerIds ?? []).map((l: any) => l.id);
-
-      await Promise.all([
-        // Today's attendance summary
-        ids.length
-          ? supabase.from("attendance").select("status").in("learner_id", ids).eq("date", today)
-              .then(({ data }) => {
-                const rows = data ?? [];
-                const present = rows.filter((r: any) => r.status === "present").length;
-                const late    = rows.filter((r: any) => r.status === "late").length;
-                const absent  = rows.filter((r: any) => r.status === "absent").length;
-                setTodayAttStats({
-                  present, late, absent,
-                  total: lc ?? 0,
-                  captured: rows.length > 0,
-                });
-              })
-          : Promise.resolve(),
-
-        // Recent discipline (last 5)
-        ids.length
-          ? supabase.from("discipline_records")
-              .select("id, type, title, date, learners(first_name, last_name)")
-              .in("learner_id", ids)
-              .order("date", { ascending: false })
-              .limit(5)
-              .then(({ data }) => setRecentDiscipline(data ?? []))
-          : Promise.resolve(),
-
-        // Next event
-        supabase.from("calendar_events")
-          .select("id, title, event_date, event_time, event_type")
-          .eq("school_id", primarySchoolId)
-          .gte("event_date", today)
-          .order("event_date").limit(1).maybeSingle()
-          .then(({ data }) => setNextEvent(data)),
-
-        // This week's events
-        supabase.from("calendar_events")
-          .select("id, title, event_date, event_time, event_type")
-          .eq("school_id", primarySchoolId)
-          .gte("event_date", today)
-          .lte("event_date", weekEnd)
-          .order("event_date").limit(5)
-          .then(({ data }) => setWeekEvents(data ?? [])),
-
-        // Pending link requests count
-        (supabase as any).from("parent_link_requests")
-          .select("*", { count: "exact", head: true })
-          .eq("school_id", primarySchoolId)
-          .eq("status", "pending")
-          .then(({ count }: any) => setPendingLinkCount(count ?? 0)),
-      ]);
-    })();
+    api.get<SchoolDashboardResponse>(`/api/v1/schools/${primarySchoolId}/dashboard`)
+      .then((d) => {
+        setSchool(d.school);
+        setLearnerCount(d.learnerCount);
+        setTodayAttStats({
+          present: d.todayAttendance.present,
+          late:    d.todayAttendance.late,
+          absent:  d.todayAttendance.absent,
+          total:   d.todayAttendance.total,
+          captured: d.todayAttendance.captured,
+        });
+        setRecentDiscipline(d.recentDiscipline);
+        setWeekEvents(d.weekEvents);
+        setPendingLinkCount(d.pendingLinkRequests);
+      })
+      .catch(() => {});
   }, [primarySchoolId]);
 
   if (!primarySchoolId) {
@@ -215,17 +154,17 @@ export function SchoolOverview() {
             </Link>
           </div>
           <div className="space-y-2">
-            {weekEvents.map((e: any) => (
+            {weekEvents.map((e) => (
               <div key={e.id} className="flex items-center justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{e.title}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(e.event_date + "T00:00:00").toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" })}
-                    {e.event_time && ` · ${e.event_time.slice(0, 5)}`}
+                    {new Date(e.eventDate + "T00:00:00").toLocaleDateString("en-ZA", { weekday: "short", day: "numeric", month: "short" })}
+                    {e.eventTime && ` · ${e.eventTime.slice(0, 5)}`}
                   </p>
                 </div>
-                {e.event_type && (
-                  <Badge variant="secondary" className="capitalize text-[10px] shrink-0">{e.event_type}</Badge>
+                {e.eventType && (
+                  <Badge variant="secondary" className="capitalize text-[10px] shrink-0">{e.eventType}</Badge>
                 )}
               </div>
             ))}
@@ -246,15 +185,15 @@ export function SchoolOverview() {
             </Link>
           </div>
           <div className="space-y-2">
-            {recentDiscipline.map((d: any) => (
+            {recentDiscipline.map((d) => (
               <div key={d.id} className="flex items-center gap-3">
-                <span className={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full ${DISC_COLORS[d.type] ?? "text-muted-foreground bg-muted"}`}>
+                <span className={`text-[10px] font-semibold capitalize px-2 py-0.5 rounded-full ${DISC_COLORS[d.type ?? ""] ?? "text-muted-foreground bg-muted"}`}>
                   {d.type}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium truncate">{d.title}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    {d.learners?.first_name} {d.learners?.last_name} · {new Date(d.date + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                    {d.learnerFirstName} {d.learnerLastName} · {new Date(d.date + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
                   </p>
                 </div>
               </div>

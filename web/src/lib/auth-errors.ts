@@ -1,5 +1,5 @@
 /**
- * Converts raw Supabase auth errors into safe, user-friendly messages.
+ * Converts raw auth errors into safe, user-friendly messages.
  * Never expose internal error details, schema info, or DB messages to the user.
  */
 export function friendlyAuthError(error: { message?: string; status?: number } | null): string {
@@ -17,7 +17,7 @@ export function friendlyAuthError(error: { message?: string; status?: number } |
     return "Please verify your email address before signing in.";
   }
 
-  // Account doesn't exist (Supabase sometimes returns this)
+  // Account doesn't exist
   if (msg.includes("user not found")) {
     // Don't confirm whether the email exists — use same message as wrong password
     return "Incorrect email or password.";

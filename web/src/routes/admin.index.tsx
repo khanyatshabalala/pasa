@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type AdminStatsResponse } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Building2, Map, Users, GraduationCap, School } from "lucide-react";
 
@@ -27,24 +27,14 @@ function Stat({ icon: Icon, label, value, to }: { icon: any; label: string; valu
 }
 
 function AdminOverview() {
-  const [stats, setStats] = useState({ schools: 0, districts: 0, users: 0, learners: 0, pending_requests: 0 });
+  const [stats, setStats] = useState<AdminStatsResponse>({
+    schools: 0, districts: 0, users: 0, learners: 0,
+    pendingLinkRequests: 0, pendingSchoolRequests: 0,
+  });
   useEffect(() => {
-    (async () => {
-      const [s, d, u, l, r] = await Promise.all([
-        supabase.from("schools").select("*", { count: "exact", head: true }),
-        supabase.from("districts").select("*", { count: "exact", head: true }),
-        supabase.from("profiles").select("*", { count: "exact", head: true }),
-        supabase.from("learners").select("*", { count: "exact", head: true }),
-        (supabase as any).from("school_requests").select("*", { count: "exact", head: true }).eq("status", "pending"),
-      ]);
-      setStats({
-        schools: s.count ?? 0,
-        districts: d.count ?? 0,
-        users: u.count ?? 0,
-        learners: l.count ?? 0,
-        pending_requests: r.count ?? 0,
-      });
-    })();
+    api.get<AdminStatsResponse>("/api/v1/admin/stats")
+      .then(setStats)
+      .catch(() => {});
   }, []);
 
   return (
@@ -58,7 +48,7 @@ function AdminOverview() {
         <Stat icon={Map} label="Districts" value={stats.districts} to="/admin/districts" />
         <Stat icon={Users} label="Users" value={stats.users} to="/admin/users" />
         <Stat icon={GraduationCap} label="Learners" value={stats.learners} to="/admin/schools" />
-        <Stat icon={School} label="Pending requests" value={stats.pending_requests} to="/admin/requests" />
+        <Stat icon={School} label="Pending requests" value={stats.pendingSchoolRequests} to="/admin/requests" />
       </div>
 
       <Card className="p-6 mt-8">

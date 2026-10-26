@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type LearnerResponse, type AttendanceResponse, type DisciplineResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -9,13 +9,9 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Clock, XCircle, Shield, Star, AlertTriangle, ShieldAlert, Zap } from "lucide-react";
 import { Route } from "@/routes/app.learner.$learnerId";
 
-type Learner = {
-  id: string; first_name: string; last_name: string;
-  grade_id: number; learner_number: string | null; gender: string | null;
-  date_of_birth: string | null; schools: { name: string } | null;
-};
-type AttRow = { id: string; date: string; status: string; notes: string | null };
-type DiscRow = { id: string; date: string; type: string; title: string; points: number | null };
+type Learner = LearnerResponse;
+type AttRow = AttendanceResponse;
+type DiscRow = DisciplineResponse;
 
 const ATT_ICON: Record<string, React.ReactNode> = {
   present: <CheckCircle2 className="size-3.5 text-green-500" />,
@@ -73,25 +69,16 @@ export function LearnerDetailPage() {
     setLoading(true);
     const [from, to] = termRange(termFilter, year);
     Promise.all([
-      supabase.from("learners")
-        .select("id, first_name, last_name, grade_id, learner_number, gender, date_of_birth, schools(name)")
-        .eq("id", learnerId).maybeSingle(),
-      supabase.from("attendance")
-        .select("id, date, status, notes")
-        .eq("learner_id", learnerId)
-        .gte("date", from).lte("date", to)
-        .order("date", { ascending: false }),
-      supabase.from("discipline_records")
-        .select("id, date, type, title, points")
-        .eq("learner_id", learnerId)
-        .order("date", { ascending: false })
-        .limit(20),
-    ]).then(([{ data: l }, { data: a }, { data: d }]) => {
-      setLearner(l as Learner);
-      setAtt((a ?? []) as AttRow[]);
-      setDisc((d ?? []) as DiscRow[]);
-      setLoading(false);
-    });
+      api.get<Learner>(`/api/v1/learners/${learnerId}`),
+      api.get<AttRow[]>(`/api/v1/learners/${learnerId}/attendance?from=${from}&to=${to}`),
+      api.get<DiscRow[]>(`/api/v1/learners/${learnerId}/discipline`),
+    ]).then(([l, a, d]) => {
+      setLearner(l);
+      setAtt(a);
+      setDisc(d.slice(0, 20));
+    }).catch(() => {
+      setLearner(null);
+    }).finally(() => setLoading(false));
   }, [learnerId, termFilter]);
 
   if (!canView) {
@@ -111,7 +98,7 @@ export function LearnerDetailPage() {
   const absent  = att.filter(r => r.status === "absent").length;
   const attPct  = att.length > 0 ? Math.round((present + late) / att.length * 100) : null;
 
-  const gradeLabel = learner.grade_id === 0 ? "Grade R" : `Grade ${learner.grade_id}`;
+  const gradeLabel = learner.gradeId === 0 ? "Grade R" : `Grade ${learner.gradeId}`;
 
   return (
     <div className="max-w-4xl">
@@ -121,17 +108,17 @@ export function LearnerDetailPage() {
       </Button>
 
       <PageHeader
-        title={`${learner.first_name} ${learner.last_name}`}
-        sub={`${gradeLabel} · ${learner.schools?.name ?? "—"}`}
+        title={`${learner.firstName} ${learner.lastName}`}
+        sub={gradeLabel}
       />
 
       {/* Info row */}
       <div className="flex flex-wrap gap-2 mb-6">
-        {learner.learner_number && <Badge variant="secondary">No. {learner.learner_number}</Badge>}
+        {learner.learnerNumber && <Badge variant="secondary">No. {learner.learnerNumber}</Badge>}
         {learner.gender && <Badge variant="outline" className="capitalize">{learner.gender}</Badge>}
-        {learner.date_of_birth && (
+        {learner.dateOfBirth && (
           <Badge variant="outline">
-            DOB: {new Date(learner.date_of_birth + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+            DOB: {new Date(learner.dateOfBirth + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
           </Badge>
         )}
       </div>

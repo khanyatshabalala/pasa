@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type ClassResponse, type NationalCalendarEvent, type CalendarEventResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,18 +31,13 @@ export function CalendarPage() {
   // - admin/principal: all classes at the school (for the audience picker)
   useEffect(() => {
     if (!isStaff || !primarySchoolId || !user) return;
-    const query = supabase
-      .from("classes")
-      .select("id, name, grade_id")
-      .eq("school_id", primarySchoolId)
-      .order("grade_id")
-      .order("name");
-
-    if (isTeacher) {
-      query.eq("teacher_user_id", user.id);
-    }
-
-    query.then(({ data }) => setClasses((data ?? []) as ClassOption[]));
+    api.get<ClassResponse[]>(`/api/v1/schools/${primarySchoolId}/classes`)
+      .then((list) => {
+        // Teachers only manage their own classes; admins/principals see all.
+        const scoped = isTeacher ? list.filter(c => c.teacherUserId === user.id) : list;
+        setClasses(scoped.map(c => ({ id: c.id, name: c.name, grade_id: c.gradeId ?? 0 })));
+      })
+      .catch(() => setClasses([]));
   }, [isStaff, isTeacher, primarySchoolId, user]);
 
   const loadEvents = () => {
@@ -50,29 +45,31 @@ export function CalendarPage() {
     const to   = new Date(year, month + 2, 0).toISOString().slice(0, 10);
 
     Promise.all([
-      (supabase as any)
-        .from("national_calendar")
-        .select("id, title, description, event_date, event_type")
-        .gte("event_date", from)
-        .lte("event_date", to)
-        .order("event_date"),
-
+      api.get<NationalCalendarEvent[]>(`/api/v1/national-calendar?from=${from}&to=${to}`)
+        .catch(() => [] as NationalCalendarEvent[]),
       primarySchoolId
-        ? supabase
-            .from("calendar_events")
-            .select("id, title, description, event_date, event_time, event_type, schools(name), classes(name)")
-            .eq("school_id", primarySchoolId)
-            .gte("event_date", from)
-            .lte("event_date", to)
-            .order("event_date")
-            .order("event_time", { ascending: true, nullsFirst: false })
-        : Promise.resolve({ data: [] }),
+        ? api.get<CalendarEventResponse[]>(`/api/v1/schools/${primarySchoolId}/calendar?from=${from}&to=${to}`)
+            .catch(() => [] as CalendarEventResponse[])
+        : Promise.resolve([] as CalendarEventResponse[]),
     ]).then(([national, school]) => {
-      const nat: CalEvent[] = (national.data ?? []).map((e: any) => ({
-        ...e, event_time: null, source: "national" as const,
+      const nat: CalEvent[] = national.map((e) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        event_date: e.date,
+        event_time: null,
+        event_type: e.type,
+        source: "national" as const,
       }));
-      const sch: CalEvent[] = (school.data ?? []).map((e: any) => ({
-        ...e, source: "school" as const,
+      const sch: CalEvent[] = school.map((e) => ({
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        event_date: e.eventDate,
+        event_time: e.eventTime,
+        event_type: e.eventType,
+        source: "school" as const,
+        classes: e.classId ? { name: classes.find(c => c.id === e.classId)?.name ?? "Class" } : null,
       }));
       setEvents([...nat, ...sch].sort((a, b) => a.event_date.localeCompare(b.event_date)));
     });

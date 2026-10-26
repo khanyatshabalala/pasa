@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type SchoolResponse, type DistrictResponse } from "@/lib/api";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,27 +17,7 @@ const PROVINCES = [
   "Mpumalanga","Northern Cape","North West","Western Cape",
 ] as const;
 
-type School = {
-  id: string;
-  name: string;
-  district: string;
-  province: string;
-  phase: string;
-  school_type: string;
-  city: string | null;
-  grade_from: number | null;
-  grade_to: number | null;
-  application_open: string | null;
-  application_close: string | null;
-  admission_requirements: string | null;
-  application_contact: string | null;
-  performance_avg: number | null;
-  performance_rank_district: number | null;
-  performance_rank_province: number | null;
-  learner_count: number | null;
-  fees_annual: number | null;
-  districts: { name: string } | null;
-};
+type School = SchoolResponse;
 
 function gradeLabel(g: number | null) {
   if (g === null) return "?";
@@ -47,21 +27,21 @@ function gradeLabel(g: number | null) {
 
 function isAppOpen(school: School) {
   const today = new Date().toISOString().slice(0, 10);
-  return school.application_open && school.application_open <= today &&
-    (!school.application_close || school.application_close >= today);
+  return !!school.applicationOpen && school.applicationOpen <= today &&
+    (!school.applicationClose || school.applicationClose >= today);
 }
 
 function isAppSoon(school: School) {
-  if (!school.application_open) return false;
+  if (!school.applicationOpen) return false;
   const today = new Date();
-  const open  = new Date(school.application_open);
+  const open  = new Date(school.applicationOpen);
   const diff  = (open.getTime() - today.getTime()) / 86400000;
   return diff > 0 && diff <= 30;
 }
 
 export function SchoolsPage() {
   const [schools, setSchools]     = useState<School[]>([]);
-  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
+  const [districts, setDistricts] = useState<DistrictResponse[]>([]);
   const [province, setProvince]   = useState("");
   const [districtId, setDistrictId] = useState("");
   const [search, setSearch]       = useState("");
@@ -69,22 +49,20 @@ export function SchoolsPage() {
   const [selected, setSelected]   = useState<School | null>(null);
 
   useEffect(() => {
-    let q = (supabase as any)
-      .from("schools")
-      .select("id,name,district,province,phase,school_type,city,grade_from,grade_to,application_open,application_close,admission_requirements,application_contact,performance_avg,performance_rank_district,performance_rank_province,learner_count,fees_annual,districts(name)")
-      .order("performance_avg", { ascending: false, nullsFirst: false })
-      .limit(100);
-
-    if (province)    q = q.eq("province", province);
-    if (districtId)  q = q.eq("district_id", districtId);
-
-    q.then(({ data }: { data: any }) => setSchools((data ?? []) as School[]));
+    const qs = province ? `?province=${encodeURIComponent(province)}` : "";
+    api.get<School[]>(`/api/v1/schools${qs}`)
+      .then((data) => {
+        const sorted = [...data].sort((a, b) => (b.performanceAvg ?? -1) - (a.performanceAvg ?? -1));
+        setSchools(districtId ? sorted.filter(s => s.districtId === districtId) : sorted);
+      })
+      .catch(() => setSchools([]));
   }, [province, districtId]);
 
   useEffect(() => {
     if (!province) { setDistricts([]); setDistrictId(""); return; }
-    supabase.from("districts").select("id,name").eq("province", province as any).order("name")
-      .then(({ data }) => { setDistricts(data ?? []); setDistrictId(""); });
+    api.get<DistrictResponse[]>(`/api/v1/districts?province=${encodeURIComponent(province)}`)
+      .then((data) => { setDistricts(data); setDistrictId(""); })
+      .catch(() => setDistricts([]));
   }, [province]);
 
   const filtered = schools.filter(s => {
@@ -94,13 +72,11 @@ export function SchoolsPage() {
     }
     if (gradeFilter) {
       const g = parseInt(gradeFilter);
-      if (s.grade_from === null || s.grade_to === null) return false;
-      if (g < s.grade_from || g > s.grade_to) return false;
+      if (s.gradeFrom === null || s.gradeTo === null) return false;
+      if (g < s.gradeFrom || g > s.gradeTo) return false;
     }
     return true;
   });
-
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <div className="max-w-4xl">
@@ -156,7 +132,7 @@ export function SchoolsPage() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {filtered.map((s, idx) => {
+          {filtered.map((s) => {
             const open  = isAppOpen(s);
             const soon  = isAppSoon(s);
             return (
@@ -170,13 +146,13 @@ export function SchoolsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 min-w-0">
                     {/* Rank badge */}
-                    {s.performance_rank_province && (
+                    {s.performanceRankProvince && (
                       <div className={`size-9 rounded-lg grid place-items-center shrink-0 text-sm font-bold
-                        ${s.performance_rank_province <= 3
+                        ${s.performanceRankProvince <= 3
                           ? "bg-accent text-accent-foreground"
                           : "bg-muted text-muted-foreground"
                         }`}>
-                        #{s.performance_rank_province}
+                        #{s.performanceRankProvince}
                       </div>
                     )}
                     <div className="min-w-0">
@@ -186,22 +162,22 @@ export function SchoolsPage() {
                         {soon && !open && <Badge variant="secondary" className="text-orange-500 text-[10px] px-1.5 py-0">Opening soon</Badge>}
                       </div>
                       <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground flex-wrap">
-                        <span className="flex items-center gap-1"><MapPin className="size-3" />{s.districts?.name ?? s.district}, {s.province}</span>
-                        {s.grade_from !== null && s.grade_to !== null && (
+                        <span className="flex items-center gap-1"><MapPin className="size-3" />{s.district}, {s.province}</span>
+                        {s.gradeFrom !== null && s.gradeTo !== null && (
                           <span className="flex items-center gap-1">
                             <GraduationCap className="size-3" />
-                            Grade {gradeLabel(s.grade_from)}–{gradeLabel(s.grade_to)}
+                            Grade {gradeLabel(s.gradeFrom)}–{gradeLabel(s.gradeTo)}
                           </span>
                         )}
-                        <span className="capitalize">{s.phase} · {s.school_type}</span>
+                        <span className="capitalize">{s.phase} · {s.schoolType}</span>
                       </div>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    {s.performance_avg !== null && (
+                    {s.performanceAvg !== null && (
                       <div className="flex items-center gap-1 text-sm font-semibold text-accent">
                         <Trophy className="size-3.5" />
-                        {s.performance_avg}%
+                        {s.performanceAvg}%
                       </div>
                     )}
                     <ChevronRight className={`size-4 text-muted-foreground mt-1 transition-transform ${selected?.id === s.id ? "rotate-90" : ""}`} />
@@ -212,50 +188,50 @@ export function SchoolsPage() {
                 {selected?.id === s.id && (
                   <div className="mt-4 pt-4 border-t space-y-3">
                     {/* Application dates */}
-                    {(s.application_open || s.application_close) && (
+                    {(s.applicationOpen || s.applicationClose) && (
                       <div className="flex items-start gap-2 text-sm">
                         <CalendarDays className="size-4 text-blue-500 shrink-0 mt-0.5" />
                         <div>
                           <span className="font-medium">Applications: </span>
-                          {s.application_open && (
-                            <span>Opens {new Date(s.application_open + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
+                          {s.applicationOpen && (
+                            <span>Opens {new Date(s.applicationOpen + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
                           )}
-                          {s.application_close && (
-                            <span> · Closes {new Date(s.application_close + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
+                          {s.applicationClose && (
+                            <span> · Closes {new Date(s.applicationClose + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>
                           )}
                         </div>
                       </div>
                     )}
 
                     {/* Requirements */}
-                    {s.admission_requirements && (
+                    {s.admissionRequirements && (
                       <div className="flex items-start gap-2 text-sm">
                         <FileText className="size-4 text-muted-foreground shrink-0 mt-0.5" />
                         <div>
                           <span className="font-medium">Requirements: </span>
-                          <span className="text-muted-foreground">{s.admission_requirements}</span>
+                          <span className="text-muted-foreground">{s.admissionRequirements}</span>
                         </div>
                       </div>
                     )}
 
                     {/* How to apply */}
-                    {s.application_contact && (
+                    {s.applicationContact && (
                       <div className="flex items-start gap-2 text-sm">
                         <Phone className="size-4 text-muted-foreground shrink-0 mt-0.5" />
                         <div>
                           <span className="font-medium">How to apply: </span>
-                          <span className="text-muted-foreground">{s.application_contact}</span>
+                          <span className="text-muted-foreground">{s.applicationContact}</span>
                         </div>
                       </div>
                     )}
 
                     {/* Stats row */}
                     <div className="flex gap-4 text-xs text-muted-foreground pt-1">
-                      {s.learner_count && <span>{s.learner_count.toLocaleString()} learners</span>}
-                      {s.fees_annual !== null && (
-                        <span>{s.fees_annual === 0 ? "No fees" : `R${s.fees_annual.toLocaleString()}/yr`}</span>
+                      {s.learnerCount && <span>{s.learnerCount.toLocaleString()} learners</span>}
+                      {s.feesAnnual !== null && (
+                        <span>{s.feesAnnual === 0 ? "No fees" : `R${s.feesAnnual.toLocaleString()}/yr`}</span>
                       )}
-                      {s.performance_rank_district && <span>District rank: #{s.performance_rank_district}</span>}
+                      {s.performanceRankDistrict && <span>District rank: #{s.performanceRankDistrict}</span>}
                     </div>
 
                     <Button asChild size="sm" variant="outline" className="mt-1">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type ReportCardResponse, type ParentChildResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -10,22 +10,7 @@ import { ShieldAlert, FileText, Download, Loader2, GraduationCap } from "lucide-
 
 const CURRENT_YEAR = new Date().getFullYear();
 
-type ReportCard = {
-  id: string;
-  learner_id: string;
-  academic_year: number;
-  term: number;
-  file_path: string;
-  file_name: string;
-  notes: string | null;
-  uploaded_at: string;
-  learners: {
-    first_name: string;
-    last_name: string;
-    grade_id: number;
-    schools: { name: string } | null;
-  } | null;
-};
+type ReportCard = ReportCardResponse;
 
 export function MarksPage() {
   const { user, primaryRole } = useAuth();
@@ -41,40 +26,39 @@ export function MarksPage() {
     if (!user || !isParent) { setLoading(false); return; }
     (async () => {
       setLoading(true);
-      // Get all learners this parent is linked to
-      const { data: links } = await supabase
-        .from("parent_links")
-        .select("learner_id")
-        .eq("parent_user_id", user.id);
-
-      const learnerIds = (links ?? []).map(l => l.learner_id);
-      if (!learnerIds.length) { setReports([]); setLoading(false); return; }
-
-      const { data } = await (supabase as any)
-        .from("report_cards")
-        .select("id, learner_id, academic_year, term, file_path, file_name, notes, uploaded_at, learners(first_name, last_name, grade_id, schools(name))")
-        .in("learner_id", learnerIds)
-        .order("academic_year", { ascending: false })
-        .order("term", { ascending: false });
-
-      setReports((data ?? []) as ReportCard[]);
-      setLoading(false);
+      try {
+        const children = await api.get<ParentChildResponse[]>("/api/v1/children");
+        if (!children.length) { setReports([]); return; }
+        const perChild = await Promise.all(
+          children.map(c =>
+            api.get<ReportCard[]>(`/api/v1/learners/${c.learnerId}/report-cards`).catch(() => [] as ReportCard[])
+          )
+        );
+        const all = perChild.flat().sort((a, b) =>
+          b.academicYear - a.academicYear || b.term - a.term
+        );
+        setReports(all);
+      } catch {
+        setReports([]);
+      } finally {
+        setLoading(false);
+      }
     })();
   }, [user, isParent]);
 
   const onDownload = async (report: ReportCard) => {
     setDownloading(report.id);
-    const { data, error } = await supabase.storage
-      .from("report-cards")
-      .createSignedUrl(report.file_path, 60);
-
-    setDownloading(null);
-
-    if (error || !data?.signedUrl) {
-      return;
+    try {
+      const blob = await api.getBlob(`/api/v1/learners/${report.learnerId}/report-cards/${report.id}/download`);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      // Revoke after a delay so the new tab can load it first.
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      // ignore — download failed
+    } finally {
+      setDownloading(null);
     }
-
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
   };
 
   if (!isParent) {
@@ -91,20 +75,25 @@ export function MarksPage() {
 
   // Filter
   const filtered = reports.filter(r => {
-    if (yearFilter && r.academic_year !== parseInt(yearFilter)) return false;
+    if (yearFilter && r.academicYear !== parseInt(yearFilter)) return false;
     if (termFilter && r.term !== parseInt(termFilter)) return false;
     return true;
   });
 
   // Group by learner for a cleaner layout
-  const grouped = filtered.reduce<Record<string, { learner: ReportCard["learners"]; cards: ReportCard[] }>>((acc, r) => {
-    if (!acc[r.learner_id]) acc[r.learner_id] = { learner: r.learners, cards: [] };
-    acc[r.learner_id].cards.push(r);
+  const grouped = filtered.reduce<Record<string, { name: string; cards: ReportCard[] }>>((acc, r) => {
+    if (!acc[r.learnerId]) {
+      acc[r.learnerId] = {
+        name: `${r.learnerFirstName ?? ""} ${r.learnerLastName ?? ""}`.trim() || "Learner",
+        cards: [],
+      };
+    }
+    acc[r.learnerId].cards.push(r);
     return acc;
   }, {});
 
   // Available years from data
-  const years = [...new Set(reports.map(r => r.academic_year))].sort((a, b) => b - a);
+  const years = [...new Set(reports.map(r => r.academicYear))].sort((a, b) => b - a);
 
   return (
     <div className="max-w-4xl">
@@ -153,7 +142,7 @@ export function MarksPage() {
         </Card>
       ) : (
         <div className="space-y-6">
-          {Object.entries(grouped).map(([learnerId, { learner, cards }]) => (
+          {Object.entries(grouped).map(([learnerId, { name, cards }]) => (
             <div key={learnerId}>
               {/* Learner header */}
               <div className="flex items-center gap-2 mb-3">
@@ -162,10 +151,7 @@ export function MarksPage() {
                 </div>
                 <div>
                   <div className="font-semibold text-sm">
-                    {learner?.first_name} {learner?.last_name}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {learner?.schools?.name} · Grade {learner?.grade_id === 0 ? "R" : learner?.grade_id}
+                    {name}
                   </div>
                 </div>
               </div>
@@ -181,10 +167,10 @@ export function MarksPage() {
                       <div className="min-w-0">
                         <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
                           Term {card.term}
-                          <Badge variant="secondary" className="text-[10px]">{card.academic_year}</Badge>
+                          <Badge variant="secondary" className="text-[10px]">{card.academicYear}</Badge>
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                          {card.file_name}
+                          {card.fileName}
                         </div>
                         {card.notes && (
                           <div className="text-xs text-muted-foreground italic mt-1 line-clamp-2">
@@ -192,7 +178,7 @@ export function MarksPage() {
                           </div>
                         )}
                         <div className="text-[10px] text-muted-foreground mt-1">
-                          Uploaded {new Date(card.uploaded_at).toLocaleDateString("en-ZA", {
+                          Uploaded {new Date(card.uploadedAt).toLocaleDateString("en-ZA", {
                             day: "numeric", month: "short", year: "numeric",
                           })}
                         </div>

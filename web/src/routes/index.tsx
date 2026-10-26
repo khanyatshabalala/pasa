@@ -4,7 +4,7 @@ import { PublicHeader } from "@/components/layout/PublicHeader";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowRight, BookOpen, Users, Shield, Bell, GraduationCap, CalendarDays, TrendingUp, MessageCircle, School } from "lucide-react";
+import { ArrowRight, BookOpen, Users, Shield, Bell, GraduationCap, CalendarDays, TrendingUp, School } from "lucide-react";
 import { SchoolRegistrationForm } from "@/features/schools/SchoolRegistrationForm";
 
 export const Route = createFileRoute("/")({
@@ -93,7 +93,6 @@ function Landing() {
           <Feature icon={BookOpen} title="Academic documents" body="Report cards and marks accessible to parents directly from the school." />
           <Feature icon={Users} title="Verified parent links" body="Schools approve each parent-learner link, keeping the school as the source of truth." />
           <Feature icon={TrendingUp} title="Transfers" body="Request and approve learner transfers with a full audit trail." />
-          <Feature icon={MessageCircle} title="AI assistant" body="AI-powered helper for parents and staff, in context." />
         </div>
       </section>
 

@@ -6,6 +6,7 @@ import com.pasa.backend.dto.response.SchoolResponse;
 import com.pasa.backend.mapper.SchoolMapper;
 import com.pasa.backend.repository.SchoolRepository;
 import org.springframework.http.HttpStatus;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -16,9 +17,11 @@ import java.util.UUID;
 public class SchoolService {
 
     private final SchoolRepository schoolRepo;
+    private final JdbcTemplate jdbc;
 
-    public SchoolService(SchoolRepository schoolRepo) {
+    public SchoolService(SchoolRepository schoolRepo, JdbcTemplate jdbc) {
         this.schoolRepo = schoolRepo;
+        this.jdbc = jdbc;
     }
 
     public List<SchoolResponse> listSchools(String province, String district) {
@@ -40,6 +43,7 @@ public class SchoolService {
     }
 
     public SchoolResponse createSchool(CreateSchoolRequest req) {
+        validate(req);
         if (schoolRepo.existsByEmisNumber(req.emisNumber())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "EMIS number already registered");
         }
@@ -48,17 +52,27 @@ public class SchoolService {
     }
 
     public SchoolResponse updateSchool(UUID id, CreateSchoolRequest req) {
+        validate(req);
         School existing = schoolRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        existing.setName(req.name());
-        existing.setEmisNumber(req.emisNumber());
-        existing.setDistrict(req.district());
-        existing.setProvince(req.province());
-        existing.setPhase(req.phase());
-        existing.setSchoolType(req.schoolType());
-        existing.setCity(req.city());
-        existing.setEmail(req.email());
-        existing.setPhone(req.phone());
+        SchoolMapper.applyRequest(existing, req);
         return SchoolMapper.toResponse(schoolRepo.save(existing));
+    }
+
+    public void recalculatePerformance(UUID id) {
+        if (!schoolRepo.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found");
+        }
+        jdbc.update("SELECT public.recalculate_school_performance(?::uuid)", id);
+    }
+
+    private void validate(CreateSchoolRequest req) {
+        if (req.gradeFrom() != null && req.gradeTo() != null && req.gradeFrom() > req.gradeTo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "gradeFrom must be <= gradeTo");
+        }
+        if (req.applicationOpen() != null && req.applicationClose() != null
+                && req.applicationClose().isBefore(req.applicationOpen())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "applicationClose must be on or after applicationOpen");
+        }
     }
 }

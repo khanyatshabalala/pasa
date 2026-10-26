@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,23 +34,23 @@ export function SchoolRegistrationForm({ onClose }: { onClose?: () => void }) {
     if (!role) return toast.error("Please select your role");
 
     setSubmitting(true);
-    const { error } = await (supabase as any).from("school_requests").insert({
-      school_name:   fd.get("school_name"),
-      province,
-      district:      fd.get("district"),
-      contact_name:  fd.get("contact_name"),
-      contact_role:  role,
-      contact_email: fd.get("contact_email"),
-      contact_phone: fd.get("contact_phone") || null,
-      message:       fd.get("message") || null,
-    });
-    setSubmitting(false);
-
-    if (error) {
+    try {
+      await api.post("/api/v1/school-requests", {
+        schoolName:   fd.get("school_name"),
+        province,
+        district:     fd.get("district"),
+        contactName:  fd.get("contact_name"),
+        contactRole:  role,
+        contactEmail: fd.get("contact_email"),
+        contactPhone: fd.get("contact_phone") || null,
+        message:      fd.get("message") || null,
+      }, { skipAuth: true });
+      setSubmitted(true);
+    } catch {
       toast.error("Something went wrong. Please try again.");
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitted(true);
   };
 
   if (submitted) {

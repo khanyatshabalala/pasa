@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
-import { friendlyDbError } from "@/lib/db-errors";
 import type { Grade, FormState } from "./types";
 import { CURRENT_YEAR, YEARS, TERMS, todayIso, currentTerm } from "./types";
 
@@ -35,7 +34,7 @@ export function ExamForm({
   onOpenChange: (v: boolean) => void;
   onSaved: () => void;
 }) {
-  const { user, primarySchoolId } = useAuth();
+  const { primarySchoolId } = useAuth();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormState>({
     subject: "",
@@ -74,27 +73,26 @@ export function ExamForm({
     if (!primarySchoolId)     return toast.error("No school assigned");
 
     setSaving(true);
-    const { error } = await (supabase as any).from("exam_timetables").insert({
-      school_id:    primarySchoolId,
-      subject:      form.subject.trim(),
-      grade_id:     form.gradeId !== "all" ? parseInt(form.gradeId) : null,
-      exam_date:    form.examDate,
-      start_time:   form.startTime || null,
-      end_time:     form.endTime || null,
-      venue:        form.venue.trim() || null,
-      notes:        form.notes.trim() || null,
-      term:         parseInt(form.term),
-      academic_year: parseInt(form.academicYear),
-      created_by:   user?.id,
-    });
-    setSaving(false);
-
-    if (error) return toast.error(friendlyDbError(error));
-
-    toast.success("Exam added to timetable");
-    reset();
-    onOpenChange(false);
-    onSaved();
+    try {
+      await api.post(`/api/v1/schools/${primarySchoolId}/exam-timetable`, {
+        subject:   form.subject.trim(),
+        gradeId:   form.gradeId !== "all" ? parseInt(form.gradeId) : null,
+        examDate:  form.examDate,
+        startTime: form.startTime || null,
+        endTime:   form.endTime || null,
+        venue:     form.venue.trim() || null,
+        notes:     form.notes.trim() || null,
+        term:      parseInt(form.term),
+      });
+      toast.success("Exam added to timetable");
+      reset();
+      onOpenChange(false);
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const set = (k: keyof FormState) => (v: string) =>

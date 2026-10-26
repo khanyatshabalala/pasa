@@ -1,6 +1,6 @@
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,47 +8,54 @@ import { Card } from "@/components/ui/card";
 import { FundaLogo } from "@/components/layout/Logo";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
-import { friendlyAuthError } from "@/lib/auth-errors";
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"request" | "update" | "done">("request");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // Supabase sends the user back here with a recovery token in the URL hash.
-  // onAuthStateChange fires with event "PASSWORD_RECOVERY" when the token is valid.
+  // The reset email links back here with a `?token=` query param. When present,
+  // switch to the "set new password" step and submit the token to the backend.
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "PASSWORD_RECOVERY") setMode("update");
-    });
-    return () => sub.subscription.unsubscribe();
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("token");
+    if (t) { setToken(t); setMode("update"); }
   }, []);
 
   const onRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return toast.error("Enter your email address");
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) return toast.error(friendlyAuthError(error));
-    setMode("done");
+    try {
+      await api.post("/api/v1/auth/forgot-password", { email: email.trim() }, { skipAuth: true });
+      setMode("done");
+    } catch {
+      // The endpoint does not reveal whether the email exists; show the same confirmation.
+      setMode("done");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const onUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
     if (newPassword !== confirmPassword) return toast.error("Passwords do not match");
+    if (!token) return toast.error("Reset link is invalid or has expired. Request a new one.");
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    setLoading(false);
-    if (error) return toast.error(friendlyAuthError(error));
-    toast.success("Password updated. You can now sign in.");
-    navigate({ to: "/auth" });
+    try {
+      await api.post("/api/v1/auth/reset-password", { token, newPassword }, { skipAuth: true });
+      toast.success("Password updated. You can now sign in.");
+      navigate({ to: "/auth" });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not reset password. The link may have expired.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

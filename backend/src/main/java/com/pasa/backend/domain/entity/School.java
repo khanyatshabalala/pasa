@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -66,6 +67,41 @@ public class School {
     private String motto;
     private String description;
 
+    @Column(name = "district_id")
+    private UUID districtId;
+
+    // ── Admissions (informational) ───────────────────────────────────────
+    @Column(name = "grade_from")
+    private Integer gradeFrom;
+
+    @Column(name = "grade_to")
+    private Integer gradeTo;
+
+    @Column(name = "application_open")
+    private LocalDate applicationOpen;
+
+    @Column(name = "application_close")
+    private LocalDate applicationClose;
+
+    @Column(name = "admission_requirements")
+    private String admissionRequirements;
+
+    @Column(name = "application_contact")
+    private String applicationContact;
+
+    // ── Performance (read-only; maintained by recalculate_school_performance) ─
+    @Column(name = "performance_avg", precision = 5, scale = 2, insertable = false, updatable = false)
+    private BigDecimal performanceAvg;
+
+    @Column(name = "performance_rank_district", insertable = false, updatable = false)
+    private Integer performanceRankDistrict;
+
+    @Column(name = "performance_rank_province", insertable = false, updatable = false)
+    private Integer performanceRankProvince;
+
+    @Column(name = "performance_rank_national", insertable = false, updatable = false)
+    private Integer performanceRankNational;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;
@@ -116,6 +152,28 @@ public class School {
     public void setMotto(String motto) { this.motto = motto; }
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+    public UUID getDistrictId() { return districtId; }
+    public void setDistrictId(UUID districtId) { this.districtId = districtId; }
+    public Integer getGradeFrom() { return gradeFrom; }
+    public void setGradeFrom(Integer gradeFrom) { this.gradeFrom = gradeFrom; }
+    public Integer getGradeTo() { return gradeTo; }
+    public void setGradeTo(Integer gradeTo) { this.gradeTo = gradeTo; }
+    public LocalDate getApplicationOpen() { return applicationOpen; }
+    public void setApplicationOpen(LocalDate applicationOpen) { this.applicationOpen = applicationOpen; }
+    public LocalDate getApplicationClose() { return applicationClose; }
+    public void setApplicationClose(LocalDate applicationClose) { this.applicationClose = applicationClose; }
+    public String getAdmissionRequirements() { return admissionRequirements; }
+    public void setAdmissionRequirements(String admissionRequirements) { this.admissionRequirements = admissionRequirements; }
+    public String getApplicationContact() { return applicationContact; }
+    public void setApplicationContact(String applicationContact) { this.applicationContact = applicationContact; }
+    public BigDecimal getPerformanceAvg() { return performanceAvg; }
+    public void setPerformanceAvg(BigDecimal performanceAvg) { this.performanceAvg = performanceAvg; }
+    public Integer getPerformanceRankDistrict() { return performanceRankDistrict; }
+    public void setPerformanceRankDistrict(Integer performanceRankDistrict) { this.performanceRankDistrict = performanceRankDistrict; }
+    public Integer getPerformanceRankProvince() { return performanceRankProvince; }
+    public void setPerformanceRankProvince(Integer performanceRankProvince) { this.performanceRankProvince = performanceRankProvince; }
+    public Integer getPerformanceRankNational() { return performanceRankNational; }
+    public void setPerformanceRankNational(Integer performanceRankNational) { this.performanceRankNational = performanceRankNational; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }
     public OffsetDateTime getUpdatedAt() { return updatedAt; }

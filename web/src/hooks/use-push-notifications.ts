@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 
 // VAPID public key — set in .env as VITE_VAPID_PUBLIC_KEY
@@ -57,15 +57,14 @@ export function usePushNotifications() {
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as BufferSource,
       });
 
-      // Store in push_tokens table (same table mobile uses)
+      // Register the subscription with the backend (same push_tokens table mobile uses)
       const subJson = sub.toJSON();
-      await (supabase as any).from('push_tokens').upsert({
-        user_id:  user.id,
+      await api.post('/api/v1/push-tokens', {
         token:    subJson.endpoint,           // endpoint acts as token for web
         platform: 'web',
         p256dh:   subJson.keys?.p256dh ?? null,
-        auth_key: subJson.keys?.auth ?? null,
-      }, { onConflict: 'user_id,token' });
+        authKey:  subJson.keys?.auth ?? null,
+      });
 
       setState('subscribed');
       return true;
@@ -82,11 +81,7 @@ export function usePushNotifications() {
       if (sub) {
         await sub.unsubscribe();
         if (user) {
-          await (supabase as any)
-            .from('push_tokens')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('token', sub.endpoint);
+          await api.delete(`/api/v1/push-tokens/${encodeURIComponent(sub.endpoint)}`);
         }
       }
     } catch { /* ignore */ }

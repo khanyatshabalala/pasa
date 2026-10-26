@@ -5,21 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type SchoolResponse } from "@/lib/api";
 import { MapPin, Search, Users, GraduationCap } from "lucide-react";
 
 export const Route = createFileRoute("/schools")({
   component: SchoolsPage
 });
 
-interface School {
-  id: string; name: string; emis_number: string; district: string; province: string;
-  phase: string; school_type: string; city: string | null; learner_count: number | null;
-  fees_annual: number | null; motto: string | null; principal_name: string | null;
-}
-
 function SchoolsPage() {
-  const [schools, setSchools] = useState<School[]>([]);
+  const [schools, setSchools] = useState<SchoolResponse[]>([]);
   const [q, setQ] = useState("");
   const [phase, setPhase] = useState<string>("all");
   const [province, setProvince] = useState<string>("all");
@@ -27,14 +21,14 @@ function SchoolsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from("schools").select("*").order("name").then(({ data }) => {
-      setSchools((data ?? []) as School[]);
-      setLoading(false);
-    });
+    api.get<SchoolResponse[]>("/api/v1/schools")
+      .then((data) => setSchools(data))
+      .catch(() => setSchools([]))
+      .finally(() => setLoading(false));
   }, []);
 
   const provinces = useMemo(
-    () => Array.from(new Set(schools.map(s => s.province))).sort(),
+    () => Array.from(new Set(schools.map(s => s.province).filter(Boolean) as string[])).sort(),
     [schools],
   );
   const districts = useMemo(
@@ -43,14 +37,15 @@ function SchoolsPage() {
         new Set(
           schools
             .filter(s => province === "all" || s.province === province)
-            .map(s => s.district),
+            .map(s => s.district)
+            .filter(Boolean) as string[],
         ),
       ).sort(),
     [schools, province],
   );
 
   const filtered = schools.filter(s => {
-    const matchQ = !q || s.name.toLowerCase().includes(q.toLowerCase()) || s.emis_number.includes(q);
+    const matchQ = !q || s.name.toLowerCase().includes(q.toLowerCase()) || (s.emisNumber ?? "").includes(q);
     const matchPhase = phase === "all" || s.phase === phase;
     const matchProvince = province === "all" || s.province === province;
     const matchDistrict = district === "all" || s.district === district;
@@ -123,12 +118,12 @@ function SchoolsPage() {
                 {s.motto && <p className="text-xs italic text-muted-foreground mt-1">"{s.motto}"</p>}
                 <div className="mt-4 space-y-1.5 text-xs text-muted-foreground">
                   <div className="flex items-center gap-1.5"><MapPin className="size-3" /> {s.city}, {s.district}</div>
-                  <div className="flex items-center gap-1.5"><Users className="size-3" /> {s.learner_count?.toLocaleString()} learners</div>
-                  <div className="flex items-center gap-1.5">EMIS: <span className="font-mono">{s.emis_number}</span></div>
+                  <div className="flex items-center gap-1.5"><Users className="size-3" /> {s.learnerCount?.toLocaleString()} learners</div>
+                  <div className="flex items-center gap-1.5">EMIS: <span className="font-mono">{s.emisNumber}</span></div>
                 </div>
                 <div className="mt-4 pt-3 border-t flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground capitalize">{s.school_type}</span>
-                  <span className="font-semibold text-foreground">{s.fees_annual ? `R${s.fees_annual.toLocaleString()}/yr` : "No fees"}</span>
+                  <span className="text-muted-foreground capitalize">{s.schoolType}</span>
+                  <span className="font-semibold text-foreground">{s.feesAnnual ? `R${s.feesAnnual.toLocaleString()}/yr` : "No fees"}</span>
                 </div>
               </Card>
             </Link>

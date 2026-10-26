@@ -30,6 +30,17 @@ public final class SchoolMapper {
             school.getLogoUrl(),
             school.getMotto(),
             school.getDescription(),
+            school.getDistrictId(),
+            school.getGradeFrom(),
+            school.getGradeTo(),
+            school.getApplicationOpen(),
+            school.getApplicationClose(),
+            school.getAdmissionRequirements(),
+            school.getApplicationContact(),
+            school.getPerformanceAvg(),
+            school.getPerformanceRankDistrict(),
+            school.getPerformanceRankProvince(),
+            school.getPerformanceRankNational(),
             school.getCreatedAt(),
             school.getUpdatedAt()
         );
@@ -37,6 +48,12 @@ public final class SchoolMapper {
 
     public static School toEntity(CreateSchoolRequest req) {
         School school = new School();
+        applyRequest(school, req);
+        return school;
+    }
+
+    /** Copy all mutable (non-performance) fields from the request onto the entity. */
+    public static void applyRequest(School school, CreateSchoolRequest req) {
         school.setName(req.name());
         school.setEmisNumber(req.emisNumber());
         school.setDistrict(req.district());
@@ -46,6 +63,12 @@ public final class SchoolMapper {
         school.setCity(req.city());
         school.setEmail(req.email());
         school.setPhone(req.phone());
-        return school;
+        school.setDistrictId(req.districtId());
+        school.setGradeFrom(req.gradeFrom());
+        school.setGradeTo(req.gradeTo());
+        school.setApplicationOpen(req.applicationOpen());
+        school.setApplicationClose(req.applicationClose());
+        school.setAdmissionRequirements(req.admissionRequirements());
+        school.setApplicationContact(req.applicationContact());
     }
 }

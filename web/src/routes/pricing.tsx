@@ -47,7 +47,6 @@ function Pricing() {
             "Full performance graphs vs class average",
             "Download reports for bursaries",
             "R10 of your fee supports SA schools every month",
-            "AI assistant for any question",
           ]}/>
         </div>
         <p className="text-center text-xs text-muted-foreground mt-6">Cancel anytime. Safety alerts always free.</p>

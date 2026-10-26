@@ -115,32 +115,6 @@ public class AuthService {
         return new TokenResponse(token, userId.toString(), role);
     }
 
-    // ── Password Reset ───────────────────────────────────────────────────
-
-    public void requestPasswordReset(String email) {
-        var rows = jdbc.queryForList("SELECT id FROM auth.users WHERE email = ?", email);
-        if (rows.isEmpty()) return; // Don't reveal if email exists
-
-        UUID userId = UUID.fromString(rows.get(0).get("id").toString());
-        String token = UUID.randomUUID().toString();
-
-        // Store reset token (expires in 1 hour)
-        jdbc.update("""
-            INSERT INTO public.notifications (user_id, title, body, category, link)
-            VALUES (?, 'Password Reset Token', ?, 'system', '/reset-password')
-            """, userId, "Token: " + token);
-
-        // TODO: Send email with reset link containing the token
-        // For now, token is stored as a notification (visible in logs)
-    }
-
-    public void resetPassword(String token, String newPassword) {
-        // TODO: Implement proper token validation table
-        // For now, this is a placeholder that will be completed with email integration
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
-            "Password reset requires email integration. Contact admin to reset your password.");
-    }
-
     // ── Staff Invite ──────────────────────────────────────────────────────
 
     public TokenResponse inviteStaff(String email, String firstName, String lastName,

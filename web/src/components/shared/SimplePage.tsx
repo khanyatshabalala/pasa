@@ -1,9 +1,15 @@
 import { Card } from "@/components/ui/card";
 import { PageHeader } from "./PageHeader";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type ParentChildResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { ShieldAlert } from "lucide-react";
+
+// Maps the legacy `table` prop to the backend per-learner resource path.
+const RESOURCE_PATH: Record<string, string> = {
+  attendance: "attendance",
+  discipline_records: "discipline",
+};
 
 // ── Parent-only guard wrapper ──────────────────────────────────────────────
 function ParentOnly({ children }: { children: React.ReactNode }) {
@@ -28,8 +34,7 @@ export function ParentDataList({
   sub,
   table,
   columns,
-  parentField = "learner_id",
-  orderBy = "created_at",
+  orderBy = "date",
 }: {
   title: string;
   sub: string;
@@ -44,21 +49,31 @@ export function ParentDataList({
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data: links } = await supabase
-        .from("parent_links")
-        .select("learner_id")
-        .eq("parent_user_id", user.id);
-      const ids = (links ?? []).map((l: any) => l.learner_id);
-      if (!ids.length) return setRows([]);
-      const { data } = await supabase
-        .from(table as any)
-        .select("*, learners(first_name,last_name)")
-        .in(parentField, ids)
-        .order(orderBy as any, { ascending: false } as any)
-        .limit(100);
-      setRows(data ?? []);
+      const resource = RESOURCE_PATH[table];
+      if (!resource) { setRows([]); return; }
+      try {
+        const children = await api.get<ParentChildResponse[]>("/api/v1/children");
+        if (!children.length) { setRows([]); return; }
+        const perChild = await Promise.all(
+          children.map(async (c) => {
+            const items = await api
+              .get<any[]>(`/api/v1/learners/${c.learnerId}/${resource}`)
+              .catch(() => [] as any[]);
+            return items.map((it) => ({
+              ...it,
+              learnerName: `${c.learnerFirstName} ${c.learnerLastName}`.trim(),
+            }));
+          })
+        );
+        const all = perChild.flat().sort((a, b) =>
+          String(b[orderBy] ?? "").localeCompare(String(a[orderBy] ?? ""))
+        );
+        setRows(all.slice(0, 100));
+      } catch {
+        setRows([]);
+      }
     })();
-  }, [user, table, parentField, orderBy]);
+  }, [user, table, orderBy]);
 
   return (
     <ParentOnly>
@@ -81,7 +96,7 @@ export function ParentDataList({
                 {rows.map((r: any) => (
                   <tr key={r.id} className="border-t">
                     <td className="p-3 font-medium">
-                      {r.learners?.first_name} {r.learners?.last_name}
+                      {r.learnerName}
                     </td>
                     {columns.map((c) => (
                       <td key={c.key + c.label} className="p-3">

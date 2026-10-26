@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/schools/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grades").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/national-calendar").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/school-requests").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()

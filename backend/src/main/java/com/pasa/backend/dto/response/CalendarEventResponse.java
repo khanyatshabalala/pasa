@@ -11,5 +11,6 @@ public record CalendarEventResponse(
     String description,
     LocalDate eventDate,
     LocalTime eventTime,
-    String eventType
+    String eventType,
+    UUID classId
 ) {}

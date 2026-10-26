@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type ParentDashboardResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,6 @@ function currentTerm(): number {
   if (m <= 6)  return 2;
   if (m <= 9)  return 3;
   return 4;
-}
-
-function todayStr() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 function greetingTime() {
@@ -48,59 +44,23 @@ const ATT_LABEL: Record<string, string> = {
 export function ParentOverview() {
   const { user, profile, displayName } = useAuth();
 
-  const [children, setChildren]         = useState<any[]>([]);
+  const [children, setChildren]         = useState<ParentDashboardResponse["children"]>([]);
   const [todayAtt, setTodayAtt]         = useState<Record<string, string>>({});
   const [unreadCount, setUnreadCount]   = useState(0);
-  const [nextEvent, setNextEvent]       = useState<any>(null);
-  const [recentAlerts, setRecentAlerts] = useState<any[]>([]);
+  const [nextEvent, setNextEvent]       = useState<ParentDashboardResponse["nextEvent"]>(null);
+  const [recentAlerts, setRecentAlerts] = useState<ParentDashboardResponse["recentAlerts"]>([]);
 
   useEffect(() => {
     if (!user) return;
-    (async () => {
-      // 1. Children
-      const { data: links } = await supabase
-        .from("parent_links")
-        .select("learner_id, learners(id, first_name, last_name, grade_id, school_id, schools(name, id))")
-        .eq("parent_user_id", user.id);
-      const kids = (links ?? []).map((l: any) => l.learners).filter(Boolean);
-      setChildren(kids);
-
-      const ids      = kids.map((k: any) => k.id);
-      const schoolIds = [...new Set(kids.map((k: any) => k.school_id).filter(Boolean))];
-
-      await Promise.all([
-        // 2. Today's attendance per child
-        ids.length
-          ? supabase.from("attendance").select("learner_id, status")
-              .in("learner_id", ids).eq("date", todayStr())
-              .then(({ data }) => {
-                const map: Record<string, string> = {};
-                (data ?? []).forEach((r: any) => { map[r.learner_id] = r.status; });
-                setTodayAtt(map);
-              })
-          : Promise.resolve(),
-
-        // 3. Unread alerts
-        supabase.from("notifications").select("*", { count: "exact", head: true })
-          .eq("user_id", user.id).is("read_at", null)
-          .then(({ count }) => setUnreadCount(count ?? 0)),
-
-        // 4. Next upcoming event across all children's schools
-        schoolIds.length
-          ? supabase.from("calendar_events").select("id, title, event_date, event_time, event_type, schools(name)")
-              .in("school_id", schoolIds as string[])
-              .gte("event_date", todayStr())
-              .order("event_date").limit(1).maybeSingle()
-              .then(({ data }) => setNextEvent(data))
-          : Promise.resolve(),
-
-        // 5. 3 most recent unread alerts for preview
-        supabase.from("notifications").select("id, title, body, category, created_at")
-          .eq("user_id", user.id).is("read_at", null)
-          .order("created_at", { ascending: false }).limit(3)
-          .then(({ data }) => setRecentAlerts(data ?? [])),
-      ]);
-    })();
+    api.get<ParentDashboardResponse>("/api/v1/parents/dashboard")
+      .then((d) => {
+        setChildren(d.children);
+        setTodayAtt(d.todayAttendance);
+        setUnreadCount(d.unreadCount);
+        setNextEvent(d.nextEvent);
+        setRecentAlerts(d.recentAlerts);
+      })
+      .catch(() => {});
   }, [user]);
 
   const firstName = displayName?.split(" ")[0] ?? "there";
@@ -147,13 +107,13 @@ export function ParentOverview() {
             </Link>
           </div>
           <div className="space-y-2">
-            {children.map((c: any) => {
+            {children.map((c) => {
               const status = todayAtt[c.id];
               return (
                 <div key={c.id} className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm font-medium">{c.first_name} {c.last_name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{c.schools?.name}</span>
+                    <span className="text-sm font-medium">{c.firstName} {c.lastName}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{c.schoolName}</span>
                   </div>
                   {status ? (
                     <div className="flex items-center gap-1.5 text-xs font-medium">
@@ -185,7 +145,7 @@ export function ParentOverview() {
             </Link>
           </div>
           <div className="space-y-2">
-            {recentAlerts.map((n: any) => (
+            {recentAlerts.map((n) => (
               <div key={n.id} className="flex items-start gap-2">
                 <span className="size-1.5 rounded-full bg-accent mt-1.5 shrink-0" />
                 <div className="min-w-0">
@@ -214,16 +174,16 @@ export function ParentOverview() {
             <div>
               <p className="text-sm font-medium">{nextEvent.title}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {new Date(nextEvent.event_date + "T00:00:00").toLocaleDateString("en-ZA", {
+                {new Date(nextEvent.eventDate + "T00:00:00").toLocaleDateString("en-ZA", {
                   weekday: "short", day: "numeric", month: "short",
                 })}
-                {nextEvent.event_time && ` · ${nextEvent.event_time.slice(0, 5)}`}
-                {nextEvent.schools?.name && ` · ${nextEvent.schools.name}`}
+                {nextEvent.eventTime && ` · ${nextEvent.eventTime.slice(0, 5)}`}
+                {nextEvent.schoolName && ` · ${nextEvent.schoolName}`}
               </p>
             </div>
-            {nextEvent.event_type && (
+            {nextEvent.eventType && (
               <Badge variant="secondary" className="capitalize text-[10px] shrink-0">
-                {nextEvent.event_type}
+                {nextEvent.eventType}
               </Badge>
             )}
           </div>
@@ -241,7 +201,7 @@ export function ParentOverview() {
       )}
 
       {/* ── Premium upsell ── */}
-      {profile?.subscription_tier !== "premium" && children.length > 0 && (
+      {profile?.subscriptionTier !== "premium" && children.length > 0 && (
         <Card className="p-4 bg-gradient-to-br from-primary to-[oklch(0.25_0.08_240)] text-primary-foreground border-0">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">

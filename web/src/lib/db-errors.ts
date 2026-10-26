@@ -1,5 +1,5 @@
 /**
- * Converts raw Supabase DB/PostgREST errors into safe, user-friendly messages.
+ * Converts raw backend DB errors into safe, user-friendly messages.
  * Never expose table names, column names, constraint names, or SQL to the user.
  */
 export function friendlyDbError(

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { friendlyDbError } from "@/lib/db-errors";
 import type { ClassOption } from "./types";
 import { EVENT_TYPES } from "./types";
 
@@ -28,7 +27,7 @@ export function EventForm({
   onOpenChange: (v: boolean) => void;
   onSaved: () => void;
 }) {
-  const { user, primarySchoolId } = useAuth();
+  const { primarySchoolId } = useAuth();
   const [saving, setSaving] = useState(false);
 
   // Teachers must always pick a class — default to their only class if they have one
@@ -69,24 +68,24 @@ export function EventForm({
     if (isTeacher && !classId)      return toast.error("Select a class");
 
     setSaving(true);
-    const { error } = await supabase.from("calendar_events").insert({
-      school_id:   primarySchoolId,
-      title:       title.trim(),
-      event_type:  eventType,
-      event_date:  eventDate,
-      event_time:  eventTime || null,
-      class_id:    classId || null,
-      description: description.trim() || null,
-      created_by:  user?.id,
-    });
-    setSaving(false);
-
-    if (error) return toast.error(friendlyDbError(error));
-
-    toast.success("Event added to calendar");
-    reset();
-    onOpenChange(false);
-    onSaved();
+    try {
+      await api.post(`/api/v1/schools/${primarySchoolId}/calendar`, {
+        title:       title.trim(),
+        eventType,
+        eventDate,
+        eventTime:   eventTime || null,
+        classId:     classId || null,
+        description: description.trim() || null,
+      });
+      toast.success("Event added to calendar");
+      reset();
+      onOpenChange(false);
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const selectedClass = classes.find(c => c.id === classId);

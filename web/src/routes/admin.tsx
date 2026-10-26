@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, Link, useRouterState } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/integrations/supabase/client";
+import { api, type AdminStatsResponse } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { FundaLogo } from "@/components/layout/Logo";
 import { Building2, Map, Users, LayoutDashboard, LogOut, ArrowLeft, Settings, School } from "lucide-react";
@@ -32,8 +32,9 @@ function AdminLayout() {
     else if (primaryRole !== "super_admin") navigate({ to: "/app" });
     else {
       // Load pending school request count
-      (supabase as any).from("school_requests").select("*", { count: "exact", head: true }).eq("status", "pending")
-        .then(({ count }: { count: number | null }) => setPendingRequests(count ?? 0));
+      api.get<AdminStatsResponse>("/api/v1/admin/stats")
+        .then((s) => setPendingRequests(s.pendingSchoolRequests))
+        .catch(() => setPendingRequests(0));
     }
   }, [user, rolesLoaded, primaryRole, navigate]);
 

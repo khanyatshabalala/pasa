@@ -16,7 +16,8 @@ public final class CalendarEventMapper {
             event.getDescription(),
             event.getEventDate(),
             event.getEventTime(),
-            event.getEventType()
+            event.getEventType(),
+            event.getClassId()
         );
     }
 
@@ -27,6 +28,7 @@ public final class CalendarEventMapper {
         event.setEventDate(req.eventDate());
         event.setEventTime(req.eventTime());
         event.setEventType(req.eventType());
+        event.setClassId(req.classId());
         return event;
     }
 }

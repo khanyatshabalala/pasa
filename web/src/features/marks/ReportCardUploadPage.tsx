@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api, ApiError, type LearnerResponse, type ReportCardResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
 import { Card } from "@/components/ui/card";
@@ -12,21 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Upload, FileText, Trash2, Loader2, ShieldAlert, Download, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { friendlyDbError } from "@/lib/db-errors";
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS  = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR + 1];
 const TERMS  = [1, 2, 3, 4];
 
-type Learner = { id: string; first_name: string; last_name: string; grade_id: number };
-type ReportCard = {
-  id: string; learner_id: string; academic_year: number; term: number;
-  file_path: string; file_name: string; notes: string | null; uploaded_at: string;
-  learners: { first_name: string; last_name: string; grade_id: number } | null;
-};
+type Learner = LearnerResponse;
+type ReportCard = ReportCardResponse;
 
 export function ReportCardUploadPage() {
-  const { primaryRole, primarySchoolId, user } = useAuth();
+  const { primaryRole, primarySchoolId } = useAuth();
   const isStaff = ["teacher", "principal", "school_admin", "super_admin"].includes(primaryRole);
 
   const [learners, setLearners]   = useState<Learner[]>([]);
@@ -51,18 +46,18 @@ export function ReportCardUploadPage() {
   const load = async () => {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
-    const [{ data: lData }, { data: rData }] = await Promise.all([
-      supabase.from("learners").select("id, first_name, last_name, grade_id")
-        .eq("school_id", primarySchoolId).order("last_name"),
-      (supabase as any).from("report_cards")
-        .select("id, learner_id, academic_year, term, file_path, file_name, notes, uploaded_at, learners(first_name, last_name, grade_id)")
-        .eq("school_id", primarySchoolId)
-        .order("academic_year", { ascending: false })
-        .order("term", { ascending: false }),
-    ]);
-    setLearners((lData ?? []) as Learner[]);
-    setReports((rData ?? []) as ReportCard[]);
-    setLoading(false);
+    try {
+      const [lData, rData] = await Promise.all([
+        api.get<Learner[]>(`/api/v1/schools/${primarySchoolId}/learners`),
+        api.get<ReportCard[]>(`/api/v1/schools/${primarySchoolId}/report-cards`),
+      ]);
+      setLearners(lData);
+      setReports([...rData].sort((a, b) => b.academicYear - a.academicYear || b.term - a.term));
+    } catch {
+      setReports([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
@@ -80,58 +75,49 @@ export function ReportCardUploadPage() {
     if (!primarySchoolId) return;
 
     setUploading(true);
-    const path = `${primarySchoolId}/${learnerId}/${year}_T${term}_${Date.now()}.pdf`;
-
-    const { error: storageErr } = await supabase.storage
-      .from("report-cards")
-      .upload(path, file, { contentType: "application/pdf", upsert: false });
-
-    if (storageErr) {
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("term", term);
+      form.append("academicYear", year);
+      if (notes.trim()) form.append("notes", notes.trim());
+      await api.upload(`/api/v1/learners/${learnerId}/report-cards`, form);
+      toast.success("Report card uploaded. Parent has been notified.");
+      setDialogOpen(false);
+      resetDialog();
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Upload failed. Please try again.");
+    } finally {
       setUploading(false);
-      return toast.error(storageErr.message);
     }
-
-    const { error: dbErr } = await (supabase as any).from("report_cards").upsert({
-      learner_id:    learnerId,
-      school_id:     primarySchoolId,
-      academic_year: parseInt(year),
-      term:          parseInt(term),
-      file_path:     path,
-      file_name:     file.name,
-      uploaded_by:   user?.id,
-      notes:         notes.trim() || null,
-    }, { onConflict: "learner_id,academic_year,term" });
-
-    setUploading(false);
-    if (dbErr) {
-      // Clean up orphaned file
-      await supabase.storage.from("report-cards").remove([path]);
-      return toast.error(friendlyDbError(dbErr));
-    }
-
-    toast.success("Report card uploaded. Parent has been notified.");
-    setDialogOpen(false);
-    resetDialog();
-    load();
   };
 
   const onDelete = async (card: ReportCard) => {
     setDeleting(card.id);
-    await supabase.storage.from("report-cards").remove([card.file_path]);
-    const { error } = await (supabase as any).from("report_cards").delete().eq("id", card.id);
-    setDeleting(null);
-    if (error) return toast.error(friendlyDbError(error));
-    toast.success("Report card deleted");
-    load();
+    try {
+      await api.delete(`/api/v1/learners/${card.learnerId}/report-cards/${card.id}`);
+      toast.success("Report card deleted");
+      load();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const onView = async (card: ReportCard) => {
     setDownloading(card.id);
-    const { data, error } = await supabase.storage
-      .from("report-cards").createSignedUrl(card.file_path, 60);
-    setDownloading(null);
-    if (error || !data?.signedUrl) return toast.error("Could not open file");
-    window.open(data.signedUrl, "_blank", "noopener,noreferrer");
+    try {
+      const blob = await api.getBlob(`/api/v1/learners/${card.learnerId}/report-cards/${card.id}/download`);
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch {
+      toast.error("Could not open file");
+    } finally {
+      setDownloading(null);
+    }
   };
 
   if (!isStaff) {
@@ -148,11 +134,11 @@ export function ReportCardUploadPage() {
 
   // Filter
   const filtered = reports.filter(r => {
-    if (yearFilter !== "all" && r.academic_year !== parseInt(yearFilter)) return false;
+    if (yearFilter !== "all" && r.academicYear !== parseInt(yearFilter)) return false;
     if (termFilter !== "all" && r.term !== parseInt(termFilter)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
-      const name = `${r.learners?.first_name ?? ""} ${r.learners?.last_name ?? ""}`.toLowerCase();
+      const name = `${r.learnerFirstName ?? ""} ${r.learnerLastName ?? ""}`.toLowerCase();
       if (!name.includes(q)) return false;
     }
     return true;
@@ -220,20 +206,17 @@ export function ReportCardUploadPage() {
               {filtered.map(card => (
                 <tr key={card.id} className="border-t align-middle">
                   <td className="p-3 font-medium">
-                    {card.learners?.first_name} {card.learners?.last_name}
-                    <div className="text-xs text-muted-foreground">
-                      Grade {card.learners?.grade_id === 0 ? "R" : card.learners?.grade_id}
-                    </div>
+                    {card.learnerFirstName} {card.learnerLastName}
                   </td>
                   <td className="p-3">
-                    <Badge variant="secondary">Term {card.term} � {card.academic_year}</Badge>
+                    <Badge variant="secondary">Term {card.term} · {card.academicYear}</Badge>
                   </td>
                   <td className="p-3 text-muted-foreground text-xs max-w-[180px] truncate">
-                    {card.file_name}
+                    {card.fileName}
                     {card.notes && <div className="italic mt-0.5 line-clamp-1">{card.notes}</div>}
                   </td>
                   <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
-                    {new Date(card.uploaded_at).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
+                    {new Date(card.uploadedAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })}
                   </td>
                   <td className="p-3">
                     <div className="flex gap-1 justify-end">
@@ -264,7 +247,7 @@ export function ReportCardUploadPage() {
                 <SelectContent className="max-h-60">
                   {learners.map(l => (
                     <SelectItem key={l.id} value={l.id}>
-                      {l.first_name} {l.last_name} � Grade {l.grade_id === 0 ? "R" : l.grade_id}
+                      {l.firstName} {l.lastName} · Grade {l.gradeId === 0 ? "R" : l.gradeId}
                     </SelectItem>
                   ))}
                 </SelectContent>

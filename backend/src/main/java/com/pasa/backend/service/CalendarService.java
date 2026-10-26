@@ -58,6 +58,7 @@ public class CalendarService {
         existing.setEventDate(req.eventDate());
         existing.setEventTime(req.eventTime());
         existing.setEventType(req.eventType());
+        existing.setClassId(req.classId());
         return CalendarEventMapper.toResponse(calendarRepo.save(existing));
     }
 

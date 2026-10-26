@@ -1,7 +1,9 @@
 package com.pasa.backend.controller;
 
 import com.pasa.backend.dto.request.CreateSchoolRequest;
+import com.pasa.backend.dto.response.ReportCardResponse;
 import com.pasa.backend.dto.response.SchoolResponse;
+import com.pasa.backend.service.ReportCardService;
 import com.pasa.backend.service.SchoolService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,9 +19,11 @@ import java.util.UUID;
 public class SchoolController {
 
     private final SchoolService schoolService;
+    private final ReportCardService reportCardService;
 
-    public SchoolController(SchoolService schoolService) {
+    public SchoolController(SchoolService schoolService, ReportCardService reportCardService) {
         this.schoolService = schoolService;
+        this.reportCardService = reportCardService;
     }
 
     @GetMapping
@@ -45,5 +49,18 @@ public class SchoolController {
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','PRINCIPAL','SCHOOL_ADMIN')")
     public SchoolResponse updateSchool(@PathVariable UUID id, @Valid @RequestBody CreateSchoolRequest req) {
         return schoolService.updateSchool(id, req);
+    }
+
+    @GetMapping("/{schoolId}/report-cards")
+    @PreAuthorize("hasAnyRole('TEACHER','PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
+    public List<ReportCardResponse> getSchoolReportCards(@PathVariable UUID schoolId) {
+        return reportCardService.listBySchool(schoolId);
+    }
+
+    @PostMapping("/{id}/recalculate-performance")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<Void> recalculatePerformance(@PathVariable UUID id) {
+        schoolService.recalculatePerformance(id);
+        return ResponseEntity.noContent().build();
     }
 }

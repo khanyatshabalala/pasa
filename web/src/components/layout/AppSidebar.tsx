@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter } from "@/components/ui/sidebar";
 import { FundaLogo } from "./Logo";
 import { useAuth } from "@/lib/auth-context";
-import { Home, Users, BookOpen, CalendarDays, Bell, Shield, ArrowLeftRight, ClipboardList, FileText, MessageCircle, Crown, LogOut, ShieldCheck, Settings, UserCog, GraduationCap, ClipboardCheck, LayoutList, UserCheck } from "lucide-react";
+import { Home, Users, BookOpen, CalendarDays, Bell, Shield, ArrowLeftRight, ClipboardList, FileText, Crown, LogOut, ShieldCheck, Settings, UserCog, GraduationCap, ClipboardCheck, LayoutList, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const parentItems = [
@@ -14,7 +14,6 @@ const parentItems = [
   { to: "/app/marks",        title: "Report cards",  icon: BookOpen },
   { to: "/app/attendance",   title: "Attendance",    icon: ClipboardList },
   { to: "/app/schools",      title: "Schools",       icon: GraduationCap },
-  { to: "/app/assistant",    title: "AI Assistant",  icon: MessageCircle },
 ];
 
 const schoolBaseItems = [
@@ -26,7 +25,6 @@ const schoolBaseItems = [
   { to: "/app/discipline-school",  title: "Discipline",     icon: Shield },
   { to: "/app/attendance-capture", title: "Attendance",     icon: ClipboardList },
   { to: "/app/marks-capture",      title: "Report cards",   icon: BookOpen },
-  { to: "/app/assistant",          title: "AI Assistant",   icon: MessageCircle },
 ];
 
 const adminExtra = [
