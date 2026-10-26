@@ -13,7 +13,6 @@ const parentItems = [
   { to: "/app/discipline",   title: "Discipline",    icon: Shield },
   { to: "/app/marks",        title: "Report cards",  icon: BookOpen },
   { to: "/app/attendance",   title: "Attendance",    icon: ClipboardList },
-  { to: "/app/schools",      title: "Schools",       icon: GraduationCap },
 ];
 
 const schoolBaseItems = [
@@ -83,7 +82,7 @@ export function AppSidebar() {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
-        {isParent && profile?.subscription_tier !== "premium" && (
+        {isParent && profile?.subscriptionTier !== "premium" && (
           <SidebarGroup>
             <SidebarGroupContent className="px-2">
               <Link to="/app/upgrade" className="block rounded-lg p-3 bg-accent/15 border border-accent/30 hover:bg-accent/20 transition-colors">

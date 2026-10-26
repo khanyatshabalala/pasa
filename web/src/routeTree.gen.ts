@@ -39,7 +39,6 @@ import { Route as AppLinkRequestsRouteImport } from './routes/app.link-requests'
 import { Route as AppMarksRouteImport } from './routes/app.marks'
 import { Route as AppMarksCaptureRouteImport } from './routes/app.marks-capture'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
-import { Route as AppSchoolsRouteImport } from './routes/app.schools'
 import { Route as AppStaffRouteImport } from './routes/app.staff'
 import { Route as AppTransfersRouteImport } from './routes/app.transfers'
 import { Route as AppUpgradeRouteImport } from './routes/app.upgrade'
@@ -199,11 +198,6 @@ const AppProfileRoute = AppProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSchoolsRoute = AppSchoolsRouteImport.update({
-  id: '/schools',
-  path: '/schools',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppStaffRoute = AppStaffRouteImport.update({
   id: '/staff',
   path: '/staff',
@@ -274,7 +268,6 @@ export interface FileRoutesByFullPath {
   '/app/marks': typeof AppMarksRoute
   '/app/marks-capture': typeof AppMarksCaptureRoute
   '/app/profile': typeof AppProfileRoute
-  '/app/schools': typeof AppSchoolsRoute
   '/app/staff': typeof AppStaffRoute
   '/app/transfers': typeof AppTransfersRoute
   '/app/upgrade': typeof AppUpgradeRoute
@@ -313,7 +306,6 @@ export interface FileRoutesByTo {
   '/app/marks': typeof AppMarksRoute
   '/app/marks-capture': typeof AppMarksCaptureRoute
   '/app/profile': typeof AppProfileRoute
-  '/app/schools': typeof AppSchoolsRoute
   '/app/staff': typeof AppStaffRoute
   '/app/transfers': typeof AppTransfersRoute
   '/app/upgrade': typeof AppUpgradeRoute
@@ -355,7 +347,6 @@ export interface FileRoutesById {
   '/app/marks': typeof AppMarksRoute
   '/app/marks-capture': typeof AppMarksCaptureRoute
   '/app/profile': typeof AppProfileRoute
-  '/app/schools': typeof AppSchoolsRoute
   '/app/staff': typeof AppStaffRoute
   '/app/transfers': typeof AppTransfersRoute
   '/app/upgrade': typeof AppUpgradeRoute
@@ -398,7 +389,6 @@ export interface FileRouteTypes {
     | '/app/marks'
     | '/app/marks-capture'
     | '/app/profile'
-    | '/app/schools'
     | '/app/staff'
     | '/app/transfers'
     | '/app/upgrade'
@@ -437,7 +427,6 @@ export interface FileRouteTypes {
     | '/app/marks'
     | '/app/marks-capture'
     | '/app/profile'
-    | '/app/schools'
     | '/app/staff'
     | '/app/transfers'
     | '/app/upgrade'
@@ -478,7 +467,6 @@ export interface FileRouteTypes {
     | '/app/marks'
     | '/app/marks-capture'
     | '/app/profile'
-    | '/app/schools'
     | '/app/staff'
     | '/app/transfers'
     | '/app/upgrade'
@@ -716,13 +704,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/schools': {
-      id: '/app/schools'
-      path: '/schools'
-      fullPath: '/app/schools'
-      preLoaderRoute: typeof AppSchoolsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/staff': {
       id: '/app/staff'
       path: '/staff'
@@ -829,7 +810,6 @@ interface AppRouteChildren {
   AppMarksRoute: typeof AppMarksRoute
   AppMarksCaptureRoute: typeof AppMarksCaptureRoute
   AppProfileRoute: typeof AppProfileRoute
-  AppSchoolsRoute: typeof AppSchoolsRoute
   AppStaffRoute: typeof AppStaffRoute
   AppTransfersRoute: typeof AppTransfersRoute
   AppUpgradeRoute: typeof AppUpgradeRoute
@@ -854,7 +834,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppMarksRoute: AppMarksRoute,
   AppMarksCaptureRoute: AppMarksCaptureRoute,
   AppProfileRoute: AppProfileRoute,
-  AppSchoolsRoute: AppSchoolsRoute,
   AppStaffRoute: AppStaffRoute,
   AppTransfersRoute: AppTransfersRoute,
   AppUpgradeRoute: AppUpgradeRoute,
