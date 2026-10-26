@@ -47,6 +47,7 @@ public class AttendanceService {
     public AttendanceResponse recordAttendance(UUID learnerId, RecordAttendanceRequest req, UUID userId) {
         Learner learner = learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanManageLearner(learnerId, userId);
 
         if (attendanceRepo.existsByLearnerIdAndDate(learnerId, req.date())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Attendance already recorded for this date");
@@ -61,6 +62,7 @@ public class AttendanceService {
     public AttendanceResponse updateAttendance(UUID id, RecordAttendanceRequest req, UUID userId) {
         Attendance existing = attendanceRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
+        accessGuard.assertCanManageLearner(existing.getLearner().getId(), userId);
 
         existing.setStatus(req.status());
         existing.setNotes(req.notes());

@@ -47,6 +47,7 @@ public class DisciplineService {
     public DisciplineResponse createRecord(UUID learnerId, CreateDisciplineRequest req, UUID userId) {
         Learner learner = learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanManageLearner(learnerId, userId);
 
         DisciplineRecord record = DisciplineMapper.toEntity(req);
         record.setLearner(learner);
@@ -54,9 +55,10 @@ public class DisciplineService {
         return DisciplineMapper.toResponse(disciplineRepo.save(record));
     }
 
-    public void deleteRecord(UUID id) {
+    public void deleteRecord(UUID id, UUID userId) {
         DisciplineRecord record = disciplineRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Record not found"));
+        accessGuard.assertCanManageLearner(record.getLearner().getId(), userId);
         disciplineRepo.delete(record);
     }
 }

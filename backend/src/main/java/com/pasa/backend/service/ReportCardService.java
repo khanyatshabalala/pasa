@@ -83,6 +83,7 @@ public class ReportCardService {
                                      Integer academicYear, String notes, UUID userId) {
         Learner learner = learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanManageLearner(learnerId, userId);
 
         validate(file, term, academicYear, notes);
 
@@ -120,12 +121,13 @@ public class ReportCardService {
         }
     }
 
-    public void delete(UUID learnerId, UUID reportCardId) {
+    public void delete(UUID learnerId, UUID reportCardId, UUID userId) {
         ReportCard rc = reportCardRepo.findById(reportCardId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found"));
         if (!rc.getLearnerId().equals(learnerId)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found");
         }
+        accessGuard.assertCanManageLearner(learnerId, userId);
         reportCardRepo.delete(rc);
         try {
             storage.delete(rc.getFilePath());

@@ -41,8 +41,8 @@ public class DisciplineController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<Void> deleteRecord(@PathVariable UUID learnerId, @PathVariable UUID id) {
-        disciplineService.deleteRecord(id);
+    public ResponseEntity<Void> deleteRecord(@PathVariable UUID learnerId, @PathVariable UUID id, Authentication auth) {
+        disciplineService.deleteRecord(id, (UUID) auth.getPrincipal());
         return ResponseEntity.noContent().build();
     }
 }

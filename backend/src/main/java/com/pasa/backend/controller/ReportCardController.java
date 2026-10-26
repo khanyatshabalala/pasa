@@ -67,8 +67,8 @@ public class ReportCardController {
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('TEACHER','PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<Void> delete(@PathVariable UUID learnerId, @PathVariable UUID id) {
-        reportCardService.delete(learnerId, id);
+    public ResponseEntity<Void> delete(@PathVariable UUID learnerId, @PathVariable UUID id, Authentication auth) {
+        reportCardService.delete(learnerId, id, (UUID) auth.getPrincipal());
         return ResponseEntity.noContent().build();
     }
 }

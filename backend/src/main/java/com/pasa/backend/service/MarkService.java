@@ -46,6 +46,7 @@ public class MarkService {
     public MarkResponse recordMark(UUID learnerId, RecordMarkRequest req, UUID userId) {
         Learner learner = learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
+        accessGuard.assertCanManageLearner(learnerId, userId);
 
         Mark mark = MarkMapper.toEntity(req);
         mark.setLearner(learner);
@@ -56,6 +57,7 @@ public class MarkService {
     public MarkResponse updateMark(UUID id, RecordMarkRequest req, UUID userId) {
         Mark existing = markRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Mark not found"));
+        accessGuard.assertCanManageLearner(existing.getLearner().getId(), userId);
 
         existing.setSubjectId(req.subjectId());
         existing.setAssessmentName(req.assessmentName());

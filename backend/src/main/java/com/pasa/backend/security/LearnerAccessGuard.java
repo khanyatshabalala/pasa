@@ -52,6 +52,39 @@ public class LearnerAccessGuard {
         return Boolean.TRUE.equals(allowed);
     }
 
+    /**
+     * True if the user may WRITE records for the learner: a staff member at the
+     * learner's school, or a super admin. Parents are intentionally excluded — they
+     * read but never write learner records.
+     */
+    public boolean canManageLearner(UUID learnerId, UUID userId) {
+        if (learnerId == null || userId == null) return false;
+        Boolean allowed = jdbc.queryForObject(
+            """
+            SELECT
+              EXISTS (
+                SELECT 1 FROM public.learners l
+                JOIN public.user_roles ur ON ur.school_id = l.school_id
+                WHERE l.id = ? AND ur.user_id = ?
+              )
+              OR EXISTS (
+                SELECT 1 FROM public.user_roles ur
+                WHERE ur.user_id = ? AND ur.role = 'super_admin'
+              )
+            """,
+            Boolean.class,
+            learnerId, userId, userId
+        );
+        return Boolean.TRUE.equals(allowed);
+    }
+
+    /** Throws 403 unless the user may write records for the learner. */
+    public void assertCanManageLearner(UUID learnerId, UUID userId) {
+        if (!canManageLearner(learnerId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not allowed to modify this learner's records");
+        }
+    }
+
     /** True only if the user is a parent linked to the learner. */
     public boolean isParentOf(UUID learnerId, UUID userId) {
         if (learnerId == null || userId == null) return false;
