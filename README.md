@@ -78,8 +78,7 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 - ✅ Attendance tracking
 - ✅ Learner transfers
 - ✅ Push notifications
-- ✅ Role-based access control
-- ✅ Row-level security
+- ✅ Role-based access control (enforced server-side via Spring Security)
 - ✅ Portal-separated authentication (parent / school staff / admin sign-in)
 - ✅ Password reset flow
 - ✅ User profile management
@@ -111,7 +110,6 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 **Future**
 - Mobile applications (Expo — in progress)
 - Enhanced analytics
-- AI-powered educational assistance
 - District and provincial communication tools
 
 ---
@@ -122,7 +120,7 @@ PASA is not a concept. A working MVP has been built and is ready for pilot adopt
 - **React 19** + **TypeScript**
 - **TanStack Router** — file-based routing
 - **TanStack Query** — server state management
-- **Supabase** — auth, PostgreSQL database, row-level security, edge functions
+- **Spring Boot REST API** — all data and auth via the backend (JWT), accessed through a single `api` client (`src/lib/api.ts`); the browser holds no database credentials
 - **Tailwind CSS v4** + **Radix UI** — component library
 - **Vite 8** — build tooling
 - **Netlify** — hosting
@@ -156,8 +154,7 @@ web/src/
 │   ├── staff/
 │   └── transfers/
 ├── hooks/            # Custom React hooks
-├── integrations/     # Third-party clients (Supabase)
-├── lib/              # Shared utilities (auth context, error helpers)
+├── lib/              # Shared utilities (api client, auth context, error helpers)
 ├── routes/           # TanStack Router file-based routes (thin wrappers, ~5 lines each)
 ├── main.tsx          # App entry point
 ├── router.tsx        # Router instance
@@ -167,16 +164,18 @@ web/src/
 ### Mobile (`/mobile`)
 - **React Native 0.83** + **Expo 55**
 - **Expo Router** — file-based routing with typed routes
-- **Supabase** — shared backend
+- Talks to the same Spring Boot REST API as the web app
 
 ### Backend (`/backend`)
-- **Spring Boot 3.3** — REST API (Java 21, 123+ source files)
+- **Spring Boot 3.3** — REST API (Java 21)
 - **Spring Security** + **JWT (jjwt 0.12)** — authentication and role-based access
-- **Spring Data JPA** + **PostgreSQL** — data layer (Supabase-hosted)
+- **Spring Data JPA** + **PostgreSQL** — data layer (connection string is configurable; not tied to any single provider)
+- **AWS SDK v2 (S3)** — report-card PDF storage behind a `StorageService` abstraction, pointed at an S3-compatible endpoint (currently Supabase Storage); swappable to another provider via config
 - **Springdoc OpenAPI** — Swagger UI at `/swagger-ui`
 - **Spring Boot Actuator** — health, info, and metrics endpoints
 - **Lombok** — boilerplate reduction
-- AWS deployment target
+
+> **Supabase scope:** the backend uses Supabase only as the S3-compatible object store for report-card PDFs, accessed server-side through `StorageService`. The browser never talks to Supabase. The relational database and file store are both configurable, so a later move to a South-African provider is a config change, not a code change.
 
 #### Backend Architecture
 
@@ -188,14 +187,17 @@ controller/ → service/ → repository/ → entity
             mapper/
 ```
 
-#### Backend API Endpoints (16 controllers)
+#### Backend API Endpoints
 
 | Controller | Base Path | Key Operations |
 |---|---|---|
 | AuthController | `/api/v1/auth` | `POST /parent/register`, `POST /parent/signin`, `POST /staff/signin`, `POST /admin/signin`, `POST /forgot-password`, `POST /reset-password` |
-| ProfileController | `/api/v1/profile` | `GET /`, `PUT /` |
-| AdminController | `/api/v1/admin` | `GET/POST/PUT/DELETE /districts`, `GET /users`, `POST /users/{id}/roles`, `DELETE /users/{id}/roles/{roleId}` |
-| SchoolController | `/api/v1/schools` | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}` |
+| ProfileController | `/api/v1/profile` | `GET /`, `PUT /`, `POST /change-password` |
+| AdminController | `/api/v1/admin` | `GET /stats`, `GET/POST/PUT/DELETE /districts`, `GET /users`, `POST /users/{id}/roles`, `DELETE /users/{id}/roles/{roleId}` |
+| DashboardController | `/api/v1` | `GET /schools/{id}/dashboard`, `GET /parents/dashboard` |
+| SchoolController | `/api/v1/schools` | `GET /`, `GET /{id}`, `POST /`, `PUT /{id}`, `POST /{id}/recalculate-performance`, `GET /{id}/report-cards` |
+| DistrictController | `/api/v1/districts` | `GET /` (authenticated, optional `?province=`) |
+| SchoolRequestController | `/api/v1/school-requests` | `POST /` (public), `GET /` (super-admin), `PATCH /{id}` |
 | LearnerController | `/api/v1` | `GET /children`, `GET /schools/{id}/learners`, `GET /learners/{id}`, `POST /schools/{id}/learners`, `PUT /learners/{id}` |
 | CalendarController | `/api/v1/schools/{id}/calendar` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
 | ExamTimetableController | `/api/v1/schools/{id}/exam-timetable` | `GET`, `POST`, `PUT /{id}`, `DELETE /{id}` |
@@ -207,6 +209,9 @@ controller/ → service/ → repository/ → entity
 | NotificationController | `/api/v1/notifications` | `GET`, `GET /unread-count`, `PATCH /{id}/read`, `POST /read-all` |
 | LinkRequestController | `/api/v1/link-requests` | `GET /mine`, `POST /`, `GET /schools/{id}/link-requests`, `POST /{id}/approve`, `POST /{id}/reject` |
 | TransferController | `/api/v1/transfers` | `GET /school/{id}`, `GET /learner/{id}`, `POST /`, `PATCH /{id}/status` |
+| ReportCardController | `/api/v1/learners/{id}/report-cards` | `GET`, `POST` (multipart PDF), `GET /{id}/download`, `DELETE /{id}` |
+| NationalCalendarController | `/api/v1/national-calendar` | `GET` (public, SA holidays & term dates) |
+| PushTokenController | `/api/v1/push-tokens` | `POST /`, `DELETE /{token}` |
 | AuditController | `/api/v1/schools/{id}/audit` | `GET` (paginated) |
 
 #### Observability
@@ -220,9 +225,8 @@ controller/ → service/ → repository/ → entity
 | Metrics | `/actuator/metrics` | Runtime metrics (JVM, HTTP, etc.) |
 
 ### Infrastructure (`/supabase`)
-- PostgreSQL migrations
-- Supabase Edge Functions (AI assistant, push notifications, staff account creation)
-- Row-level security policies
+- PostgreSQL migrations (schema and seed data)
+- Report-card object storage bucket (accessed only server-side by the backend)
 
 ---
 
@@ -232,8 +236,8 @@ controller/ → service/ → repository/ → entity
 pasa/
 ├── web/          # React web app (parents + school staff + admin portals)
 ├── mobile/       # React Native mobile app (Expo)
-├── backend/      # Spring Boot REST API (16 controllers, 123+ source files)
-├── supabase/     # Database migrations and edge functions
+├── backend/      # Spring Boot REST API
+├── supabase/     # Database migrations and report-card storage bucket
 └── SKILLS/       # Product documentation
 ```
 
@@ -246,23 +250,15 @@ pasa/
 cd web
 npm install
 cp .env.example .env
-# Fill in VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY
+# Set VITE_API_URL to the backend base URL (default http://localhost:8080)
 npm run dev
-```
-
-### Mobile
-```bash
-cd mobile
-npm install
-cp .env.example .env
-# Fill in EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY
-npm start
 ```
 
 ### Backend
 ```bash
 cd backend
-# Set environment variables: SUPABASE_DB_PASSWORD, JWT_SECRET, PASA_CORS_ORIGINS
+# Required: DATABASE_URL (or SPRING_DATASOURCE_URL) + credentials, JWT_SECRET, CORS_ALLOWED_ORIGINS
+# Optional (report-card uploads): pasa.storage.s3.* — endpoint, bucket, access key, secret key
 ./mvnw spring-boot:run
 # API at http://localhost:8080
 # Swagger UI at http://localhost:8080/swagger-ui

@@ -30,13 +30,10 @@ Create a `.env` file from `.env.example`:
 
 | Variable | Purpose |
 |---|---|
-| `VITE_SUPABASE_URL` | Supabase project URL (public, shipped to browser) |
-| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase anon/public key (public, shipped to browser) |
-| `SUPABASE_URL` | Same URL for SSR/edge function use |
-| `SUPABASE_PUBLISHABLE_KEY` | Same key for SSR/edge function use |
+| `VITE_API_URL` | Base URL of the Spring Boot backend (default `http://localhost:8080`) |
 | `VITE_VAPID_PUBLIC_KEY` | Web push VAPID public key (for push notifications) |
 
-> `VITE_*` variables are embedded in the client bundle at build time. They must only contain public values — never secrets.
+> `VITE_*` variables are embedded in the client bundle at build time. They must only contain public values — never secrets. The web app talks exclusively to the backend REST API; it holds no database or storage credentials.
 
 ---
 
@@ -69,12 +66,11 @@ src/
 │   ├── staff/
 │   └── transfers/
 ├── hooks/               # Custom React hooks (use-mobile, use-push-notifications)
-├── integrations/
-│   └── supabase/        # Supabase client instances and generated types
 ├── lib/                 # Shared utilities
+│   ├── api.ts           # Central REST API client (JWT auth, typed responses)
 │   ├── auth-context.tsx # AuthProvider, useAuth() hook
 │   ├── auth-errors.ts   # Auth error message mapping
-│   ├── db-errors.ts     # Database error message mapping
+│   ├── db-errors.ts     # Backend error message mapping
 │   └── utils.ts         # cn() and general helpers
 ├── routes/              # TanStack Router file-based routes (thin wrappers, ~5 lines each)
 ├── main.tsx             # React entry point
@@ -132,7 +128,6 @@ routes/
 ├── app.profile.tsx             # User profile
 ├── app.schools.tsx             # School selector
 ├── app.admissions.tsx          # Admissions
-├── app.assistant.tsx           # AI Assistant (Coming Soon)
 ├── app.upgrade.tsx             # Premium upgrade
 ├── admin.tsx                   # Admin layout wrapper
 ├── admin.index.tsx             # Admin dashboard
@@ -273,7 +268,7 @@ Netlify automatically builds on push to the configured branch.
 | Framework | React 19 |
 | Router | TanStack Router (file-based) |
 | Server state | TanStack Query |
-| Auth & DB | Supabase |
+| Auth & data | Spring Boot REST API (JWT) via `src/lib/api.ts` |
 | Styling | Tailwind CSS v4 |
 | UI primitives | Radix UI (via shadcn/ui) |
 | Forms | React Hook Form + Zod |

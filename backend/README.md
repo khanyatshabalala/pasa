@@ -1,8 +1,8 @@
 # PASA — Backend API
 
-Spring Boot REST API for the PASA platform (Parent and School Alliance).
+Spring Boot REST API for the PASA platform (Parent and School Alliance). The web and mobile clients talk only to this API.
 
-**123+ source files** | **16 controllers** | **Full layered architecture**
+**22 controllers** | **Full layered architecture**
 
 ---
 
@@ -17,9 +17,11 @@ Spring Boot REST API for the PASA platform (Parent and School Alliance).
 
 ```bash
 # Set required environment variables
-export SUPABASE_DB_PASSWORD=your-database-password
+export DATABASE_URL=jdbc:postgresql://<host>:5432/<db>
+export DATABASE_USERNAME=<user>
+export DATABASE_PASSWORD=<password>
 export JWT_SECRET=your-64-char-random-secret
-export PASA_CORS_ORIGINS=http://localhost:5173
+export CORS_ALLOWED_ORIGINS=http://localhost:5173
 
 # Start the server (port 8080)
 ./mvnw spring-boot:run
@@ -27,11 +29,15 @@ export PASA_CORS_ORIGINS=http://localhost:5173
 
 On Windows:
 ```powershell
-$env:SUPABASE_DB_PASSWORD="your-database-password"
+$env:DATABASE_URL="jdbc:postgresql://<host>:5432/<db>"
+$env:DATABASE_USERNAME="<user>"
+$env:DATABASE_PASSWORD="<password>"
 $env:JWT_SECRET="your-64-char-random-secret"
-$env:PASA_CORS_ORIGINS="http://localhost:5173"
+$env:CORS_ALLOWED_ORIGINS="http://localhost:5173"
 .\mvnw.cmd spring-boot:run
 ```
+
+> With no database variables set, the app boots on an in-memory H2 database (PostgreSQL mode) so it can start without an external datasource — useful for a quick smoke run.
 
 The API is available at `http://localhost:8080`.
 
@@ -51,11 +57,13 @@ The API is available at `http://localhost:8080`.
 
 | Variable | Required | Description |
 |---|---|---|
-| `SUPABASE_DB_PASSWORD` | Yes | PostgreSQL password from Supabase Dashboard → Settings → Database |
+| `DATABASE_URL` (or `SPRING_DATASOURCE_URL`) | No* | JDBC PostgreSQL URL. Falls back to in-memory H2 if unset. |
+| `DATABASE_USERNAME` / `DATABASE_PASSWORD` | No* | Database credentials (required when `DATABASE_URL` is set) |
 | `JWT_SECRET` | Yes | 64+ character random string. Generate with `openssl rand -hex 64` |
-| `PASA_CORS_ORIGINS` | No | Comma-separated allowed origins. Defaults to `http://localhost:5173` |
+| `CORS_ALLOWED_ORIGINS` | No | Comma-separated allowed origins. Defaults to `http://localhost:5173` |
+| `pasa.storage.s3.endpoint` / `.bucket` / `.access-key` / `.secret-key` / `.region` | No | S3-compatible object store for report-card PDFs (e.g. Supabase Storage). Uploads fail until set; the rest of the API runs without it. |
 
-Copy `.env.example` for reference. Environment variables are injected via `application.properties` using `${VAR}` syntax.
+\* Provide the database variables for a real deployment; they are optional only for the H2 smoke-run fallback. Environment variables are injected via `application.properties` using `${VAR}` syntax. Copy `.env.example` for reference.
 
 ---
 
@@ -64,34 +72,42 @@ Copy `.env.example` for reference. Environment variables are injected via `appli
 ```
 src/main/java/com/pasa/backend/
 ├── config/              # Spring configuration (SecurityConfig, OpenApiConfig)
-├── controller/          # REST controllers — thin routing + delegation (16 controllers)
+├── controller/          # REST controllers — thin routing + delegation (22 controllers)
 │   ├── AdminController.java
 │   ├── AttendanceController.java
 │   ├── AuditController.java
 │   ├── AuthController.java
 │   ├── CalendarController.java
 │   ├── ClassController.java
+│   ├── DashboardController.java
 │   ├── DisciplineController.java
+│   ├── DistrictController.java
 │   ├── ExamTimetableController.java
+│   ├── GradeController.java
 │   ├── LearnerController.java
 │   ├── LinkRequestController.java
 │   ├── MarksController.java
+│   ├── NationalCalendarController.java
 │   ├── NotificationController.java
 │   ├── ProfileController.java
+│   ├── PushTokenController.java
+│   ├── ReportCardController.java
 │   ├── SchoolController.java
+│   ├── SchoolRequestController.java
 │   ├── StaffController.java
 │   └── TransferController.java
 ├── domain/
-│   ├── entity/          # JPA entities (14 entities)
+│   ├── entity/          # JPA entities (ReportCard, NationalCalendarEvent, etc.)
 │   └── enums/           # Java enums (AppRole, AttendanceStatus, TransferStatus, etc.)
 ├── dto/
-│   ├── request/         # Incoming request DTOs (20 records, validated with Jakarta annotations)
-│   └── response/        # Outgoing response DTOs (18 immutable records)
+│   ├── request/         # Incoming request DTOs (validated with Jakarta annotations)
+│   └── response/        # Outgoing response DTOs (immutable records)
 ├── exception/           # Custom exception classes + GlobalExceptionHandler
-├── mapper/              # Entity ↔ DTO conversion (13 mappers)
-├── repository/          # Spring Data JPA repositories (13 repositories)
+├── mapper/              # Entity ↔ DTO conversion
+├── repository/          # Spring Data JPA repositories
 ├── security/            # JWT filter, JWT utility, JWT properties
-├── service/             # Business logic services (16 services, one per domain)
+├── service/             # Business logic services (one per domain)
+├── storage/             # StorageService abstraction + S3StorageService (report-card files)
 └── PasaApplication.java # Main Spring Boot entry point
 ```
 
@@ -159,10 +175,24 @@ Base URL: `/api/v1`
 | GET | `/profile` | Get current user's profile |
 | PUT | `/profile` | Update current user's profile |
 
+### Dashboards (`/api/v1`)
+
+| Method | Path | Roles | Description |
+|---|---|---|---|
+| GET | `/schools/{id}/dashboard` | teacher, principal, school_admin, super_admin | Aggregated school overview (today's attendance, recent discipline, upcoming events, pending link requests) |
+| GET | `/parents/dashboard` | parent | Aggregated parent overview (per-child attendance, unread alerts, next event) |
+
+### Districts (`/api/v1/districts`) — Authenticated
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/districts` | List districts for school-discovery filters (optional `?province=`) |
+
 ### Admin (`/api/v1/admin`) — super_admin only
 
 | Method | Path | Description |
 |---|---|---|
+| GET | `/admin/stats` | Platform counts (schools, districts, users, learners, pending link/school requests) |
 | GET | `/admin/districts` | List districts (optional `?province=` filter) |
 | POST | `/admin/districts` | Create a district |
 | PUT | `/admin/districts/{id}` | Update a district |
@@ -178,7 +208,39 @@ Base URL: `/api/v1`
 | GET | `/schools` | Public | List schools (filter by province/district) |
 | GET | `/schools/{id}` | Public | Get school detail |
 | POST | `/schools` | super_admin | Create a new school |
-| PUT | `/schools/{id}` | super_admin, principal, school_admin | Update school |
+| PUT | `/schools/{id}` | super_admin, principal, school_admin | Update school (incl. admissions info) |
+| POST | `/schools/{id}/recalculate-performance` | super_admin | Recompute performance rankings |
+| GET | `/schools/{id}/report-cards` | teacher, principal, school_admin, super_admin | List report cards for the school |
+
+### School Requests (`/api/v1/school-requests`)
+
+| Method | Path | Roles | Description |
+|---|---|---|---|
+| POST | `/school-requests` | Public | Submit a school-registration request (landing-page form) |
+| GET | `/school-requests` | super_admin | List requests (optional `?status=`) |
+| PATCH | `/school-requests/{id}` | super_admin | Update status / admin notes |
+
+### Report Cards (`/api/v1/learners/{learnerId}/report-cards`)
+
+| Method | Path | Roles | Description |
+|---|---|---|---|
+| GET | `/` | Authenticated (parent of learner or school staff) | List a learner's report cards |
+| POST | `/` | teacher, principal, school_admin, super_admin | Upload a PDF (multipart; max 10 MB) |
+| GET | `/{id}/download` | Authenticated (parent of learner or school staff) | Stream the PDF |
+| DELETE | `/{id}` | teacher, principal, school_admin, super_admin | Delete a report card |
+
+### National Calendar (`/api/v1/national-calendar`) — Public
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/national-calendar` | SA public holidays and school-term dates (optional `?from=&to=` or `?year=`) |
+
+### Push Tokens (`/api/v1/push-tokens`) — Authenticated
+
+| Method | Path | Description |
+|---|---|---|
+| POST | `/push-tokens` | Register a device/web push subscription |
+| DELETE | `/push-tokens/{token}` | Unregister a push subscription |
 
 ### Learners (`/api/v1`)
 
@@ -334,8 +396,10 @@ Three sign-in endpoints enforce strict role boundaries:
 
 ### Password Reset
 
-1. `POST /auth/forgot-password` — sends reset link to the provided email (always returns 200 to prevent email enumeration)
+1. `POST /auth/forgot-password` — issues a reset token for the account (always returns 200 to prevent email enumeration)
 2. `POST /auth/reset-password` — validates the token and updates the password
+
+> **Note:** token generation and validation are implemented and backed by the `password_reset_tokens` table. Email *delivery* of the reset link is not yet wired up — that integration is still a TODO.
 
 ### Token Details
 
@@ -359,13 +423,13 @@ Roles are enforced via `@PreAuthorize` annotations on controllers and the `Secur
 
 ---
 
-## Database
+## Database & Storage
 
-- **Provider:** Supabase (managed PostgreSQL)
-- **Connection:** Direct connection on port 5432
+- **Database:** PostgreSQL, configured via `DATABASE_URL` + credentials. Not tied to any single provider — the connection string is the only thing that changes when moving hosts. Falls back to in-memory H2 when unset.
 - **ORM:** Spring Data JPA with Hibernate
-- **DDL mode:** `validate` — Hibernate checks that entities match the schema but never modifies it. Schema changes are managed via Supabase migrations.
-- **Schema:** Application entities live in `public` schema; auth is managed by Supabase in `auth` schema.
+- **DDL mode:** `validate` by default against a real database (entities are checked against the schema, never modified); schema changes are managed via the SQL migrations in `/supabase/migrations`. The H2 fallback uses `none`.
+- **Schema:** Application entities live in the `public` schema.
+- **File storage:** Report-card PDFs are stored in an S3-compatible object store, accessed **only server-side** through the `StorageService` abstraction (`storage/`). The default implementation (`S3StorageService`, AWS SDK v2) targets Supabase Storage's S3 endpoint; swapping to another provider is a config change plus, at most, one new `StorageService` implementation.
 
 ---
 
@@ -397,7 +461,8 @@ java -jar target/pasa-backend-0.0.1-SNAPSHOT.jar
 | Validation | Jakarta Bean Validation |
 | API docs | Springdoc OpenAPI (Swagger UI) |
 | Monitoring | Spring Boot Actuator |
+| File storage | AWS SDK v2 (S3) via `StorageService` → S3-compatible endpoint |
 | Boilerplate | Lombok |
 | Build | Maven (wrapper included) |
-| Database | Supabase PostgreSQL |
-| Deployment | AWS |
+| Database | PostgreSQL (provider-agnostic; H2 fallback) |
+| Deployment | Railway / container (see `Dockerfile`) |
