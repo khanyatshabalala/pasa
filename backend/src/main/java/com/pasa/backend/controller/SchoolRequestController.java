@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,7 +44,8 @@ public class SchoolRequestController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public SchoolRequestResponse updateStatus(
             @PathVariable UUID id,
-            @Valid @RequestBody UpdateSchoolRequestStatus req) {
-        return service.updateStatus(id, req);
+            @Valid @RequestBody UpdateSchoolRequestStatus req,
+            Authentication auth) {
+        return service.updateStatus(id, req, (UUID) auth.getPrincipal());
     }
 }

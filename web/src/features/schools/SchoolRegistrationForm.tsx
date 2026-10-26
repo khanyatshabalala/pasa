@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,8 +46,13 @@ export function SchoolRegistrationForm({ onClose }: { onClose?: () => void }) {
         message:      fd.get("message") || null,
       }, { skipAuth: true });
       setSubmitted(true);
-    } catch {
-      toast.error("Something went wrong. Please try again.");
+    } catch (err) {
+      // Surface the duplicate-submission message (409); generic fallback otherwise.
+      if (err instanceof ApiError && err.status === 409) {
+        toast.error(err.message);
+      } else {
+        toast.error("Something went wrong. Please try again.");
+      }
     } finally {
       setSubmitting(false);
     }

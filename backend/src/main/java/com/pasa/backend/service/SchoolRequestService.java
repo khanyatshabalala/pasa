@@ -22,6 +22,22 @@ public class SchoolRequestService {
     }
 
     public SchoolRequestResponse submit(CreateSchoolRequestSubmission req) {
+        // Dedup: reject when a still-pending request already exists for the same
+        // school + contact email (case-insensitive). Prevents accidental double-submits
+        // and casual spam on this public endpoint.
+        Boolean duplicate = jdbc.queryForObject("""
+            SELECT EXISTS (
+              SELECT 1 FROM public.school_requests
+              WHERE status = 'pending'
+                AND lower(school_name) = lower(?)
+                AND lower(contact_email) = lower(?)
+            )
+            """, Boolean.class, req.schoolName(), req.contactEmail());
+        if (Boolean.TRUE.equals(duplicate)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "A request for this school from this email is already awaiting review.");
+        }
+
         UUID id = UUID.randomUUID();
         jdbc.update("""
             INSERT INTO public.school_requests
@@ -48,15 +64,18 @@ public class SchoolRequestService {
         return jdbc.queryForList(sql, params).stream().map(SchoolRequestService::map).toList();
     }
 
-    public SchoolRequestResponse updateStatus(UUID id, UpdateSchoolRequestStatus req) {
+    public SchoolRequestResponse updateStatus(UUID id, UpdateSchoolRequestStatus req, UUID reviewerId) {
+        // Preserve existing notes when adminNotes is omitted (null); only overwrite when
+        // a value is actually provided. Record which admin reviewed it.
         int rows = jdbc.update("""
             UPDATE public.school_requests
                SET status = ?::school_request_status,
-                   admin_notes = ?,
+                   admin_notes = COALESCE(?, admin_notes),
+                   reviewed_by = ?,
                    reviewed_at = now()
              WHERE id = ?
             """,
-            req.status(), blankToNull(req.adminNotes()), id);
+            req.status(), blankToNull(req.adminNotes()), reviewerId, id);
         if (rows == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "School request not found");
         }
