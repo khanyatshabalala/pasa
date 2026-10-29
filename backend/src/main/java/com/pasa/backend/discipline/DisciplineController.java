@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.discipline;
 
-import com.pasa.backend.dto.request.CreateDisciplineRequest;
-import com.pasa.backend.dto.response.DisciplineResponse;
-import com.pasa.backend.service.DisciplineService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

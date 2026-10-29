@@ -1,11 +1,6 @@
-package com.pasa.backend.service;
+package com.pasa.backend.discipline;
 
-import com.pasa.backend.domain.entity.DisciplineRecord;
 import com.pasa.backend.domain.entity.Learner;
-import com.pasa.backend.dto.request.CreateDisciplineRequest;
-import com.pasa.backend.dto.response.DisciplineResponse;
-import com.pasa.backend.mapper.DisciplineMapper;
-import com.pasa.backend.repository.DisciplineRepository;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;

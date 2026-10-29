@@ -1,6 +1,5 @@
-package com.pasa.backend.dto.request;
+package com.pasa.backend.discipline;
 
-import com.pasa.backend.domain.enums.DisciplineType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

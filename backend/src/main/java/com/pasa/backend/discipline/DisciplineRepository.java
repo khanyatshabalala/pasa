@@ -1,6 +1,5 @@
-package com.pasa.backend.repository;
+package com.pasa.backend.discipline;
 
-import com.pasa.backend.domain.entity.DisciplineRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

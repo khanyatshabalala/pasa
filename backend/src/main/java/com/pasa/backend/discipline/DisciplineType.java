@@ -1,4 +1,4 @@
-package com.pasa.backend.domain.enums;
+package com.pasa.backend.discipline;
 
 public enum DisciplineType {
     merit,

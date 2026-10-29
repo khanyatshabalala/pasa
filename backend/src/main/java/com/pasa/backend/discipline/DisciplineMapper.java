@@ -1,8 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.DisciplineRecord;
-import com.pasa.backend.dto.request.CreateDisciplineRequest;
-import com.pasa.backend.dto.response.DisciplineResponse;
+package com.pasa.backend.discipline;
 
 public final class DisciplineMapper {
 

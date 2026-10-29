@@ -1,6 +1,6 @@
-package com.pasa.backend.domain.entity;
+package com.pasa.backend.discipline;
 
-import com.pasa.backend.domain.enums.DisciplineType;
+import com.pasa.backend.domain.entity.Learner;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 

@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.discipline;
 
-import com.pasa.backend.dto.response.DisciplineResponse;
-import com.pasa.backend.service.DisciplineService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 

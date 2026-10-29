@@ -1,6 +1,4 @@
-package com.pasa.backend.dto.response;
-
-import com.pasa.backend.domain.enums.DisciplineType;
+package com.pasa.backend.discipline;
 
 import java.time.LocalDate;
 import java.util.UUID;
