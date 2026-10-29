@@ -14,7 +14,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SchoolsRouteImport } from './routes/schools'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
@@ -41,7 +40,6 @@ import { Route as AppMarksCaptureRouteImport } from './routes/app.marks-capture'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppStaffRouteImport } from './routes/app.staff'
 import { Route as AppTransfersRouteImport } from './routes/app.transfers'
-import { Route as AppUpgradeRouteImport } from './routes/app.upgrade'
 import { Route as SchoolAuthRouteImport } from './routes/school.auth'
 import { Route as SchoolsSchoolIdRouteImport } from './routes/schools.$schoolId'
 import { Route as SuperadminAuthRouteImport } from './routes/superadmin.auth'
@@ -72,11 +70,6 @@ const AppRoute = AppRouteImport.update({
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -209,11 +202,6 @@ const AppTransfersRoute = AppTransfersRouteImport.update({
   path: '/transfers',
   getParentRoute: () => AppRoute,
 } as any)
-const AppUpgradeRoute = AppUpgradeRouteImport.update({
-  id: '/upgrade',
-  path: '/upgrade',
-  getParentRoute: () => AppRoute,
-} as any)
 const SchoolAuthRoute = SchoolAuthRouteImport.update({
   id: '/school/auth',
   path: '/school/auth',
@@ -251,7 +239,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/admin/districts': typeof AdminDistrictsRoute
@@ -276,7 +263,6 @@ export interface FileRoutesByFullPath {
   '/app/profile': typeof AppProfileRoute
   '/app/staff': typeof AppStaffRoute
   '/app/transfers': typeof AppTransfersRoute
-  '/app/upgrade': typeof AppUpgradeRoute
   '/school/auth': typeof SchoolAuthRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/superadmin/auth': typeof SuperadminAuthRoute
@@ -290,7 +276,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/auth': typeof AuthRoute
-  '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/admin/districts': typeof AdminDistrictsRoute
@@ -315,7 +300,6 @@ export interface FileRoutesByTo {
   '/app/profile': typeof AppProfileRoute
   '/app/staff': typeof AppStaffRoute
   '/app/transfers': typeof AppTransfersRoute
-  '/app/upgrade': typeof AppUpgradeRoute
   '/school/auth': typeof SchoolAuthRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/superadmin/auth': typeof SuperadminAuthRoute
@@ -332,7 +316,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/pricing': typeof PricingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/schools': typeof SchoolsRouteWithChildren
   '/admin/districts': typeof AdminDistrictsRoute
@@ -357,7 +340,6 @@ export interface FileRoutesById {
   '/app/profile': typeof AppProfileRoute
   '/app/staff': typeof AppStaffRoute
   '/app/transfers': typeof AppTransfersRoute
-  '/app/upgrade': typeof AppUpgradeRoute
   '/school/auth': typeof SchoolAuthRoute
   '/schools/$schoolId': typeof SchoolsSchoolIdRoute
   '/superadmin/auth': typeof SuperadminAuthRoute
@@ -375,7 +357,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/auth'
-    | '/pricing'
     | '/reset-password'
     | '/schools'
     | '/admin/districts'
@@ -400,7 +381,6 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/staff'
     | '/app/transfers'
-    | '/app/upgrade'
     | '/school/auth'
     | '/schools/$schoolId'
     | '/superadmin/auth'
@@ -414,7 +394,6 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/auth'
-    | '/pricing'
     | '/reset-password'
     | '/schools'
     | '/admin/districts'
@@ -439,7 +418,6 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/staff'
     | '/app/transfers'
-    | '/app/upgrade'
     | '/school/auth'
     | '/schools/$schoolId'
     | '/superadmin/auth'
@@ -455,7 +433,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/app'
     | '/auth'
-    | '/pricing'
     | '/reset-password'
     | '/schools'
     | '/admin/districts'
@@ -480,7 +457,6 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/staff'
     | '/app/transfers'
-    | '/app/upgrade'
     | '/school/auth'
     | '/schools/$schoolId'
     | '/superadmin/auth'
@@ -497,7 +473,6 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
-  PricingRoute: typeof PricingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   SchoolsRoute: typeof SchoolsRouteWithChildren
   SchoolAuthRoute: typeof SchoolAuthRoute
@@ -539,13 +514,6 @@ declare module '@tanstack/react-router' {
       path: '/auth'
       fullPath: '/auth'
       preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -730,13 +698,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTransfersRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/upgrade': {
-      id: '/app/upgrade'
-      path: '/upgrade'
-      fullPath: '/app/upgrade'
-      preLoaderRoute: typeof AppUpgradeRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/school/auth': {
       id: '/school/auth'
       path: '/school/auth'
@@ -831,7 +792,6 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppStaffRoute: typeof AppStaffRoute
   AppTransfersRoute: typeof AppTransfersRoute
-  AppUpgradeRoute: typeof AppUpgradeRoute
   AppIndexRoute: typeof AppIndexRoute
   AppChildLearnerIdRoute: typeof AppChildLearnerIdRoute
   AppLearnerLearnerIdRoute: typeof AppLearnerLearnerIdRoute
@@ -856,7 +816,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppStaffRoute: AppStaffRoute,
   AppTransfersRoute: AppTransfersRoute,
-  AppUpgradeRoute: AppUpgradeRoute,
   AppIndexRoute: AppIndexRoute,
   AppChildLearnerIdRoute: AppChildLearnerIdRoute,
   AppLearnerLearnerIdRoute: AppLearnerLearnerIdRoute,
@@ -881,7 +840,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
-  PricingRoute: PricingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   SchoolsRoute: SchoolsRouteWithChildren,
   SchoolAuthRoute: SchoolAuthRoute,

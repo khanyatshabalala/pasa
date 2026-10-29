@@ -144,10 +144,9 @@ function Landing() {
           <div className="absolute inset-0 bg-gradient-to-br from-accent/15 via-transparent to-transparent" />
           <div className="relative max-w-2xl">
             <h3 className="text-3xl md:text-4xl font-bold tracking-tight">Bridge the gap between home and school.</h3>
-            <p className="mt-3 text-primary-foreground/70">Free for schools. Free for parents to get started. Premium adds multiple learner profiles, advanced notifications and cross-school scheduling intelligence.</p>
+            <p className="mt-3 text-primary-foreground/70">Free for schools. Free for parents. One app connecting every parent to every school.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90"><Link to="/auth">Create my account</Link></Button>
-              <Button asChild size="lg" variant="outline" className="border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white"><Link to="/pricing">See pricing</Link></Button>
             </div>
           </div>
         </Card>

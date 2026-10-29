@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Crown, Bell, CalendarDays, ClipboardList,
+  Bell, CalendarDays, ClipboardList,
   Shield, ArrowRight, Plus, UserPlus, CheckCircle2,
   XCircle, Clock, AlertCircle, ChevronRight,
 } from "lucide-react";
@@ -41,7 +41,7 @@ const ATT: Record<string, { icon: React.ReactNode; label: string; color: string 
 
 // ── Component ──────────────────────────────────────────────────────────────
 export function ParentOverview() {
-  const { user, profile, displayName } = useAuth();
+  const { user, displayName } = useAuth();
 
   const [children, setChildren]         = useState<ParentDashboardChild[]>([]);
   const [unreadCount, setUnreadCount]   = useState(0);
@@ -138,23 +138,6 @@ export function ParentOverview() {
         </div>
       )}
 
-      {/* ── Premium upsell ── */}
-      {profile?.subscriptionTier !== "premium" && children.length > 0 && (
-        <Card className="p-4 bg-gradient-to-br from-primary to-[oklch(0.25_0.08_240)] text-primary-foreground border-0">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Crown className="size-5 text-accent shrink-0" />
-              <div>
-                <div className="text-sm font-semibold">Go Premium</div>
-                <div className="text-xs text-primary-foreground/70">Unlimited children · R19.99/mo</div>
-              </div>
-            </div>
-            <Button asChild size="sm" className="bg-accent text-accent-foreground hover:bg-accent/90 shrink-0">
-              <Link to="/app/upgrade">Upgrade</Link>
-            </Button>
-          </div>
-        </Card>
-      )}
     </div>
   );
 }

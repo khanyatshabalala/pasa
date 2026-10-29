@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import {
   Home, Users, BookOpen, CalendarDays, Bell, Shield,
   ArrowLeftRight, ClipboardList, FileText,
-  Crown, Settings, LogOut, MoreHorizontal,
+  Settings, LogOut, MoreHorizontal,
   ShieldCheck, X, UserCog, ClipboardCheck, LayoutList,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,6 @@ const parentMore: NavItem[] = [
   { to: "/app/children",   title: "Children",    icon: Users },
   { to: "/app/marks",      title: "Report cards", icon: BookOpen },
   { to: "/app/attendance", title: "Attendance",  icon: ClipboardList },
-  { to: "/app/upgrade",    title: "Premium",     icon: Crown },
   { to: "/app/profile",    title: "Profile",     icon: Settings },
 ];
 

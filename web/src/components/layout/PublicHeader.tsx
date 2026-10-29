@@ -12,7 +12,6 @@ export function PublicHeader() {
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-muted-foreground">
           <Link to="/schools" className="hover:text-foreground transition-colors">Find a school</Link>
           <Link to="/about" className="hover:text-foreground transition-colors">About</Link>
-          <Link to="/pricing" className="hover:text-foreground transition-colors">Pricing</Link>
         </nav>
         <div className="flex items-center gap-2">
           {user ? (
