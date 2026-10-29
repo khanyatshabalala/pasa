@@ -1,7 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.audit;
 
-import com.pasa.backend.domain.entity.AuditLog;
-import com.pasa.backend.repository.AuditLogRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;

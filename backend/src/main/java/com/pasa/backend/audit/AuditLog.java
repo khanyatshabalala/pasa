@@ -1,4 +1,4 @@
-package com.pasa.backend.domain.entity;
+package com.pasa.backend.audit;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;

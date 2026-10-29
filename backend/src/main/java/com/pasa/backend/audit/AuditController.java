@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.audit;
 
-import com.pasa.backend.domain.entity.AuditLog;
-import com.pasa.backend.repository.AuditLogRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

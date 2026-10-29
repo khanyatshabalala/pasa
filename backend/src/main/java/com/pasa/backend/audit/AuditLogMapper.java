@@ -1,7 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.AuditLog;
-import com.pasa.backend.dto.response.AuditLogResponse;
+package com.pasa.backend.audit;
 
 public final class AuditLogMapper {
 

@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.response;
+package com.pasa.backend.audit;
 
 import java.time.OffsetDateTime;
 import java.util.Map;
