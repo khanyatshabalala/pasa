@@ -1,11 +1,7 @@
-package com.pasa.backend.service;
+package com.pasa.backend.reportcard;
 
 import com.pasa.backend.domain.entity.Learner;
-import com.pasa.backend.domain.entity.ReportCard;
-import com.pasa.backend.dto.response.ReportCardResponse;
-import com.pasa.backend.mapper.ReportCardMapper;
 import com.pasa.backend.repository.LearnerRepository;
-import com.pasa.backend.repository.ReportCardRepository;
 import com.pasa.backend.security.LearnerAccessGuard;
 import com.pasa.backend.storage.StorageObject;
 import com.pasa.backend.storage.StorageService;

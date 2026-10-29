@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.response;
+package com.pasa.backend.reportcard;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

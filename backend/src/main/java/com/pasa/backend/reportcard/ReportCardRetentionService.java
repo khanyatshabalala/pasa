@@ -1,7 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.reportcard;
 
-import com.pasa.backend.domain.entity.ReportCard;
-import com.pasa.backend.repository.ReportCardRepository;
 import com.pasa.backend.subscription.ParentSubscription;
 import com.pasa.backend.subscription.ParentSubscriptionRepository;
 import com.pasa.backend.storage.StorageService;

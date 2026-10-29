@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.reportcard;
 
-import com.pasa.backend.dto.response.ReportCardResponse;
-import com.pasa.backend.service.ReportCardService;
 import com.pasa.backend.storage.StorageObject;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;

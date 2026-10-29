@@ -1,7 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.ReportCard;
-import com.pasa.backend.dto.response.ReportCardResponse;
+package com.pasa.backend.reportcard;
 
 public final class ReportCardMapper {
 
