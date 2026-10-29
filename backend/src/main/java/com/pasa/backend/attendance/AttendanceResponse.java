@@ -1,6 +1,4 @@
-package com.pasa.backend.dto.response;
-
-import com.pasa.backend.domain.enums.AttendanceStatus;
+package com.pasa.backend.attendance;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;

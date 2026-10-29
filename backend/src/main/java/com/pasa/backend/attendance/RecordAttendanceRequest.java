@@ -1,6 +1,5 @@
-package com.pasa.backend.dto.request;
+package com.pasa.backend.attendance;
 
-import com.pasa.backend.domain.enums.AttendanceStatus;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;

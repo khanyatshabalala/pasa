@@ -1,11 +1,6 @@
-package com.pasa.backend.service;
+package com.pasa.backend.attendance;
 
-import com.pasa.backend.domain.entity.Attendance;
 import com.pasa.backend.domain.entity.Learner;
-import com.pasa.backend.dto.request.RecordAttendanceRequest;
-import com.pasa.backend.dto.response.AttendanceResponse;
-import com.pasa.backend.mapper.AttendanceMapper;
-import com.pasa.backend.repository.AttendanceRepository;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;

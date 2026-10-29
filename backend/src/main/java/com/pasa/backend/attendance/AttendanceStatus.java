@@ -1,4 +1,4 @@
-package com.pasa.backend.domain.enums;
+package com.pasa.backend.attendance;
 
 public enum AttendanceStatus {
     present,

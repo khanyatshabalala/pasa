@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.attendance;
 
-import com.pasa.backend.dto.request.RecordAttendanceRequest;
-import com.pasa.backend.dto.response.AttendanceResponse;
-import com.pasa.backend.service.AttendanceService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;

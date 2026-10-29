@@ -1,8 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.Attendance;
-import com.pasa.backend.dto.request.RecordAttendanceRequest;
-import com.pasa.backend.dto.response.AttendanceResponse;
+package com.pasa.backend.attendance;
 
 public final class AttendanceMapper {
 
