@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.request;
+package com.pasa.backend.transfer;
 
 import jakarta.validation.constraints.NotNull;
 

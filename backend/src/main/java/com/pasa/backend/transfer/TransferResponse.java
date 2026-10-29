@@ -1,6 +1,4 @@
-package com.pasa.backend.dto.response;
-
-import com.pasa.backend.domain.enums.TransferStatus;
+package com.pasa.backend.transfer;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;

@@ -1,9 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.transfer;
 
-import com.pasa.backend.domain.enums.TransferStatus;
-import com.pasa.backend.dto.request.CreateTransferRequest;
-import com.pasa.backend.dto.response.TransferResponse;
-import com.pasa.backend.service.TransferService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

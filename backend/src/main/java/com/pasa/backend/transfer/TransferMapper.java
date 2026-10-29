@@ -1,7 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.Transfer;
-import com.pasa.backend.dto.response.TransferResponse;
+package com.pasa.backend.transfer;
 
 public final class TransferMapper {
 

@@ -1,7 +1,5 @@
-package com.pasa.backend.repository;
+package com.pasa.backend.transfer;
 
-import com.pasa.backend.domain.entity.Transfer;
-import com.pasa.backend.domain.enums.TransferStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
