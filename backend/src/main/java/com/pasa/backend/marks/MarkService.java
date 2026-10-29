@@ -1,12 +1,7 @@
-package com.pasa.backend.service;
+package com.pasa.backend.marks;
 
 import com.pasa.backend.domain.entity.Learner;
-import com.pasa.backend.domain.entity.Mark;
-import com.pasa.backend.dto.request.RecordMarkRequest;
-import com.pasa.backend.dto.response.MarkResponse;
-import com.pasa.backend.mapper.MarkMapper;
 import com.pasa.backend.repository.LearnerRepository;
-import com.pasa.backend.repository.MarkRepository;
 import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.response;
+package com.pasa.backend.marks;
 
 import java.math.BigDecimal;
 import java.util.UUID;

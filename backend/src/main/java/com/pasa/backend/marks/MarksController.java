@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.marks;
 
-import com.pasa.backend.dto.request.RecordMarkRequest;
-import com.pasa.backend.dto.response.MarkResponse;
-import com.pasa.backend.service.MarkService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

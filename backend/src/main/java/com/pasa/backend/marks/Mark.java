@@ -1,5 +1,6 @@
-package com.pasa.backend.domain.entity;
+package com.pasa.backend.marks;
 
+import com.pasa.backend.domain.entity.Learner;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 

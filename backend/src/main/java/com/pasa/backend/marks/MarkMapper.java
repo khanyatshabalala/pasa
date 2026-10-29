@@ -1,8 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.Mark;
-import com.pasa.backend.dto.request.RecordMarkRequest;
-import com.pasa.backend.dto.response.MarkResponse;
+package com.pasa.backend.marks;
 
 public final class MarkMapper {
 
