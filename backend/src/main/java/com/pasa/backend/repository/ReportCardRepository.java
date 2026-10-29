@@ -11,9 +11,18 @@ import java.util.UUID;
 @Repository
 public interface ReportCardRepository extends JpaRepository<ReportCard, UUID> {
 
-    List<ReportCard> findByLearnerIdOrderByAcademicYearDescTermDesc(UUID learnerId);
+    // ── Reader queries: exclude soft-deleted reports (retention) ──────────
+    // Parents and schools only ever see live reports; the "...IncludingDeleted"
+    // variants below are for the upload upsert and admin/retention paths.
 
-    List<ReportCard> findBySchoolIdOrderByAcademicYearDescTermDesc(UUID schoolId);
+    List<ReportCard> findByLearnerIdAndDeletedAtIsNullOrderByAcademicYearDescTermDesc(UUID learnerId);
 
+    List<ReportCard> findBySchoolIdAndDeletedAtIsNullOrderByAcademicYearDescTermDesc(UUID schoolId);
+
+    // ── Upsert lookup: find the slot even if previously soft-deleted, so a
+    //    re-upload of the same year/term revives the existing row. ─────────
     Optional<ReportCard> findByLearnerIdAndAcademicYearAndTerm(UUID learnerId, Integer academicYear, Integer term);
+
+    // ── Purge pass: soft-deleted rows whose backing storage file is not yet removed. ──
+    List<ReportCard> findTop500ByDeletedAtIsNotNullAndFilePurgedAtIsNull();
 }

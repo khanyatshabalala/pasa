@@ -41,6 +41,12 @@ public class ReportCard {
 
     private String notes;
 
+    @Column(name = "deleted_at")
+    private OffsetDateTime deletedAt;
+
+    @Column(name = "file_purged_at")
+    private OffsetDateTime filePurgedAt;
+
     public ReportCard() {}
 
     public UUID getId() { return id; }
@@ -63,4 +69,10 @@ public class ReportCard {
     public void setUploadedAt(OffsetDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
     public String getNotes() { return notes; }
     public void setNotes(String notes) { this.notes = notes; }
+
+    public OffsetDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(OffsetDateTime deletedAt) { this.deletedAt = deletedAt; }
+
+    public OffsetDateTime getFilePurgedAt() { return filePurgedAt; }
+    public void setFilePurgedAt(OffsetDateTime filePurgedAt) { this.filePurgedAt = filePurgedAt; }
 }

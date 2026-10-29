@@ -37,17 +37,20 @@ public class ReportCardService {
     private final LearnerRepository learnerRepo;
     private final JdbcTemplate jdbc;
     private final LearnerAccessGuard accessGuard;
+    private final ReportCardRetentionService retentionService;
 
     public ReportCardService(StorageService storage,
                              ReportCardRepository reportCardRepo,
                              LearnerRepository learnerRepo,
                              JdbcTemplate jdbc,
-                             LearnerAccessGuard accessGuard) {
+                             LearnerAccessGuard accessGuard,
+                             ReportCardRetentionService retentionService) {
         this.storage = storage;
         this.reportCardRepo = reportCardRepo;
         this.learnerRepo = learnerRepo;
         this.jdbc = jdbc;
         this.accessGuard = accessGuard;
+        this.retentionService = retentionService;
     }
 
     // ── Queries ───────────────────────────────────────────────────────────
@@ -56,13 +59,13 @@ public class ReportCardService {
         learnerRepo.findById(learnerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Learner not found"));
         accessGuard.assertCanAccessLearner(learnerId, userId);
-        return reportCardRepo.findByLearnerIdOrderByAcademicYearDescTermDesc(learnerId).stream()
+        return reportCardRepo.findByLearnerIdAndDeletedAtIsNullOrderByAcademicYearDescTermDesc(learnerId).stream()
                 .map(this::toResponse)
                 .toList();
     }
 
     public List<ReportCardResponse> listBySchool(UUID schoolId) {
-        return reportCardRepo.findBySchoolIdOrderByAcademicYearDescTermDesc(schoolId).stream()
+        return reportCardRepo.findBySchoolIdAndDeletedAtIsNullOrderByAcademicYearDescTermDesc(schoolId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -70,7 +73,7 @@ public class ReportCardService {
     public StorageObject download(UUID learnerId, UUID reportCardId, UUID userId) {
         ReportCard rc = reportCardRepo.findById(reportCardId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found"));
-        if (!rc.getLearnerId().equals(learnerId)) {
+        if (!rc.getLearnerId().equals(learnerId) || rc.getDeletedAt() != null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found");
         }
         accessGuard.assertCanAccessLearner(learnerId, userId);
@@ -108,7 +111,13 @@ public class ReportCardService {
             rc.setFileName(originalFileName(file));
             rc.setUploadedBy(userId);
             rc.setNotes(notes);
+            rc.setDeletedAt(null); // revive if this slot was previously soft-deleted
             ReportCard saved = reportCardRepo.save(rc);
+            
+            // Enforce free-tier delete-on-replace: if this learner has free-tier parents,
+            // delete any previous report for them.
+            retentionService.enforceFreeTierDeleteOnReplace(learnerId, academicYear, term);
+            
             return toResponse(saved);
         } catch (RuntimeException e) {
             // Compensate: remove the just-uploaded object so storage and DB don't diverge.
