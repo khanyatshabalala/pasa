@@ -1,6 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.notification;
 
-import com.pasa.backend.dto.request.RegisterPushTokenRequest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 

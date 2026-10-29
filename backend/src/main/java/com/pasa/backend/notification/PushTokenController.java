@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.notification;
 
-import com.pasa.backend.dto.request.RegisterPushTokenRequest;
-import com.pasa.backend.service.PushTokenService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

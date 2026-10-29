@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.request;
+package com.pasa.backend.notification;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

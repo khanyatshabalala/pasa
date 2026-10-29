@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.notification;
 
-import com.pasa.backend.dto.response.NotificationResponse;
-import com.pasa.backend.service.NotificationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;

@@ -1,9 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.notification;
 
-import com.pasa.backend.domain.entity.Notification;
-import com.pasa.backend.dto.response.NotificationResponse;
-import com.pasa.backend.mapper.NotificationMapper;
-import com.pasa.backend.repository.NotificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;

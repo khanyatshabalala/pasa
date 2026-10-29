@@ -1,7 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.Notification;
-import com.pasa.backend.dto.response.NotificationResponse;
+package com.pasa.backend.notification;
 
 public final class NotificationMapper {
 
