@@ -3,6 +3,7 @@ package com.pasa.backend.auth;
 import com.pasa.backend.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -23,6 +24,10 @@ public class AuthService {
     private final JdbcTemplate jdbc;
     private final JwtUtil jwtUtil;
     private final BCryptPasswordEncoder encoder;
+
+    /** Off by default. Only for local development, because the token lets anyone reset the account. */
+    @Value("${pasa.auth.log-reset-tokens:false}")
+    private boolean logResetTokens;
 
     public AuthService(JdbcTemplate jdbc, JwtUtil jwtUtil, BCryptPasswordEncoder encoder) {
         this.jdbc = jdbc;
@@ -57,8 +62,54 @@ public class AuthService {
         );
 
         // Profile + default parent role created by DB trigger (handle_new_user)
-        String token = jwtUtil.generateToken(userId, req.email(), "parent");
-        return new TokenResponse(token, userId.toString(), "parent");
+        return issueTokens(userId, req.email(), "parent");
+    }
+
+    /**
+     * Single sign-in for the mobile app, which serves parents and school staff from one form.
+     * Super admins are still refused here and must use the admin portal.
+     */
+    public TokenResponse signIn(SignInRequest req) {
+        UUID userId = verifyCredentials(req);
+        String role = getPrimaryRole(userId);
+
+        if ("super_admin".equals(role)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                "Admin accounts sign in via the admin portal");
+        }
+        return issueTokens(userId, req.email(), role);
+    }
+
+    /**
+     * Exchange a valid refresh token for a new access token and a new refresh token.
+     * The role is re-read from the database so role changes take effect, and a deleted
+     * account can no longer refresh. Any failure returns the same 401 to avoid leaking why.
+     */
+    public TokenResponse refresh(RefreshRequest req) {
+        if (!jwtUtil.isValidRefreshToken(req.refreshToken())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+
+        UUID userId = jwtUtil.getUserId(req.refreshToken());
+        List<Map<String, Object>> rows = jdbc.queryForList(
+            "SELECT email FROM auth.users WHERE id = ?", userId
+        );
+        if (rows.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+
+        String role = getPrimaryRole(userId);
+        if ("super_admin".equals(role)) {
+            // Admin sessions are never extended through the mobile refresh flow.
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
+        }
+        return issueTokens(userId, String.valueOf(rows.get(0).get("email")), role);
+    }
+
+    private TokenResponse issueTokens(UUID userId, String email, String role) {
+        String access = jwtUtil.generateToken(userId, email, role);
+        String refresh = jwtUtil.generateRefreshToken(userId);
+        return new TokenResponse(access, userId.toString(), role, refresh);
     }
 
     public TokenResponse signInParent(SignInRequest req) {
@@ -71,8 +122,7 @@ public class AuthService {
                 "Staff accounts must sign in via the school portal");
         }
 
-        String token = jwtUtil.generateToken(userId, req.email(), role);
-        return new TokenResponse(token, userId.toString(), role);
+        return issueTokens(userId, req.email(), role);
     }
 
     // ── Staff ─────────────────────────────────────────────────────────────
@@ -92,8 +142,7 @@ public class AuthService {
                 "Admin accounts sign in via the admin portal");
         }
 
-        String token = jwtUtil.generateToken(userId, req.email(), role);
-        return new TokenResponse(token, userId.toString(), role);
+        return issueTokens(userId, req.email(), role);
     }
 
     // ── Super Admin ───────────────────────────────────────────────────────
@@ -106,8 +155,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
-        String token = jwtUtil.generateToken(userId, req.email(), role);
-        return new TokenResponse(token, userId.toString(), role);
+        return issueTokens(userId, req.email(), role);
     }
 
     // ── Staff Invite ──────────────────────────────────────────────────────
@@ -205,8 +253,9 @@ public class AuthService {
             "SELECT id FROM auth.users WHERE email = ?", req.email()
         );
         if (rows.isEmpty()) {
-            // Don't reveal whether email exists — just return silently
-            log.info("Password reset requested for non-existent email: {}", req.email());
+            // Don't reveal whether email exists — just return silently.
+            // The address is deliberately not logged (personal information).
+            log.info("Password reset requested for an unknown address");
             return;
         }
 
@@ -221,8 +270,14 @@ public class AuthService {
             SET token = EXCLUDED.token, expires_at = EXCLUDED.expires_at
             """, userId, token);
 
-        // TODO: Send email with reset link containing token
-        log.info("Password reset token generated for user {}: {}", userId, token);
+        // TODO: Send email with reset link containing token. No email provider is configured
+        // yet, so until one is, password reset cannot complete outside local development.
+        if (logResetTokens) {
+            // Development only: lets a developer complete the flow without email.
+            log.warn("DEV ONLY - password reset token for user {}: {}", userId, token);
+        } else {
+            log.info("Password reset token generated for user {}", userId);
+        }
     }
 
     public void resetPassword(ResetPasswordRequest req) {

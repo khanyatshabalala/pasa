@@ -29,6 +29,20 @@ public class AuthController {
         return ResponseEntity.ok(authService.signInParent(req));
     }
 
+    // ── Mobile: single sign-in and token refresh ───────────────────────────
+
+    /** One sign-in for parents and school staff (used by the mobile app). */
+    @PostMapping("/signin")
+    public ResponseEntity<TokenResponse> signIn(@Valid @RequestBody SignInRequest req) {
+        return ResponseEntity.ok(authService.signIn(req));
+    }
+
+    /** Exchange a refresh token for a new access token and refresh token. */
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenResponse> refresh(@Valid @RequestBody RefreshRequest req) {
+        return ResponseEntity.ok(authService.refresh(req));
+    }
+
     // ── Staff endpoints ───────────────────────────────────────────────────
 
     @PostMapping("/staff/signin")
