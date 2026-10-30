@@ -25,7 +25,10 @@ com.pasa.backend.<feature>/
     <Feature>Mapper.java
 ```
 
-Already migrated to this shape: `subscription/`, `reportcard/`.
+The whole backend is migrated to this shape. Feature packages: `admin`, `attendance`, `audit`,
+`auth`, `calendar`, `dashboard`, `discipline`, `learner`, `linkrequest`, `marks`, `notification`,
+`profile`, `reportcard`, `school`, `schoolclass`, `staff`, `subscription`, `transfer`.
+New features get a new package; do not recreate `controller/`, `service/`, `mapper/` or `dto/`.
 
 ## Shared packages (stay as-is — do NOT dissolve into features)
 
