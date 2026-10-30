@@ -1,8 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.dashboard;
 
-import com.pasa.backend.dto.response.ChildDetailResponse;
-import com.pasa.backend.dto.response.ParentDashboardResponse;
-import com.pasa.backend.dto.response.SchoolDashboardResponse;
 import com.pasa.backend.security.LearnerAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;

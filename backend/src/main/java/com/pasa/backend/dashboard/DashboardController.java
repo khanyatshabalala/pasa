@@ -1,9 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.dashboard;
 
-import com.pasa.backend.dto.response.ChildDetailResponse;
-import com.pasa.backend.dto.response.ParentDashboardResponse;
-import com.pasa.backend.dto.response.SchoolDashboardResponse;
-import com.pasa.backend.service.DashboardService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
