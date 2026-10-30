@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.request;
+package com.pasa.backend.admin;
 
 import jakarta.validation.constraints.NotBlank;
 

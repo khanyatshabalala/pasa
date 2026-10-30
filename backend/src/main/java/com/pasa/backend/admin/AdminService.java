@@ -1,8 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.admin;
 
-import com.pasa.backend.dto.request.AssignRoleRequest;
-import com.pasa.backend.dto.request.CreateDistrictRequest;
-import com.pasa.backend.dto.response.AdminUserResponse;
 import com.pasa.backend.school.DistrictResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;

@@ -1,6 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.admin;
 
-import com.pasa.backend.dto.response.AdminStatsResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.HttpStatus;

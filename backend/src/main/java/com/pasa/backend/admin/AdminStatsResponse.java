@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.response;
+package com.pasa.backend.admin;
 
 public record AdminStatsResponse(
     long schools,
