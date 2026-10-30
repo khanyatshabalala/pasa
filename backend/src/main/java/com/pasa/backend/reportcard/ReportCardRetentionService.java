@@ -3,7 +3,8 @@ package com.pasa.backend.reportcard;
 import com.pasa.backend.subscription.ParentSubscription;
 import com.pasa.backend.subscription.ParentSubscriptionRepository;
 import com.pasa.backend.storage.StorageService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,9 +23,10 @@ import java.util.UUID;
  * - When deleted, set deleted_at timestamp but keep the row (for audit/history).
  * - Separately, a background job can batch-delete soft-deleted files from object storage.
  */
-@Slf4j
 @Service
 public class ReportCardRetentionService {
+
+    private static final Logger log = LoggerFactory.getLogger(ReportCardRetentionService.class);
 
     private final ReportCardRepository reportCardRepo;
     private final ParentSubscriptionRepository subscriptionRepo;
@@ -62,7 +64,7 @@ public class ReportCardRetentionService {
         }
 
         // This learner has at least one free-tier parent. Delete any previous non-deleted report in this year.
-        jdbc.update("""
+        int replaced = jdbc.update("""
             UPDATE public.report_cards
             SET deleted_at = now()
             WHERE learner_id = ?
@@ -70,6 +72,10 @@ public class ReportCardRetentionService {
               AND deleted_at IS NULL
               AND NOT (academic_year = ? AND term = ?)
             """, learnerId, academicYear, academicYear, term);
+        if (replaced > 0) {
+            log.info("Free-tier replace: soft-deleted {} earlier report(s) for learner {} (new upload {} term {})",
+                    replaced, learnerId, academicYear, term);
+        }
     }
 
     /**
@@ -83,19 +89,25 @@ public class ReportCardRetentionService {
     @Scheduled(cron = "0 0 2 * * *") // Daily at 2 AM
     @Transactional
     public void cleanupExpiredPremiumReports() {
+        log.info("Report-card retention run started");
+
         // 1. Lapsed-premium parents past the 90-day grace: delete everything they were archiving.
         List<ParentSubscription> lapsedPremium = subscriptionRepo.findLapsedPremiumBeyondGrace();
+        int lapsedReports = 0;
         for (ParentSubscription sub : lapsedPremium) {
-            cleanupForParent(sub.getParentUserId());
+            lapsedReports += cleanupForParent(sub.getParentUserId());
         }
 
         // 2. Active-premium learners: prune to the rolling retention window
         //    (current year keeps all terms; the 2 prior years keep Term 4 only;
         //     anything older is dropped).
-        pruneActivePremiumArchives();
+        int pruned = pruneActivePremiumArchives();
 
         // 3. Purge storage files for anything soft-deleted above (and in prior runs).
-        purgeDeletedStorageFiles();
+        int purged = purgeDeletedStorageFiles();
+
+        log.info("Report-card retention run finished: lapsedParents={}, lapsedReportsMarked={}, prunedMarked={}, filesPurged={}",
+                lapsedPremium.size(), lapsedReports, pruned, purged);
     }
 
     /**
@@ -109,8 +121,10 @@ public class ReportCardRetentionService {
      * next run (file_purged_at stays null).
      */
     @Transactional
-    public void purgeDeletedStorageFiles() {
+    public int purgeDeletedStorageFiles() {
         List<ReportCard> pending = reportCardRepo.findTop500ByDeletedAtIsNotNullAndFilePurgedAtIsNull();
+        int purged = 0;
+        int failed = 0;
         for (ReportCard rc : pending) {
             boolean removed = true;
             if (rc.getFilePath() != null) {
@@ -118,13 +132,21 @@ public class ReportCardRetentionService {
                     storageService.delete(rc.getFilePath());
                 } catch (Exception e) {
                     removed = false; // leave file_purged_at null so it retries next run
+                    failed++;
+                    // Report id only: the file path contains the learner's id.
+                    log.warn("Could not delete storage file for report {}; will retry next run", rc.getId(), e);
                 }
             }
             if (removed) {
                 rc.setFilePurgedAt(OffsetDateTime.now());
                 reportCardRepo.save(rc);
+                purged++;
             }
         }
+        if (failed > 0) {
+            log.warn("Storage purge: {} file(s) failed and remain pending", failed);
+        }
+        return purged;
     }
 
     /**
@@ -141,8 +163,8 @@ public class ReportCardRetentionService {
      * (free-tier handling owns those via delete-on-replace).
      */
     @Transactional
-    public void pruneActivePremiumArchives() {
-        jdbc.update("""
+    public int pruneActivePremiumArchives() {
+        return jdbc.update("""
             WITH premium_learners AS (
                 SELECT DISTINCT pl.learner_id
                 FROM   public.parent_links pl
@@ -172,9 +194,9 @@ public class ReportCardRetentionService {
     /**
      * Delete all archived reports (reports the parent was keeping due to premium) for a given parent.
      */
-    private void cleanupForParent(UUID parentUserId) {
+    private int cleanupForParent(UUID parentUserId) {
         // Delete all non-deleted reports that the parent's learners had archived due to premium.
-        jdbc.update("""
+        return jdbc.update("""
             UPDATE public.report_cards
             SET deleted_at = now()
             WHERE deleted_at IS NULL

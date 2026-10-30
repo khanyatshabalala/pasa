@@ -1,7 +1,8 @@
 package com.pasa.backend.subscription;
 
 import com.pasa.backend.subscription.ParentSubscription.SubscriptionTier;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +16,10 @@ import java.util.UUID;
  * 
  * Not exposed in frontend until subscription launch date is decided.
  */
-@Slf4j
 @Service
 public class SubscriptionService {
+
+    private static final Logger log = LoggerFactory.getLogger(SubscriptionService.class);
 
     private final ParentSubscriptionRepository subscriptionRepo;
     
@@ -49,6 +51,7 @@ public class SubscriptionService {
         if (sub.getTier() != SubscriptionTier.PREMIUM) {
             sub.setTier(SubscriptionTier.PREMIUM);
             sub.setFirstSubscribedAt(OffsetDateTime.now());
+            log.info("Parent {} upgraded to premium", parentUserId);
         }
         
         sub.setLastPaymentDate(OffsetDateTime.now());
@@ -68,6 +71,7 @@ public class SubscriptionService {
         
         if (sub.getTier() == SubscriptionTier.PREMIUM) {
             sub.setSubscriptionEndedAt(OffsetDateTime.now());
+            log.info("Parent {} premium ended; 90-day grace period begins", parentUserId);
         }
         
         return subscriptionRepo.save(sub);
