@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.response;
+package com.pasa.backend.school;
 
 public record SchoolRequestResponse(
     String id,

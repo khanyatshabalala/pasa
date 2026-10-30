@@ -1,9 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.school;
 
-import com.pasa.backend.dto.request.CreateSchoolRequestSubmission;
-import com.pasa.backend.dto.request.UpdateSchoolRequestStatus;
-import com.pasa.backend.dto.response.SchoolRequestResponse;
-import com.pasa.backend.service.SchoolRequestService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

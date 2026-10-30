@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.school;
 
-import com.pasa.backend.dto.response.DistrictResponse;
-import com.pasa.backend.service.DistrictService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;

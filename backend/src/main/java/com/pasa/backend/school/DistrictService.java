@@ -1,6 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.school;
 
-import com.pasa.backend.dto.response.DistrictResponse;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 

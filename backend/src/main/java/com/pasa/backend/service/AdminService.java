@@ -3,7 +3,7 @@ package com.pasa.backend.service;
 import com.pasa.backend.dto.request.AssignRoleRequest;
 import com.pasa.backend.dto.request.CreateDistrictRequest;
 import com.pasa.backend.dto.response.AdminUserResponse;
-import com.pasa.backend.dto.response.DistrictResponse;
+import com.pasa.backend.school.DistrictResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -23,7 +23,7 @@ public class AdminService {
         this.jdbc = jdbc;
     }
 
-    // ── Districts ─────────────────────────────────────────────────────────
+    // â”€â”€ Districts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public List<DistrictResponse> listDistricts(String province) {
         String sql;
@@ -73,7 +73,7 @@ public class AdminService {
         }
     }
 
-    // ── Users ─────────────────────────────────────────────────────────────
+    // â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     public List<AdminUserResponse> listUsers(int page, int size) {
         int offset = page * size;

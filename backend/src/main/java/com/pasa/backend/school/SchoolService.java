@@ -1,9 +1,6 @@
-package com.pasa.backend.service;
+package com.pasa.backend.school;
 
 import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.dto.request.CreateSchoolRequest;
-import com.pasa.backend.dto.response.SchoolResponse;
-import com.pasa.backend.mapper.SchoolMapper;
 import com.pasa.backend.repository.SchoolRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;

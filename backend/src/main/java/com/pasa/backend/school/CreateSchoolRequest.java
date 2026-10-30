@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.request;
+package com.pasa.backend.school;
 
 import com.pasa.backend.domain.enums.SchoolPhase;
 import com.pasa.backend.domain.enums.SchoolType;

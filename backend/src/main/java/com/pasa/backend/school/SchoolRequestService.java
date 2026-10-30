@@ -1,8 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.school;
 
-import com.pasa.backend.dto.request.CreateSchoolRequestSubmission;
-import com.pasa.backend.dto.request.UpdateSchoolRequestStatus;
-import com.pasa.backend.dto.response.SchoolRequestResponse;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
