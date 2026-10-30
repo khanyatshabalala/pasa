@@ -1,11 +1,6 @@
-package com.pasa.backend.service;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.domain.entity.ExamTimetable;
 import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.dto.request.CreateExamEntryRequest;
-import com.pasa.backend.dto.response.ExamEntryResponse;
-import com.pasa.backend.mapper.ExamTimetableMapper;
-import com.pasa.backend.repository.ExamTimetableRepository;
 import com.pasa.backend.repository.SchoolRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

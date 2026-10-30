@@ -1,11 +1,6 @@
-package com.pasa.backend.service;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.domain.entity.CalendarEvent;
 import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.dto.request.CreateCalendarEventRequest;
-import com.pasa.backend.dto.response.CalendarEventResponse;
-import com.pasa.backend.mapper.CalendarEventMapper;
-import com.pasa.backend.repository.CalendarEventRepository;
 import com.pasa.backend.repository.SchoolRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

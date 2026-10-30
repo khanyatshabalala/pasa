@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.dto.request.CreateExamEntryRequest;
-import com.pasa.backend.dto.response.ExamEntryResponse;
-import com.pasa.backend.service.ExamService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

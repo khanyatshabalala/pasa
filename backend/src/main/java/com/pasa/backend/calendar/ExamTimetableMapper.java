@@ -1,8 +1,5 @@
-package com.pasa.backend.mapper;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.domain.entity.ExamTimetable;
-import com.pasa.backend.dto.request.CreateExamEntryRequest;
-import com.pasa.backend.dto.response.ExamEntryResponse;
 
 public final class ExamTimetableMapper {
 

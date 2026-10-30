@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.dto.request.CreateCalendarEventRequest;
-import com.pasa.backend.dto.response.CalendarEventResponse;
-import com.pasa.backend.service.CalendarService;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;

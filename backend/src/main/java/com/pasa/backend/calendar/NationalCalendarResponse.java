@@ -1,4 +1,4 @@
-package com.pasa.backend.dto.response;
+package com.pasa.backend.calendar;
 
 import java.time.LocalDate;
 import java.util.UUID;

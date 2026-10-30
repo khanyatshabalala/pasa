@@ -1,7 +1,5 @@
-package com.pasa.backend.mapper;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.domain.entity.NationalCalendarEvent;
-import com.pasa.backend.dto.response.NationalCalendarResponse;
 
 public final class NationalCalendarMapper {
 

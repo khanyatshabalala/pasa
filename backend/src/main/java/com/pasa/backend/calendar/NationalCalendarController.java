@@ -1,7 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.dto.response.NationalCalendarResponse;
-import com.pasa.backend.service.NationalCalendarService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -13,7 +11,7 @@ import java.util.List;
 
 /**
  * Public, read-only SA national calendar (term dates + public holidays).
- * No authentication required — whitelisted in SecurityConfig.
+ * No authentication required â€” whitelisted in SecurityConfig.
  */
 @RestController
 @RequestMapping("/api/v1/national-calendar")

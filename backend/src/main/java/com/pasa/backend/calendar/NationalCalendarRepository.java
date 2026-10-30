@@ -1,6 +1,5 @@
-package com.pasa.backend.repository;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.domain.entity.NationalCalendarEvent;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

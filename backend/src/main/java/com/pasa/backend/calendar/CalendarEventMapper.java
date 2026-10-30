@@ -1,8 +1,5 @@
-package com.pasa.backend.mapper;
+package com.pasa.backend.calendar;
 
-import com.pasa.backend.domain.entity.CalendarEvent;
-import com.pasa.backend.dto.request.CreateCalendarEventRequest;
-import com.pasa.backend.dto.response.CalendarEventResponse;
 
 public final class CalendarEventMapper {
 
