@@ -1,8 +1,5 @@
-package com.pasa.backend.mapper;
+package com.pasa.backend.schoolclass;
 
-import com.pasa.backend.domain.entity.SchoolClass;
-import com.pasa.backend.dto.request.CreateClassRequest;
-import com.pasa.backend.dto.response.ClassResponse;
 
 public final class ClassMapper {
 
