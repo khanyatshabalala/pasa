@@ -1,10 +1,7 @@
-package com.pasa.backend.service;
+package com.pasa.backend.learner;
 
 import com.pasa.backend.domain.entity.Learner;
 import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.dto.request.CreateLearnerRequest;
-import com.pasa.backend.dto.response.LearnerResponse;
-import com.pasa.backend.mapper.LearnerMapper;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.repository.SchoolRepository;
 import com.pasa.backend.security.LearnerAccessGuard;

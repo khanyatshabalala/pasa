@@ -1,8 +1,6 @@
-package com.pasa.backend.mapper;
+package com.pasa.backend.learner;
 
 import com.pasa.backend.domain.entity.Learner;
-import com.pasa.backend.dto.request.CreateLearnerRequest;
-import com.pasa.backend.dto.response.LearnerResponse;
 
 public final class LearnerMapper {
 

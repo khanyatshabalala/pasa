@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.learner;
 
-import com.pasa.backend.dto.request.CreateLearnerRequest;
-import com.pasa.backend.dto.response.LearnerResponse;
-import com.pasa.backend.service.LearnerService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
