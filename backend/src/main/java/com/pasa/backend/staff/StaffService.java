@@ -1,14 +1,7 @@
-package com.pasa.backend.service;
+package com.pasa.backend.staff;
 
 import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.domain.entity.Staff;
-import com.pasa.backend.dto.request.AddStaffRequest;
-import com.pasa.backend.dto.request.InviteStaffRequest;
-import com.pasa.backend.dto.response.InviteStaffResponse;
-import com.pasa.backend.dto.response.StaffResponse;
-import com.pasa.backend.mapper.StaffMapper;
 import com.pasa.backend.repository.SchoolRepository;
-import com.pasa.backend.repository.StaffRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

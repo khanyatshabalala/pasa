@@ -1,8 +1,5 @@
-package com.pasa.backend.mapper;
+package com.pasa.backend.staff;
 
-import com.pasa.backend.domain.entity.Staff;
-import com.pasa.backend.dto.request.AddStaffRequest;
-import com.pasa.backend.dto.response.StaffResponse;
 
 public final class StaffMapper {
 

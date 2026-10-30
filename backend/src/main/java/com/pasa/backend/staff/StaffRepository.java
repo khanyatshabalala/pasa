@@ -1,6 +1,5 @@
-package com.pasa.backend.repository;
+package com.pasa.backend.staff;
 
-import com.pasa.backend.domain.entity.Staff;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

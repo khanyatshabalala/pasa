@@ -1,10 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.staff;
 
-import com.pasa.backend.dto.request.AddStaffRequest;
-import com.pasa.backend.dto.request.InviteStaffRequest;
-import com.pasa.backend.dto.response.InviteStaffResponse;
-import com.pasa.backend.dto.response.StaffResponse;
-import com.pasa.backend.service.StaffService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
