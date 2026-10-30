@@ -1,8 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.auth;
 
-import com.pasa.backend.dto.request.*;
-import com.pasa.backend.dto.response.TokenResponse;
-import com.pasa.backend.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

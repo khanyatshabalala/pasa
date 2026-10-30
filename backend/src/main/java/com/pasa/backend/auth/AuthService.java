@@ -1,10 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.auth;
 
-import com.pasa.backend.dto.request.ForgotPasswordRequest;
-import com.pasa.backend.dto.request.RegisterRequest;
-import com.pasa.backend.dto.request.ResetPasswordRequest;
-import com.pasa.backend.dto.request.SignInRequest;
-import com.pasa.backend.dto.response.TokenResponse;
 import com.pasa.backend.security.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
