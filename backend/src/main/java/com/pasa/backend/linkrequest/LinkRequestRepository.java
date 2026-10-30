@@ -1,6 +1,5 @@
-package com.pasa.backend.repository;
+package com.pasa.backend.linkrequest;
 
-import com.pasa.backend.domain.entity.LinkRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

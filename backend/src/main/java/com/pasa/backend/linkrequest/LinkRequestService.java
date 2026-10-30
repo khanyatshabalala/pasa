@@ -1,12 +1,6 @@
-package com.pasa.backend.service;
+package com.pasa.backend.linkrequest;
 
-import com.pasa.backend.domain.entity.LinkRequest;
 import com.pasa.backend.domain.entity.School;
-import com.pasa.backend.dto.request.RejectRequest;
-import com.pasa.backend.dto.request.SubmitLinkRequest;
-import com.pasa.backend.dto.response.LinkRequestResponse;
-import com.pasa.backend.mapper.LinkRequestMapper;
-import com.pasa.backend.repository.LinkRequestRepository;
 import com.pasa.backend.repository.SchoolRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

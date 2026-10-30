@@ -1,9 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.profile;
 
-import com.pasa.backend.dto.request.ChangePasswordRequest;
-import com.pasa.backend.dto.request.UpdateProfileRequest;
-import com.pasa.backend.dto.response.ProfileResponse;
-import com.pasa.backend.service.ProfileService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

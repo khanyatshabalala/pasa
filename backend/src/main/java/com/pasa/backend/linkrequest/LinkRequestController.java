@@ -1,9 +1,5 @@
-package com.pasa.backend.controller;
+package com.pasa.backend.linkrequest;
 
-import com.pasa.backend.dto.request.RejectRequest;
-import com.pasa.backend.dto.request.SubmitLinkRequest;
-import com.pasa.backend.dto.response.LinkRequestResponse;
-import com.pasa.backend.service.LinkRequestService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

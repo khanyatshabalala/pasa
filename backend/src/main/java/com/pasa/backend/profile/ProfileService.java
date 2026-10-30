@@ -1,8 +1,5 @@
-package com.pasa.backend.service;
+package com.pasa.backend.profile;
 
-import com.pasa.backend.dto.request.ChangePasswordRequest;
-import com.pasa.backend.dto.request.UpdateProfileRequest;
-import com.pasa.backend.dto.response.ProfileResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;

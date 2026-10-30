@@ -1,7 +1,4 @@
-package com.pasa.backend.mapper;
-
-import com.pasa.backend.domain.entity.LinkRequest;
-import com.pasa.backend.dto.response.LinkRequestResponse;
+package com.pasa.backend.linkrequest;
 
 public final class LinkRequestMapper {
 
