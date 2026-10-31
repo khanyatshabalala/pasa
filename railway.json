@@ -1,9 +1,0 @@
-{
-  "build": {
-    "builder": "DOCKERFILE",
-    "dockerfilePath": "backend/Dockerfile"
-  },
-  "deploy": {
-    "startCommand": "java -jar /app/app.jar"
-  }
-}

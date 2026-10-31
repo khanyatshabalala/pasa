@@ -32,9 +32,9 @@ supabase/.temp
 # Seed migration with credentials — delete after running supabase db push
 supabase/migrations/20260501140000_seed-super-admin-account.sql
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+# Editor and AI-assistant settings (personal, not part of the project)
+.vscode/
+.kiro/
 .idea
 .DS_Store
 *.suo
@@ -42,3 +42,13 @@ supabase/migrations/20260501140000_seed-super-admin-account.sql
 *.njsproj
 *.sln
 *.sw?
+
+# Build output
+target/
+
+# Local tooling scratch space (workflow agents, git worktrees)
+.agents/
+.worktrees/
+
+# Expo generated files (recreated by `expo start`)
+.expo/
