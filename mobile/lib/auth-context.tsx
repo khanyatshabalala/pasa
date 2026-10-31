@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { clearApiSession } from './api';
 
 export type UserRole = 'parent' | 'teacher' | 'principal' | 'school_admin' | 'super_admin';
 
@@ -97,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         },
         signOut: async () => {
+          await clearApiSession();
           await supabase.auth.signOut();
         },
       }}

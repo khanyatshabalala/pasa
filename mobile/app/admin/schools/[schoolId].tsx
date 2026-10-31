@@ -11,7 +11,7 @@ export default function SchoolDetail() {
   useEffect(() => {
     if (!schoolId) return;
     (supabase as any).from('schools').select('*').eq('id', schoolId).maybeSingle()
-      .then(({ data }) => { setSchool(data ?? null); setLoading(false); });
+      .then(({ data }: { data: any | null }) => { setSchool(data ?? null); setLoading(false); });
   }, [schoolId]);
 
   if (loading) return <ActivityIndicator color="#38bdf8" style={{ marginTop: 40 }} />;

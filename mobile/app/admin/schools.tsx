@@ -13,7 +13,7 @@ export default function AdminSchools() {
       .from('schools')
       .select('id,name')
       .order('name')
-      .then(({ data }) => { setSchools(data ?? []); setLoading(false); });
+      .then(({ data }: { data: any[] | null }) => { setSchools(data ?? []); setLoading(false); });
   }, []);
 
   if (loading) return <ActivityIndicator color="#38bdf8" style={{ marginTop: 40 }} />;

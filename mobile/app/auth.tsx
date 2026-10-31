@@ -6,6 +6,7 @@ import {
 import { useRouter } from 'expo-router';
 import { BarefootLoader } from '@/lib/BarefootLoader';
 import { supabase } from '@/lib/supabase';
+import { apiConfigured, apiSignIn } from '@/lib/api';
 
 export default function AuthScreen() {
   const [email, setEmail]       = useState('');
@@ -16,6 +17,18 @@ export default function AuthScreen() {
   const signIn = async () => {
     if (!email.trim() || !password) return Alert.alert('Enter your email and password');
     setLoading(true);
+
+    // Transitional: also sign in to the Spring API so screens can move off Supabase one by one.
+    // This must never block login, so a failure here is logged and ignored. It runs first so the
+    // API tokens are already stored when Supabase's sign-in triggers navigation.
+    if (apiConfigured) {
+      try {
+        await apiSignIn(email.trim(), password);
+      } catch (e) {
+        console.warn('API sign-in failed; continuing with Supabase only:', e instanceof Error ? e.message : e);
+      }
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
     if (error) Alert.alert('Sign in failed', error.message);

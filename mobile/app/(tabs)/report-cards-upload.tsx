@@ -7,21 +7,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import { useAuth } from '@/lib/auth-context';
-import { supabase } from '@/lib/supabase';
+import { apiRequest, apiErrorMessage } from '@/lib/api';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const TERMS = [1, 2, 3, 4];
 
-type Learner = { id: string; first_name: string; last_name: string; grade_id: number };
+// Shapes returned by the Spring API (LearnerResponse, grades endpoint, ReportCardResponse).
+type Learner = { id: string; firstName: string; lastName: string; gradeId: number | null };
 type Grade   = { id: number; label: string };
 type ReportCard = {
-  id: string; learner_id: string; academic_year: number; term: number;
-  file_name: string; file_path: string; notes: string | null; uploaded_at: string;
-  learners: { first_name: string; last_name: string; grade_id: number } | null;
+  id: string; learnerId: string; academicYear: number; term: number;
+  fileName: string; learnerFirstName: string | null; learnerLastName: string | null;
 };
 
 export default function ReportCardsUploadScreen() {
-  const { primarySchoolId, primaryRole, user } = useAuth();
+  const { primarySchoolId, primaryRole } = useAuth();
   const isStaff = ['teacher', 'principal', 'school_admin', 'super_admin'].includes(primaryRole);
 
   const [learners, setLearners]   = useState<Learner[]>([]);
@@ -46,21 +46,20 @@ export default function ReportCardsUploadScreen() {
   const load = async () => {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
-    const [{ data: l }, { data: g }, { data: r }] = await Promise.all([
-      supabase.from('learners').select('id, first_name, last_name, grade_id')
-        .eq('school_id', primarySchoolId).order('last_name'),
-      supabase.from('grades').select('id, label').order('id'),
-      (supabase as any).from('report_cards')
-        .select('id, learner_id, academic_year, term, file_name, file_path, notes, uploaded_at, learners(first_name, last_name, grade_id)')
-        .eq('school_id', primarySchoolId)
-        .order('academic_year', { ascending: false })
-        .order('term', { ascending: false })
-        .limit(50),
-    ]);
-    setLearners((l ?? []) as Learner[]);
-    setGrades((g ?? []) as Grade[]);
-    setReports((r ?? []) as ReportCard[]);
-    setLoading(false);
+    try {
+      const [l, g, r] = await Promise.all([
+        apiRequest<Learner[]>(`/api/v1/schools/${primarySchoolId}/learners`),
+        apiRequest<Grade[]>('/api/v1/grades'),
+        apiRequest<ReportCard[]>(`/api/v1/schools/${primarySchoolId}/report-cards`),
+      ]);
+      setLearners([...l].sort((a, b) => a.lastName.localeCompare(b.lastName)));
+      setGrades(g);
+      setReports(r.slice(0, 50)); // newest first; the API already orders them
+    } catch (e) {
+      Alert.alert('Could not load report cards', apiErrorMessage(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
@@ -81,60 +80,43 @@ export default function ReportCardsUploadScreen() {
     if (!primarySchoolId) return;
 
     setUploading(true);
-    const path = `${primarySchoolId}/${learnerId}/${year}_T${term}_${Date.now()}.pdf`;
+    try {
+      // The API stores the file and applies the retention rules (free-tier replace) in one step.
+      const form = new FormData();
+      form.append('file', { uri: pickedFile.uri, name: pickedFile.name, type: 'application/pdf' } as any);
+      form.append('term', String(term));
+      form.append('academicYear', String(year));
+      await apiRequest(`/api/v1/learners/${learnerId}/report-cards`, { method: 'POST', body: form });
 
-    // Fetch the file as a blob
-    const response = await fetch(pickedFile.uri);
-    const blob = await response.blob();
-
-    const { error: storageErr } = await supabase.storage
-      .from('report-cards')
-      .upload(path, blob, { contentType: 'application/pdf', upsert: false });
-
-    if (storageErr) {
+      Alert.alert('Uploaded', 'Report card uploaded. Parent has been notified.');
+      setModalOpen(false);
+      setLearnerId(''); setPickedFile(null); setTerm(1); setYear(CURRENT_YEAR);
+      load();
+    } catch (e) {
+      Alert.alert('Upload failed', apiErrorMessage(e));
+    } finally {
       setUploading(false);
-      Alert.alert('Upload failed', storageErr.message);
-      return;
     }
-
-    const { error: dbErr } = await (supabase as any).from('report_cards').upsert({
-      learner_id:    learnerId,
-      school_id:     primarySchoolId,
-      academic_year: year,
-      term,
-      file_path:     path,
-      file_name:     pickedFile.name,
-      uploaded_by:   user?.id,
-    }, { onConflict: 'learner_id,academic_year,term' });
-
-    setUploading(false);
-
-    if (dbErr) {
-      await supabase.storage.from('report-cards').remove([path]);
-      Alert.alert('Error', dbErr.message);
-      return;
-    }
-
-    Alert.alert('Uploaded', 'Report card uploaded. Parent has been notified.');
-    setModalOpen(false);
-    setLearnerId(''); setPickedFile(null); setTerm(1); setYear(CURRENT_YEAR);
-    load();
   };
 
   const onDelete = async (card: ReportCard) => {
     Alert.alert(
       'Delete report card',
-      `Remove ${card.learners?.first_name}'s Term ${card.term} ${card.academic_year} report card?`,
+      `Remove ${card.learnerFirstName}'s Term ${card.term} ${card.academicYear} report card?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete', style: 'destructive',
           onPress: async () => {
             setDeleting(card.id);
-            await supabase.storage.from('report-cards').remove([card.file_path]);
-            await (supabase as any).from('report_cards').delete().eq('id', card.id);
-            setDeleting(null);
-            load();
+            try {
+              await apiRequest(`/api/v1/learners/${card.learnerId}/report-cards/${card.id}`, { method: 'DELETE' });
+              load();
+            } catch (e) {
+              Alert.alert('Could not delete', apiErrorMessage(e));
+            } finally {
+              setDeleting(null);
+            }
           },
         },
       ],
@@ -183,12 +165,12 @@ export default function ReportCardsUploadScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={s.cardName}>
-                  {card.learners?.first_name} {card.learners?.last_name}
+                  {card.learnerFirstName} {card.learnerLastName}
                 </Text>
                 <Text style={s.cardSub}>
-                  {gradeLabel(card.learners?.grade_id ?? 0)} · Term {card.term} · {card.academic_year}
+                  {gradeLabel(learners.find(l => l.id === card.learnerId)?.gradeId ?? 0)} · Term {card.term} · {card.academicYear}
                 </Text>
-                <Text style={s.cardFile} numberOfLines={1}>{card.file_name}</Text>
+                <Text style={s.cardFile} numberOfLines={1}>{card.fileName}</Text>
               </View>
               <TouchableOpacity
                 onPress={() => onDelete(card)}
@@ -219,7 +201,7 @@ export default function ReportCardsUploadScreen() {
             <TouchableOpacity style={s.picker} onPress={() => setShowLearnerPicker(true)}>
               <Text style={learnerId ? s.pickerText : s.pickerPlaceholder}>
                 {selectedLearner
-                  ? `${selectedLearner.first_name} ${selectedLearner.last_name} · ${gradeLabel(selectedLearner.grade_id)}`
+                  ? `${selectedLearner.firstName} ${selectedLearner.lastName} · ${gradeLabel(selectedLearner.gradeId ?? 0)}`
                   : 'Select learner'}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#64748b" />
@@ -269,7 +251,7 @@ export default function ReportCardsUploadScreen() {
                 <TouchableOpacity key={l.id} style={s.pickerOption}
                   onPress={() => { setLearnerId(l.id); setShowLearnerPicker(false); }}>
                   <Text style={[s.pickerOptionText, learnerId === l.id && s.pickerOptionActive]}>
-                    {l.first_name} {l.last_name} · {gradeLabel(l.grade_id)}
+                    {l.firstName} {l.lastName} · {gradeLabel(l.gradeId ?? 0)}
                   </Text>
                   {learnerId === l.id && <Ionicons name="checkmark" size={16} color="#38bdf8" />}
                 </TouchableOpacity>

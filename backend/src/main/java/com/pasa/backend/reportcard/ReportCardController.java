@@ -10,8 +10,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -61,6 +63,24 @@ public class ReportCardController {
             builder.contentLength(object.contentLength());
         }
         return builder.body(new InputStreamResource(object.content()));
+    }
+
+    /**
+     * Returns a short-lived URL that opens this report card's PDF without an Authorization header.
+     * Used by the mobile app, which hands the URL to the phone's PDF viewer.
+     */
+    @PostMapping("/{id}/download-link")
+    public Map<String, Object> downloadLink(
+            @PathVariable UUID learnerId,
+            @PathVariable UUID id,
+            Authentication auth
+    ) {
+        String token = reportCardService.createDownloadToken(learnerId, id, (UUID) auth.getPrincipal());
+        String url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/v1/report-card-files/{token}")
+                .buildAndExpand(token)
+                .toUriString();
+        return Map.of("url", url, "expiresInSeconds", ReportCardService.DOWNLOAD_LINK_TTL_SECONDS);
     }
 
     @DeleteMapping("/{id}")

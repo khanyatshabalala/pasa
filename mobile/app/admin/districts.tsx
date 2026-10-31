@@ -7,7 +7,7 @@ export default function Districts() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (supabase as any).from('districts').select('id,name').order('name').then(({ data }) => {
+    (supabase as any).from('districts').select('id,name').order('name').then(({ data }: { data: any[] | null }) => {
       setDistricts(data ?? []);
       setLoading(false);
     });

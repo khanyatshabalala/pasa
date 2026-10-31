@@ -7,7 +7,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (supabase as any).from('profiles').select('id,full_name').limit(100).then(({ data }) => {
+    (supabase as any).from('profiles').select('id,full_name').limit(100).then(({ data }: { data: any[] | null }) => {
       setUsers(data ?? []); setLoading(false);
     });
   }, []);

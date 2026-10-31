@@ -2,6 +2,7 @@ package com.pasa.backend.reportcard;
 
 import com.pasa.backend.domain.entity.Learner;
 import com.pasa.backend.repository.LearnerRepository;
+import com.pasa.backend.security.JwtUtil;
 import com.pasa.backend.security.LearnerAccessGuard;
 import com.pasa.backend.storage.StorageObject;
 import com.pasa.backend.storage.StorageService;
@@ -27,6 +28,8 @@ public class ReportCardService {
     private static final long MAX_FILE_BYTES = 10L * 1024 * 1024; // 10 MB
     private static final int MAX_NOTES_LEN = 300;
     private static final String PDF_CONTENT_TYPE = "application/pdf";
+    /** How long a PDF link stays valid. Matches the 60 seconds the Supabase signed links used. */
+    public static final long DOWNLOAD_LINK_TTL_SECONDS = 60;
 
     private final StorageService storage;
     private final ReportCardRepository reportCardRepo;
@@ -34,13 +37,16 @@ public class ReportCardService {
     private final JdbcTemplate jdbc;
     private final LearnerAccessGuard accessGuard;
     private final ReportCardRetentionService retentionService;
+    private final JwtUtil jwtUtil;
 
     public ReportCardService(StorageService storage,
                              ReportCardRepository reportCardRepo,
                              LearnerRepository learnerRepo,
                              JdbcTemplate jdbc,
                              LearnerAccessGuard accessGuard,
-                             ReportCardRetentionService retentionService) {
+                             ReportCardRetentionService retentionService,
+                             JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
         this.storage = storage;
         this.reportCardRepo = reportCardRepo;
         this.learnerRepo = learnerRepo;
@@ -67,13 +73,39 @@ public class ReportCardService {
     }
 
     public StorageObject download(UUID learnerId, UUID reportCardId, UUID userId) {
+        ReportCard rc = findLiveReport(learnerId, reportCardId);
+        accessGuard.assertCanAccessLearner(learnerId, userId);
+        return storage.download(rc.getFilePath());
+    }
+
+    /**
+     * Issue a short-lived link token for one report card. The caller must be allowed to see the
+     * learner; the token itself then stands in for the Authorization header when a phone hands
+     * the URL to a PDF viewer.
+     */
+    public String createDownloadToken(UUID learnerId, UUID reportCardId, UUID userId) {
+        ReportCard rc = findLiveReport(learnerId, reportCardId);
+        accessGuard.assertCanAccessLearner(learnerId, userId);
+        return jwtUtil.generateDownloadToken(rc.getId(), learnerId, DOWNLOAD_LINK_TTL_SECONDS);
+    }
+
+    /** Serve the PDF a download token was issued for. Any invalid or expired token is a plain 404. */
+    public StorageObject downloadByToken(String token) {
+        if (!jwtUtil.isValidDownloadToken(token)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Link is invalid or has expired");
+        }
+        ReportCard rc = findLiveReport(jwtUtil.getDownloadLearnerId(token), jwtUtil.getDownloadReportCardId(token));
+        return storage.download(rc.getFilePath());
+    }
+
+    /** A report card that exists, belongs to this learner, and has not been soft-deleted. */
+    private ReportCard findLiveReport(UUID learnerId, UUID reportCardId) {
         ReportCard rc = reportCardRepo.findById(reportCardId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found"));
         if (!rc.getLearnerId().equals(learnerId) || rc.getDeletedAt() != null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Report card not found");
         }
-        accessGuard.assertCanAccessLearner(learnerId, userId);
-        return storage.download(rc.getFilePath());
+        return rc;
     }
 
     // ── Commands ──────────────────────────────────────────────────────────

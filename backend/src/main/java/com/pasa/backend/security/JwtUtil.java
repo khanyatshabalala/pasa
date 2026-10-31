@@ -15,6 +15,8 @@ public class JwtUtil {
     /** Claim that distinguishes short-lived access tokens from long-lived refresh tokens. */
     private static final String TYPE_CLAIM = "typ";
     private static final String TYPE_REFRESH = "refresh";
+    private static final String TYPE_ACCESS = "access";
+    private static final String TYPE_DOWNLOAD = "download";
 
     private final SecretKey key;
     private final long expirationMs;
@@ -67,10 +69,48 @@ public class JwtUtil {
      */
     public boolean isValidAccessToken(String token) {
         try {
-            return !TYPE_REFRESH.equals(parseToken(token).get(TYPE_CLAIM, String.class));
+            String type = parseToken(token).get(TYPE_CLAIM, String.class);
+            // Only genuine access tokens (or ones issued before the claim existed) may call the API.
+            // Refresh and download tokens are single-purpose and must be refused here.
+            return type == null || TYPE_ACCESS.equals(type);
         } catch (JwtException | IllegalArgumentException e) {
             return false;
         }
+    }
+
+    /**
+     * Short-lived token that lets a client open one report-card PDF from a plain URL
+     * (the phone hands the URL to a PDF viewer, which cannot send an Authorization header).
+     * It names exactly one report card and expires quickly.
+     */
+    public String generateDownloadToken(UUID reportCardId, UUID learnerId, long ttlSeconds) {
+        return Jwts.builder()
+                .subject(reportCardId.toString())
+                .claim("lid", learnerId.toString())
+                .claim(TYPE_CLAIM, TYPE_DOWNLOAD)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + ttlSeconds * 1000))
+                .signWith(key)
+                .compact();
+    }
+
+    /** True only for a valid, unexpired token that was issued as a download token. */
+    public boolean isValidDownloadToken(String token) {
+        try {
+            return TYPE_DOWNLOAD.equals(parseToken(token).get(TYPE_CLAIM, String.class));
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    /** The report card id a download token was issued for. */
+    public UUID getDownloadReportCardId(String token) {
+        return UUID.fromString(parseToken(token).getSubject());
+    }
+
+    /** The learner id a download token was issued for. */
+    public UUID getDownloadLearnerId(String token) {
+        return UUID.fromString(parseToken(token).get("lid", String.class));
     }
 
     public Claims parseToken(String token) {

@@ -47,6 +47,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/schools/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/grades").permitAll()
+                        // Token-protected report-card PDF links (the token is the credential).
+                        .requestMatchers(HttpMethod.GET, "/api/v1/report-card-files/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/national-calendar").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/school-requests").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
