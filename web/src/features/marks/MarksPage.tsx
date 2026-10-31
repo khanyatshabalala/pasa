@@ -31,7 +31,7 @@ export function MarksPage() {
         if (!children.length) { setReports([]); return; }
         const perChild = await Promise.all(
           children.map(c =>
-            api.get<ReportCard[]>(`/api/v1/learners/${c.learnerId}/report-cards`).catch(() => [] as ReportCard[])
+            api.get<ReportCard[]>(`/api/v1/learners/${c.id}/report-cards`).catch(() => [] as ReportCard[])
           )
         );
         const all = perChild.flat().sort((a, b) =>

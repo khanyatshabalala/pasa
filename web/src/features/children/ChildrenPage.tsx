@@ -162,19 +162,18 @@ export function ChildrenPage() {
           <h2 className="text-sm font-semibold text-muted-foreground mb-2">Linked children</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             {children.map(c => (
-              <Card key={c.learnerId} className="p-5">
+              <Card key={c.id} className="p-5">
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <div className="font-semibold flex items-center gap-2">
-                      {c.learnerFirstName} {c.learnerLastName}
+                      {c.firstName} {c.lastName}
                       <CheckCircle2 className="size-3.5 text-green-500" />
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">{c.schoolName}</div>
                   </div>
-                  <Badge variant="secondary">{c.gradeId ?? "—"}</Badge>
-                </div>
-                <div className="text-xs text-muted-foreground mt-2 capitalize">
-                  {c.relationship}{c.isPrimary ? " · Primary" : ""}
+                  <Badge variant="secondary">
+                    {c.gradeId === null ? "—" : c.gradeId === 0 ? "Grade R" : `Grade ${c.gradeId}`}
+                  </Badge>
                 </div>
                 <div className="mt-4 flex gap-2 flex-wrap">
                   <Button asChild size="sm" variant="outline" className="text-xs h-7">

@@ -190,6 +190,7 @@ export interface LearnerResponse {
   learnerNumber: string | null;
   gender: string | null;
   dateOfBirth: string | null;
+  schoolName: string | null;
 }
 
 export interface AttendanceResponse {
@@ -476,14 +477,9 @@ export interface PageResponse<T> {
   size: number;
 }
 
-export interface ParentChildResponse {
-  learnerId: string;
-  learnerFirstName: string;
-  learnerLastName: string;
-  learnerNumber: string | null;
-  gradeId: number | null;
-  schoolId: string;
-  schoolName: string | null;
-  relationship: string | null;
-  isPrimary: boolean;
-}
+/**
+ * What GET /api/v1/children returns: the backend's LearnerResponse for each linked child.
+ * (An earlier version of this type used learnerId/learnerFirstName/relationship, which the
+ * backend never sent, so parent pages saw undefined ids and empty lists.)
+ */
+export type ParentChildResponse = LearnerResponse;

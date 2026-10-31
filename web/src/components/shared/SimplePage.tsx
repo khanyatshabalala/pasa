@@ -57,11 +57,11 @@ export function ParentDataList({
         const perChild = await Promise.all(
           children.map(async (c) => {
             const items = await api
-              .get<any[]>(`/api/v1/learners/${c.learnerId}/${resource}`)
+              .get<any[]>(`/api/v1/learners/${c.id}/${resource}`)
               .catch(() => [] as any[]);
             return items.map((it) => ({
               ...it,
-              learnerName: `${c.learnerFirstName} ${c.learnerLastName}`.trim(),
+              learnerName: `${c.firstName} ${c.lastName}`.trim(),
             }));
           })
         );
