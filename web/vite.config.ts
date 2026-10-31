@@ -26,9 +26,6 @@ export default defineConfig({
           if (id.includes("node_modules/@tanstack/react-router")) {
             return "vendor-router";
           }
-          if (id.includes("node_modules/@supabase")) {
-            return "vendor-supabase";
-          }
           if (id.includes("node_modules/@radix-ui")) {
             return "vendor-ui";
           }

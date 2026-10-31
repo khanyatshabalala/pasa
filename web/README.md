@@ -87,7 +87,7 @@ The app has three top-level route groups:
 
 | Route Group | Purpose | Auth Required |
 |---|---|---|
-| `/` | Public pages (landing, pricing, about, school directory) | No |
+| `/` | Public pages (landing, about, school directory) | No |
 | `/auth`, `/school/auth`, `/superadmin/auth` | Sign-in pages (portal-separated) | No |
 | `/app/*` | Parent + staff portal (dashboard, calendar, etc.) | Yes |
 | `/admin/*` | Super admin portal (districts, users, schools) | Yes (super_admin) |
@@ -99,7 +99,6 @@ routes/
 ├── __root.tsx                  # Root layout
 ├── index.tsx                   # Landing page
 ├── about.tsx                   # About page
-├── pricing.tsx                 # Pricing page
 ├── auth.tsx                    # Parent sign-in/register
 ├── school.auth.tsx             # Staff sign-in
 ├── superadmin.auth.tsx         # Super admin sign-in
@@ -117,6 +116,7 @@ routes/
 ├── app.discipline.tsx          # Discipline (parent view)
 ├── app.discipline-school.tsx   # Discipline (school view)
 ├── app.children.tsx            # My children (parent)
+├── app.child.$learnerId.tsx    # Child detail (parent)
 ├── app.learners.tsx            # Learner list (staff)
 ├── app.learner.$learnerId.tsx  # Learner detail
 ├── app.classes.tsx             # Class management
@@ -126,11 +126,10 @@ routes/
 ├── app.alerts.tsx              # Notifications
 ├── app.audit.tsx               # Audit log
 ├── app.profile.tsx             # User profile
-├── app.schools.tsx             # School selector
 ├── app.admissions.tsx          # Admissions
-├── app.upgrade.tsx             # Premium upgrade
 ├── admin.tsx                   # Admin layout wrapper
 ├── admin.index.tsx             # Admin dashboard
+├── admin.requests.tsx          # School registration requests
 ├── admin.districts.tsx         # District management
 ├── admin.users.tsx             # User management
 ├── admin.schools.tsx           # School management
@@ -267,11 +266,10 @@ Netlify automatically builds on push to the configured branch.
 |---|---|
 | Framework | React 19 |
 | Router | TanStack Router (file-based) |
-| Server state | TanStack Query |
 | Auth & data | Spring Boot REST API (JWT) via `src/lib/api.ts` |
 | Styling | Tailwind CSS v4 |
 | UI primitives | Radix UI (via shadcn/ui) |
-| Forms | React Hook Form + Zod |
+| Form validation | Zod (`safeParse` on submitted form data) |
 | Build | Vite 8 |
 | Language | TypeScript 5.8 |
 | Hosting | Netlify |
