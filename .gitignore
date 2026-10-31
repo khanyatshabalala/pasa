@@ -42,6 +42,12 @@ supabase/migrations/20260501140000_seed-super-admin-account.sql
 # Build output
 target/
 
+# The project uses npm only; keep other package managers' lockfiles out
+bun.lockb
+bun.lock
+yarn.lock
+pnpm-lock.yaml
+
 # Local tooling scratch space (workflow agents, git worktrees)
 .agents/
 .worktrees/
