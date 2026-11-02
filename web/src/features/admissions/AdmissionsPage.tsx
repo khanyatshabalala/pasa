@@ -75,7 +75,7 @@ export function AdmissionsPage() {
   const filtered = schools.filter(s => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return s.name.toLowerCase().includes(q) || s.district.toLowerCase().includes(q);
+    return s.name.toLowerCase().includes(q) || (s.district ?? "").toLowerCase().includes(q);
   });
 
   const today = new Date().toISOString().slice(0, 10);

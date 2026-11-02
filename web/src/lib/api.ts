@@ -136,6 +136,8 @@ export interface ProfileResponse {
   subscriptionTier: string;
   city: string | null;
   province: string | null;
+  /** School of the user's staff role; null for parents and super admins. */
+  schoolId: string | null;
 }
 
 export interface SchoolResponse {
@@ -264,6 +266,8 @@ export interface LinkRequestResponse {
   relationship: string | null;
   status: string;
   createdAt: string;
+  /** Set when a school rejects the request; shown to the parent. */
+  rejectionReason: string | null;
 }
 
 export interface TransferResponse {

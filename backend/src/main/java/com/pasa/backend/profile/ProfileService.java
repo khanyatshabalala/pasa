@@ -37,8 +37,29 @@ public class ProfileService {
             (String) r.get("avatar_url"),
             r.get("subscription_tier") != null ? r.get("subscription_tier").toString() : "free",
             (String) r.get("city"),
-            (String) r.get("province")
+            (String) r.get("province"),
+            primarySchoolId(userId)
         );
+    }
+
+    /**
+     * The school the user works at, chosen by the same role priority sign-in uses
+     * (principal, then school_admin, then teacher). Parents and super admins have none.
+     */
+    private String primarySchoolId(UUID userId) {
+        var rows = jdbc.queryForList("""
+            SELECT school_id FROM public.user_roles
+            WHERE user_id = ? AND school_id IS NOT NULL
+              AND role::text IN ('principal', 'school_admin', 'teacher')
+            ORDER BY CASE role::text
+                       WHEN 'principal'    THEN 1
+                       WHEN 'school_admin' THEN 2
+                       ELSE 3
+                     END,
+                     created_at ASC
+            LIMIT 1
+            """, userId);
+        return rows.isEmpty() ? null : rows.get(0).get("school_id").toString();
     }
 
     public ProfileResponse updateProfile(UUID userId, UpdateProfileRequest req) {

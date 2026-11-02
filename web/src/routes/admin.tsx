@@ -19,12 +19,14 @@ const items = [
 ];
 
 function AdminLayout() {
-  const { user, loading, primaryRole, roles, signOut, profile, displayName } = useAuth();
+  const { user, loading, primaryRole, signOut, displayName } = useAuth();
   const navigate = useNavigate();
   const path = useRouterState({ select: r => r.location.pathname });
   const [pendingRequests, setPendingRequests] = useState(0);
 
-  const rolesLoaded = !loading && (roles.length > 0 || user === null);
+  // The role comes from the JWT, so it is known as soon as loading finishes.
+  // (This used to read `roles.length`, but the auth context has no `roles`, which crashed the page.)
+  const rolesLoaded = !loading;
 
   useEffect(() => {
     if (!rolesLoaded) return;

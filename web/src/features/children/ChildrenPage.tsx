@@ -125,7 +125,7 @@ export function ChildrenPage() {
               <Card key={r.id} className="p-4 flex items-center gap-3 border-orange-300/50 bg-orange-50/30 dark:bg-orange-950/10">
                 <Clock className="size-4 text-orange-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{r.learnerFirstName} {r.learnerLastName}</p>
+                  <p className="text-sm font-medium">{r.firstName} {r.lastName}</p>
                   <p className="text-xs text-muted-foreground">Learner no. {r.learnerNumber}</p>
                 </div>
                 <Badge variant="secondary" className="text-orange-500 bg-orange-100 dark:bg-orange-950/30 shrink-0">Pending</Badge>
@@ -143,7 +143,7 @@ export function ChildrenPage() {
               <Card key={r.id} className="p-4 flex items-center gap-3 border-red-300/50 bg-red-50/30 dark:bg-red-950/10">
                 <XCircle className="size-4 text-red-400 shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium">{r.learnerFirstName} {r.learnerLastName}</p>
+                  <p className="text-sm font-medium">{r.firstName} {r.lastName}</p>
                   {r.rejectionReason && <p className="text-xs text-red-500 mt-0.5">{r.rejectionReason}</p>}
                 </div>
                 <Badge variant="secondary" className="text-red-500 bg-red-100 dark:bg-red-950/30 shrink-0">Rejected</Badge>

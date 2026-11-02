@@ -13,5 +13,7 @@ public record LinkRequestResponse(
     String lastName,
     String relationship,
     String status,
-    OffsetDateTime createdAt
+    OffsetDateTime createdAt,
+    /** Reason given when a school rejects the request; null otherwise. */
+    String rejectionReason
 ) {}

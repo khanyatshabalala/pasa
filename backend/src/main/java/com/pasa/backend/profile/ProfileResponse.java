@@ -9,5 +9,7 @@ public record ProfileResponse(
     String avatarUrl,
     String subscriptionTier,
     String city,
-    String province
+    String province,
+    /** School of the user's highest-priority staff role; null for parents and super admins. */
+    String schoolId
 ) {}

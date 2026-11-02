@@ -124,7 +124,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const primaryRole: UserRole = user?.role ?? "parent";
-  const primarySchoolId = user?.schoolId ?? profile ? null : null;
+  // The sign-in response carries no school, so the school comes from the profile, which is
+  // loaded both after sign-in and when a session is restored on page load.
+  const primarySchoolId = user?.schoolId ?? profile?.schoolId ?? null;
 
   return (
     <AuthContext.Provider
@@ -133,7 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         primaryRole,
-        primarySchoolId: user?.schoolId ?? null,
+        primarySchoolId,
         displayName: profile?.fullName ?? null,
         onSignIn,
         signOut,

@@ -66,7 +66,7 @@ export function ClassesPage() {
     try {
       await api.post(`/api/v1/schools/${primarySchoolId}/classes`, {
         name: name.trim(),
-        gradeId,
+        gradeId: Number(gradeId),
         teacherUserId: teacherId === "none" ? null : teacherId,
         academicYear:  parseInt(academicYear),
       });
@@ -106,8 +106,12 @@ export function ClassesPage() {
     );
   }
 
-  const gradeLabel = (id: string | null) =>
-    grades.find(g => g.id === id)?.name ?? id ?? "—";
+  // Grade ids are numbers (0 = Grade R); the select and the grouping keys are strings.
+  const gradeLabel = (id: number | string | null) => {
+    if (id === null || id === "") return "Grade not set";
+    const n = Number(id);
+    return grades.find(g => g.id === n)?.label ?? (n === 0 ? "Grade R" : `Grade ${n}`);
+  };
 
   const staffName = (uid: string | null) =>
     staff.find(s => s.userId === uid)?.fullName ?? "Unknown";
@@ -202,7 +206,7 @@ export function ClassesPage() {
                 <Select value={gradeId} onValueChange={setGradeId}>
                   <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
                   <SelectContent className="max-h-60">
-                    {grades.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                    {grades.map(g => <SelectItem key={g.id} value={String(g.id)}>{g.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

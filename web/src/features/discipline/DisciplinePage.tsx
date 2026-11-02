@@ -82,7 +82,7 @@ function StatCard({
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export function DisciplinePage() {
-  const { primaryRole, primarySchoolId } = useAuth();
+  const { user, primaryRole, primarySchoolId } = useAuth();
 
   const [learners, setLearners] = useState<Learner[]>([]);
   const [records, setRecords]   = useState<DisciplineRow[]>([]);

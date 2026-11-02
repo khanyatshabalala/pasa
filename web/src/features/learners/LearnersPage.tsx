@@ -65,7 +65,7 @@ export function LearnersPage() {
     setEditing(l);
     setFirstName(l.firstName);
     setLastName(l.lastName);
-    setGradeId(l.gradeId ?? "");
+    setGradeId(l.gradeId !== null ? String(l.gradeId) : "");
     setLearnerNumber(l.learnerNumber ?? "");
     setGender(l.gender ?? "");
     setDob(l.dateOfBirth ?? "");
@@ -83,7 +83,7 @@ export function LearnersPage() {
     const payload = {
       firstName:     firstName.trim(),
       lastName:      lastName.trim(),
-      gradeId,
+      gradeId:       Number(gradeId),
       learnerNumber: learnerNumber.trim() || null,
       gender:        gender || null,
       dateOfBirth:   dob || null,
@@ -127,8 +127,12 @@ export function LearnersPage() {
       || (l.learnerNumber ?? "").toLowerCase().includes(q);
   });
 
-  const gradeLabel = (id: string | null) =>
-    grades.find(g => g.id === id)?.name ?? id ?? "—";
+  // Grade ids are numbers (0 = Grade R); the select works with strings.
+  const gradeLabel = (id: number | string | null) => {
+    if (id === null || id === "") return "—";
+    const n = Number(id);
+    return grades.find(g => g.id === n)?.label ?? (n === 0 ? "Grade R" : `Grade ${n}`);
+  };
 
   if (!primarySchoolId) {
     return <div className="max-w-2xl"><PageHeader title="Learners" sub="No school assigned to your account." /></div>;
@@ -227,7 +231,7 @@ export function LearnersPage() {
               <Select value={gradeId} onValueChange={setGradeId}>
                 <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
                 <SelectContent className="max-h-60">
-                  {grades.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+                  {grades.map(g => <SelectItem key={g.id} value={String(g.id)}>{g.label}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
