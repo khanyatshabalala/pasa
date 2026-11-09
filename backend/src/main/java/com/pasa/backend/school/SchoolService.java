@@ -21,7 +21,10 @@ public class SchoolService {
         this.jdbc = jdbc;
     }
 
-    public List<SchoolResponse> listSchools(String province, String district) {
+    public List<SchoolResponse> listSchools(String province, String district, UUID districtId) {
+        if (districtId != null) {
+            return schoolRepo.findByDistrictId(districtId).stream().map(SchoolMapper::toResponse).toList();
+        }
         List<School> schools;
         if (province != null) {
             schools = schoolRepo.findByProvince(province);

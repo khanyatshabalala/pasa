@@ -12,6 +12,7 @@ import java.util.UUID;
 public interface SchoolRepository extends JpaRepository<School, UUID> {
     List<School> findByProvince(String province);
     List<School> findByDistrict(String district);
+    List<School> findByDistrictId(UUID districtId);
     Optional<School> findByEmisNumber(String emisNumber);
     boolean existsByEmisNumber(String emisNumber);
 }

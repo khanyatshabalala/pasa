@@ -26,9 +26,10 @@ public class SchoolController {
     @GetMapping
     public List<SchoolResponse> listSchools(
             @RequestParam(required = false) String province,
-            @RequestParam(required = false) String district
+            @RequestParam(required = false) String district,
+            @RequestParam(required = false) UUID districtId
     ) {
-        return schoolService.listSchools(province, district);
+        return schoolService.listSchools(province, district, districtId);
     }
 
     @GetMapping("/{id}")

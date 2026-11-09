@@ -55,15 +55,14 @@ export function ChildrenPage() {
 
   useEffect(() => {
     if (!province) { setDistricts([]); setDistrictId(""); setSchools([]); setSchoolId(""); return; }
-    api.get<DistrictResponse[]>(`/api/v1/admin/districts?province=${encodeURIComponent(province)}`)
+    api.get<DistrictResponse[]>(`/api/v1/districts?province=${encodeURIComponent(province)}`)
       .then(d => { setDistricts(d); setDistrictId(""); setSchools([]); setSchoolId(""); })
       .catch(() => {});
   }, [province]);
 
   useEffect(() => {
     if (!districtId) { setSchools([]); setSchoolId(""); return; }
-    const dist = districts.find(d => d.id === districtId);
-    api.get<SchoolResponse[]>(`/api/v1/schools?district=${encodeURIComponent(dist?.name ?? "")}`)
+    api.get<SchoolResponse[]>(`/api/v1/schools?districtId=${encodeURIComponent(districtId)}`)
       .then(s => { setSchools(s); setSchoolId(""); })
       .catch(() => {});
   }, [districtId]);
