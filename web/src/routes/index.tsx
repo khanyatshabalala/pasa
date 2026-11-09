@@ -38,14 +38,14 @@ function Landing() {
           <div className="max-w-3xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white/10 backdrop-blur border border-white/15 px-3 py-1 text-xs text-white/90 mb-6">
               <span className="size-1.5 rounded-full bg-accent animate-pulse" />
-              Launching in the Western Cape · 2027
+              Built for South African schools
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-white tracking-tight leading-[1.05]">
-              Your child left home <br />
-              <span className="text-accent">in full uniform.</span>
+              Keeping parents in sync <br />
+              <span className="text-accent">with their child's education.</span>
             </h1>
             <p className="mt-6 text-lg text-white/70 max-w-2xl leading-relaxed">
-              That does not mean they arrived at school. And if they did, it does not mean they stayed. PASA is a direct, verified connection between schools and parents — so what happens at school does not stay at school.
+              PASA connects schools directly with verified parents — so important information about events, meetings, examinations and learner conduct is never lost, delayed or dependent on the learner to pass on.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90 shadow-lg shadow-accent/20">
@@ -60,9 +60,6 @@ function Landing() {
                 <Link to="/schools">Explore schools</Link>
               </Button>
             </div>
-            <p className="mt-12 text-xs text-white/40 max-w-md leading-relaxed">
-              PASA is in pre-launch. We are approaching Western Cape schools in early 2027 and building with their input. Free for schools. Free for parents.
-            </p>
           </div>
         </div>
       </section>
@@ -70,20 +67,18 @@ function Landing() {
       {/* FEATURES */}
       <section className="container mx-auto px-4 py-20">
         <div className="max-w-2xl mb-12">
-          <div className="text-sm font-medium text-accent mb-2">THE VISIBILITY GAP</div>
-          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">A lot can happen between leaving home and arriving at school.</h2>
-          <p className="text-muted-foreground mt-3">
-            Learners skip classes. Parents are called to school and a stranger shows up instead. Bad weather closes the school for a week and no one told you. WhatsApp groups help but they are not the answer — the right parent does not always get the right message. PASA closes that gap with a verified, direct line between the school and the people who are actually responsible for the learner.
-          </p>
+          <div className="text-sm font-medium text-accent mb-2">ONE PLATFORM. FULL VISIBILITY.</div>
+          <h2 className="text-3xl md:text-4xl font-bold tracking-tight">Parents cannot support what they cannot see.</h2>
+          <p className="text-muted-foreground mt-3">PASA gives schools a trusted channel to communicate directly with verified parents — replacing fragmented WhatsApp groups, printed letters and messages passed through learners.</p>
         </div>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Feature icon={Bell} title="Direct to the parent" body="Notifications go straight to the verified parent's phone. Attendance, conduct, school closures — not filtered through a group chat or a 15-year-old." />
-          <Feature icon={Users} title="Verified links, no impostors" body="The school approves every parent-learner connection. If the school calls a parent in, the person who shows up is the actual parent." />
-          <Feature icon={BookOpen} title="Report cards & marks" body="Schools upload report cards directly. Parents access them in the app — no envelope that gets lost or opened and resealed." />
-          <Feature icon={CalendarDays} title="One school calendar" body="Exam dates, school events, public holidays and closures — all in one feed, updated by the school, visible to every linked parent." />
-          <Feature icon={Shield} title="Conduct on record" body="Discipline records go directly to the verified parent. No more 'I didn't know' on both sides." />
-          <Feature icon={GraduationCap} title="Exam timetables" body="Published by teachers, visible to parents before the learner loses the printout." />
-          <Feature icon={TrendingUp} title="Transfers" body="Learner transfers handled with a proper paper trail, not a series of phone calls." />
+          <Feature icon={CalendarDays} title="School calendar & events" body="Schools publish opening dates, events and parent meetings. Parents see everything in one place." />
+          <Feature icon={Bell} title="Direct notifications" body="Important updates go straight to parents — no more relying on learners to pass on information." />
+          <Feature icon={Shield} title="Conduct visibility" body="Discipline and conduct records are communicated directly to the verified parent, transparently." />
+          <Feature icon={GraduationCap} title="Exam & test schedules" body="Examination timetables, class tests and extra classes published by teachers — parents can verify." />
+          <Feature icon={BookOpen} title="Academic documents" body="Report cards and marks accessible to parents directly from the school." />
+          <Feature icon={Users} title="Verified parent links" body="Schools approve each parent-learner link, keeping the school as the source of truth." />
+          <Feature icon={TrendingUp} title="Transfers" body="Request and approve learner transfers with a full audit trail." />
         </div>
       </section>
 
@@ -94,14 +89,14 @@ function Landing() {
             <div className="size-12 rounded-xl bg-accent/15 text-accent grid place-items-center mb-4">
               <School className="size-6" />
             </div>
-            <h3 className="text-2xl md:text-3xl font-bold tracking-tight">We are looking for Western Cape schools to pilot with.</h3>
+            <h3 className="text-2xl md:text-3xl font-bold tracking-tight">Is your school not on PASA yet?</h3>
             <p className="text-muted-foreground mt-2 max-w-lg">
-              PASA is launching in early 2027. If you are a principal or school administrator in the Western Cape and want to be part of the first group, register your school now. We will reach out personally to discuss your school's specific needs and set everything up at no cost.
+              Submit a request and we'll reach out to get your school set up. It's free — no hidden costs, no contracts.
             </p>
             <ul className="mt-4 space-y-1 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />Free — no contracts, no hidden fees</li>
-              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />We handle onboarding and setup</li>
-              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />Built with pilot school input, not without it</li>
+              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />Free for schools</li>
+              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />We handle the setup</li>
+              <li className="flex items-center gap-2"><span className="size-1.5 rounded-full bg-accent inline-block" />Ready in days, not weeks</li>
             </ul>
           </div>
           <div className="shrink-0">
@@ -134,8 +129,8 @@ function Landing() {
         <Card className="p-10 md:p-14 bg-primary text-primary-foreground border-0 overflow-hidden relative">
           <div className="absolute inset-0 bg-gradient-to-br from-accent/15 via-transparent to-transparent" />
           <div className="relative max-w-2xl">
-            <h3 className="text-3xl md:text-4xl font-bold tracking-tight">The school knows. Now the parent can too.</h3>
-            <p className="mt-3 text-primary-foreground/70">Free for schools. Free for parents. A direct line between the people who are responsible for the same child.</p>
+            <h3 className="text-3xl md:text-4xl font-bold tracking-tight">Bridge the gap between home and school.</h3>
+            <p className="mt-3 text-primary-foreground/70">Free for schools. Free for parents. One app connecting every parent to every school.</p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90"><Link to="/auth">Create my account</Link></Button>
             </div>
@@ -161,4 +156,3 @@ function Landing() {
     </div>
   );
 }
-
