@@ -98,9 +98,9 @@ export function ChildrenPage() {
     try {
       await api.post("/api/v1/link-requests", {
         schoolId,
-        learnerFirstName: firstName.trim(),
-        learnerLastName:  lastName.trim(),
-        learnerNumber:    learnerNo.trim(),
+        firstName:    firstName.trim(),
+        lastName:     lastName.trim(),
+        learnerNumber: learnerNo.trim(),
         relationship,
       });
       toast.success("Request submitted. The school will review and approve it.");
