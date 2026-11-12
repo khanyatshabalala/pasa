@@ -6,12 +6,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface LearnerRepository extends JpaRepository<Learner, UUID> {
     List<Learner> findBySchoolId(UUID schoolId);
     List<Learner> findBySchoolIdAndGradeId(UUID schoolId, Integer gradeId);
+
+    Optional<Learner> findBySchoolIdAndLearnerNumber(UUID schoolId, String learnerNumber);
 
     // Learners linked to a parent via parent_links table
     @Query("""
