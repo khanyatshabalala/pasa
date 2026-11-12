@@ -28,7 +28,7 @@ public class Learner {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @Column(name = "grade_id", nullable = false)
+    @Column(name = "grade_id")
     private Integer gradeId;
 
     @Column(name = "learner_number")

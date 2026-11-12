@@ -100,7 +100,7 @@ public class LinkRequestService {
         UUID schoolId = school.getId();
 
         // ── Step 1: find or create the learner ───────────────────────────────
-        Optional<Learner> existing = learnerRepo.findBySchoolIdAndLearnerNumber(
+        Optional<Learner> existing = learnerRepo.findBySchool_IdAndLearnerNumber(
                 schoolId, request.getLearnerNumber().trim());
 
         Learner learner;
