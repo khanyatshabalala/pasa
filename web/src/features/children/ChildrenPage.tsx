@@ -62,8 +62,21 @@ export function ChildrenPage() {
 
   useEffect(() => {
     if (!districtId) { setSchools([]); setSchoolId(""); return; }
+    // Filter by districtId (UUID) for exact matching.
+    // If that returns nothing — likely because the school was added before districtId
+    // was set — fall back to filtering by district name text.
+    const dist = districts.find(d => d.id === districtId);
     api.get<SchoolResponse[]>(`/api/v1/schools?districtId=${encodeURIComponent(districtId)}`)
-      .then(s => { setSchools(s); setSchoolId(""); })
+      .then(s => {
+        if (s.length > 0) {
+          setSchools(s);
+        } else if (dist) {
+          // Fallback: filter by district name for schools that have no district_id set yet.
+          return api.get<SchoolResponse[]>(`/api/v1/schools?district=${encodeURIComponent(dist.name)}`);
+        }
+        return s;
+      })
+      .then(s => { if (s) { setSchools(s as SchoolResponse[]); } setSchoolId(""); })
       .catch(() => {});
   }, [districtId]);
 
