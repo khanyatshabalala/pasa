@@ -35,7 +35,6 @@ public class School {
     @Column(nullable = false)
     private SchoolPhase phase;
 
-    @Enumerated(EnumType.STRING)
     @Column(name = "school_type", nullable = false)
     private SchoolType schoolType;
 
