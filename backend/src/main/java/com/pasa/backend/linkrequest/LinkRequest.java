@@ -38,8 +38,8 @@ public class LinkRequest {
     @Column(nullable = false)
     private String relationship;
 
-    // pending | approved | rejected
-    @Column(nullable = false)
+    // pending | approved | rejected — stored as Postgres native enum link_request_status
+    @Column(nullable = false, columnDefinition = "link_request_status")
     private String status;
 
     @Column(name = "reviewed_by")
