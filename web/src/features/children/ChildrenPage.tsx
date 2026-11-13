@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { GradeSelect } from "@/components/shared/GradeSelect";
+import { ClassSelect } from "@/components/shared/ClassSelect";
+import { gradeClassLabel } from "@/components/shared/GradeClassDisplay";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,15 +29,19 @@ export function ChildrenPage() {
   const [open, setOpen]             = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Location cascade
   const [province, setProvince]     = useState("");
   const [districtId, setDistrictId] = useState("");
   const [schoolId, setSchoolId]     = useState("");
   const [districts, setDistricts]   = useState<DistrictResponse[]>([]);
   const [schools, setSchools]       = useState<SchoolResponse[]>([]);
 
-  const [firstName, setFirstName]       = useState("");
-  const [lastName, setLastName]         = useState("");
-  const [learnerNo, setLearnerNo]       = useState("");
+  // Learner details
+  const [gradeId, setGradeId]       = useState("");
+  const [classId, setClassId]       = useState("");
+  const [firstName, setFirstName]   = useState("");
+  const [lastName, setLastName]     = useState("");
+  const [learnerNo, setLearnerNo]   = useState("");
   const [relationship, setRelationship] = useState("parent");
 
   const load = async () => {
@@ -46,13 +53,12 @@ export function ChildrenPage() {
       ]);
       setChildren(kids);
       setRequests(reqs);
-    } catch {
-      // non-fatal
-    }
+    } catch { /* non-fatal */ }
   };
 
   useEffect(() => { load(); }, [user]);
 
+  // Load districts when province changes.
   useEffect(() => {
     if (!province) { setDistricts([]); setDistrictId(""); setSchools([]); setSchoolId(""); return; }
     api.get<DistrictResponse[]>(`/api/v1/districts?province=${encodeURIComponent(province)}`)
@@ -60,29 +66,22 @@ export function ChildrenPage() {
       .catch(() => {});
   }, [province]);
 
+  // Load schools when district changes (UUID first, name fallback for schools without districtId).
   useEffect(() => {
     if (!districtId) { setSchools([]); setSchoolId(""); return; }
-    // Filter by districtId (UUID) for exact matching.
-    // If that returns nothing — likely because the school was added before districtId
-    // was set — fall back to filtering by district name text.
     const dist = districts.find(d => d.id === districtId);
     api.get<SchoolResponse[]>(`/api/v1/schools?districtId=${encodeURIComponent(districtId)}`)
-      .then(s => {
-        if (s.length > 0) {
-          setSchools(s);
-        } else if (dist) {
-          // Fallback: filter by district name for schools that have no district_id set yet.
-          return api.get<SchoolResponse[]>(`/api/v1/schools?district=${encodeURIComponent(dist.name)}`);
-        }
-        return s;
-      })
-      .then(s => { if (s) { setSchools(s as SchoolResponse[]); } setSchoolId(""); })
+      .then(s => s.length > 0 ? s : dist
+        ? api.get<SchoolResponse[]>(`/api/v1/schools?district=${encodeURIComponent(dist.name)}`)
+        : Promise.resolve([] as SchoolResponse[]))
+      .then(s => { setSchools(s); setSchoolId(""); })
       .catch(() => {});
   }, [districtId]);
 
   const resetDialog = () => {
     setProvince(""); setDistrictId(""); setSchoolId("");
     setDistricts([]); setSchools([]);
+    setGradeId(""); setClassId("");
     setFirstName(""); setLastName(""); setLearnerNo("");
     setRelationship("parent");
   };
@@ -90,6 +89,7 @@ export function ChildrenPage() {
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!schoolId)         return toast.error("Select a school");
+    if (!gradeId)          return toast.error("Select the learner's grade");
     if (!firstName.trim()) return toast.error("Enter the child's first name");
     if (!lastName.trim())  return toast.error("Enter the child's last name");
     if (!learnerNo.trim()) return toast.error("Enter the learner number");
@@ -102,6 +102,8 @@ export function ChildrenPage() {
         lastName:     lastName.trim(),
         learnerNumber: learnerNo.trim(),
         relationship,
+        gradeId:      Number(gradeId),
+        classId:      classId || null,
       });
       toast.success("Request submitted. The school will review and approve it.");
       setOpen(false);
@@ -183,9 +185,7 @@ export function ChildrenPage() {
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">{c.schoolName}</div>
                   </div>
-                  <Badge variant="secondary">
-                    {c.gradeId === null ? "—" : c.gradeId === 0 ? "Grade R" : `Grade ${c.gradeId}`}
-                  </Badge>
+                  <Badge variant="secondary">{gradeClassLabel(c.gradeId, c.className)}</Badge>
                 </div>
                 <div className="mt-4 flex gap-2 flex-wrap">
                   <Button asChild size="sm" variant="outline" className="text-xs h-7">
@@ -209,7 +209,7 @@ export function ChildrenPage() {
           <DialogHeader>
             <DialogTitle>Request to link a child</DialogTitle>
             <DialogDescription>
-              Select your child's school and fill in their details. The school will verify and approve your request.
+              Select the school and fill in your child's details exactly as registered.
             </DialogDescription>
           </DialogHeader>
 
@@ -239,38 +239,62 @@ export function ChildrenPage() {
                 <SelectContent>{schools.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="border-t pt-4 space-y-3">
-              <p className="text-xs text-muted-foreground">Enter your child's details exactly as registered at the school.</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="fn">First name</Label>
-                  <Input id="fn" value={firstName} onChange={e => setFirstName(e.target.value)} required placeholder="e.g. Sipho" />
+
+            {schoolId && (
+              <div className="border-t pt-4 space-y-3">
+                <p className="text-xs text-muted-foreground">Child's details as registered at the school.</p>
+
+                <GradeSelect
+                  value={gradeId}
+                  onChange={v => { setGradeId(v); setClassId(""); }}
+                  required
+                />
+
+                <ClassSelect
+                  schoolId={schoolId}
+                  gradeId={gradeId}
+                  value={classId}
+                  onChange={setClassId}
+                />
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label htmlFor="fn">First name</Label>
+                    <Input id="fn" value={firstName} onChange={e => setFirstName(e.target.value)} required placeholder="e.g. Sipho" />
+                  </div>
+                  <div>
+                    <Label htmlFor="ln">Last name</Label>
+                    <Input id="ln" value={lastName} onChange={e => setLastName(e.target.value)} required placeholder="e.g. Dlamini" />
+                  </div>
                 </div>
+
                 <div>
-                  <Label htmlFor="ln">Last name</Label>
-                  <Input id="ln" value={lastName} onChange={e => setLastName(e.target.value)} required placeholder="e.g. Dlamini" />
+                  <Label htmlFor="lno">Learner number</Label>
+                  <Input id="lno" value={learnerNo} onChange={e => setLearnerNo(e.target.value)} required placeholder="e.g. 2024001" />
+                  <p className="text-xs text-muted-foreground mt-1">Ask your school admin if you don't have this.</p>
+                </div>
+
+                <div>
+                  <Label>Your relationship</Label>
+                  <Select value={relationship} onValueChange={setRelationship}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="parent">Parent</SelectItem>
+                      <SelectItem value="guardian">Guardian</SelectItem>
+                      <SelectItem value="grandparent">Grandparent</SelectItem>
+                      <SelectItem value="sibling">Sibling</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
-                <Label htmlFor="lno">Learner number</Label>
-                <Input id="lno" value={learnerNo} onChange={e => setLearnerNo(e.target.value)} required placeholder="e.g. 2024001" />
-                <p className="text-xs text-muted-foreground mt-1">Ask your school admin if you don't have this.</p>
-              </div>
-              <div>
-                <Label>Your relationship</Label>
-                <Select value={relationship} onValueChange={setRelationship}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="parent">Parent</SelectItem>
-                    <SelectItem value="guardian">Guardian</SelectItem>
-                    <SelectItem value="grandparent">Grandparent</SelectItem>
-                    <SelectItem value="sibling">Sibling</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button type="submit" disabled={submitting || !schoolId || !firstName || !lastName || !learnerNo} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+            )}
+
+            <Button
+              type="submit"
+              disabled={submitting || !schoolId || !gradeId || !firstName || !lastName || !learnerNo}
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90"
+            >
               {submitting ? "Submitting…" : "Submit request"}
             </Button>
           </form>

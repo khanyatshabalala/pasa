@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, CheckCircle2, Clock, XCircle, Shield, Star, AlertTriangle, ShieldAlert, Zap } from "lucide-react";
+import { gradeClassLabel } from "@/components/shared/GradeClassDisplay";
 import { Route } from "@/routes/app.learner.$learnerId";
 
 type Learner = LearnerResponse;
@@ -98,7 +99,7 @@ export function LearnerDetailPage() {
   const absent  = att.filter(r => r.status === "absent").length;
   const attPct  = att.length > 0 ? Math.round((present + late) / att.length * 100) : null;
 
-  const gradeLabel = learner.gradeId === 0 ? "Grade R" : `Grade ${learner.gradeId}`;
+  const sub = gradeClassLabel(learner.gradeId, learner.className);
 
   return (
     <div className="max-w-4xl">
@@ -109,7 +110,7 @@ export function LearnerDetailPage() {
 
       <PageHeader
         title={`${learner.firstName} ${learner.lastName}`}
-        sub={gradeLabel}
+        sub={sub}
       />
 
       {/* Info row */}

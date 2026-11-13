@@ -31,6 +31,9 @@ public class Learner {
     @Column(name = "grade_id")
     private Integer gradeId;
 
+    @Column(name = "class_id")
+    private UUID classId;
+
     @Column(name = "learner_number")
     private String learnerNumber;
 
@@ -57,6 +60,8 @@ public class Learner {
     public void setDateOfBirth(LocalDate dateOfBirth) { this.dateOfBirth = dateOfBirth; }
     public Integer getGradeId() { return gradeId; }
     public void setGradeId(Integer gradeId) { this.gradeId = gradeId; }
+    public UUID getClassId() { return classId; }
+    public void setClassId(UUID classId) { this.classId = classId; }
     public String getLearnerNumber() { return learnerNumber; }
     public void setLearnerNumber(String learnerNumber) { this.learnerNumber = learnerNumber; }
     public String getGender() { return gender; }

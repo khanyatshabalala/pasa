@@ -3,6 +3,9 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
+import { GradeSelect } from "@/components/shared/GradeSelect";
+import { ClassSelect } from "@/components/shared/ClassSelect";
+import { gradeClassLabel } from "@/components/shared/GradeClassDisplay";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Users, Plus, Pencil, Trash2, Loader2, Search } from "lucide-react";
-import type { LearnerResponse, GradeResponse } from "@/lib/api";
+import type { LearnerResponse } from "@/lib/api";
 
 const GENDERS = ["Male", "Female", "Other", "Prefer not to say"];
 
@@ -21,18 +24,17 @@ export function LearnersPage() {
   const canManage = ["principal", "school_admin", "super_admin"].includes(primaryRole);
 
   const [learners, setLearners] = useState<LearnerResponse[]>([]);
-  const [grades, setGrades]     = useState<GradeResponse[]>([]);
   const [search, setSearch]     = useState("");
   const [loading, setLoading]   = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
-
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing]       = useState<LearnerResponse | null>(null);
+  const [editing, setEditing]   = useState<LearnerResponse | null>(null);
 
   const [firstName, setFirstName]         = useState("");
   const [lastName, setLastName]           = useState("");
   const [gradeId, setGradeId]             = useState("");
+  const [classId, setClassId]             = useState("");
   const [learnerNumber, setLearnerNumber] = useState("");
   const [gender, setGender]               = useState("");
   const [dob, setDob]                     = useState("");
@@ -41,22 +43,15 @@ export function LearnersPage() {
     if (!primarySchoolId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const [l, g] = await Promise.all([
-        api.get<LearnerResponse[]>(`/api/v1/schools/${primarySchoolId}/learners`),
-        api.get<GradeResponse[]>("/api/v1/grades"),
-      ]);
-      setLearners(l);
-      setGrades(g);
-    } finally {
-      setLoading(false);
-    }
+      setLearners(await api.get<LearnerResponse[]>(`/api/v1/schools/${primarySchoolId}/learners`));
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
 
   const openAdd = () => {
     setEditing(null);
-    setFirstName(""); setLastName(""); setGradeId("");
+    setFirstName(""); setLastName(""); setGradeId(""); setClassId("");
     setLearnerNumber(""); setGender(""); setDob("");
     setDialogOpen(true);
   };
@@ -66,6 +61,7 @@ export function LearnersPage() {
     setFirstName(l.firstName);
     setLastName(l.lastName);
     setGradeId(l.gradeId !== null ? String(l.gradeId) : "");
+    setClassId(l.classId ?? "");
     setLearnerNumber(l.learnerNumber ?? "");
     setGender(l.gender ?? "");
     setDob(l.dateOfBirth ?? "");
@@ -78,18 +74,14 @@ export function LearnersPage() {
     if (!lastName.trim())  return toast.error("Enter last name");
     if (!gradeId)          return toast.error("Select a grade");
     if (!primarySchoolId)  return;
-
     setSaving(true);
-    const payload = {
-      firstName:     firstName.trim(),
-      lastName:      lastName.trim(),
-      gradeId:       Number(gradeId),
-      learnerNumber: learnerNumber.trim() || null,
-      gender:        gender || null,
-      dateOfBirth:   dob || null,
-    };
-
     try {
+      const payload = {
+        firstName: firstName.trim(), lastName: lastName.trim(),
+        gradeId: Number(gradeId), classId: classId || null,
+        learnerNumber: learnerNumber.trim() || null,
+        gender: gender || null, dateOfBirth: dob || null,
+      };
       if (editing) {
         await api.put(`/api/v1/learners/${editing.id}`, payload);
         toast.success("Learner updated");
@@ -101,9 +93,7 @@ export function LearnersPage() {
       load();
     } catch (err: any) {
       toast.error(err.message ?? "Failed to save learner");
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
   const onDelete = async (l: LearnerResponse) => {
@@ -115,9 +105,7 @@ export function LearnersPage() {
       load();
     } catch (err: any) {
       toast.error(err.message ?? "Failed to delete learner");
-    } finally {
-      setDeleting(null);
-    }
+    } finally { setDeleting(null); }
   };
 
   const filtered = learners.filter(l => {
@@ -126,13 +114,6 @@ export function LearnersPage() {
     return `${l.firstName} ${l.lastName}`.toLowerCase().includes(q)
       || (l.learnerNumber ?? "").toLowerCase().includes(q);
   });
-
-  // Grade ids are numbers (0 = Grade R); the select works with strings.
-  const gradeLabel = (id: number | string | null) => {
-    if (id === null || id === "") return "—";
-    const n = Number(id);
-    return grades.find(g => g.id === n)?.label ?? (n === 0 ? "Grade R" : `Grade ${n}`);
-  };
 
   if (!primarySchoolId) {
     return <div className="max-w-2xl"><PageHeader title="Learners" sub="No school assigned to your account." /></div>;
@@ -143,18 +124,17 @@ export function LearnersPage() {
       <PageHeader
         title="Learners"
         sub={`${learners.length} learner${learners.length !== 1 ? "s" : ""} registered`}
-        action={
-          canManage ? (
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={openAdd}>
-              <Plus className="size-4 mr-1.5" /> Add learner
-            </Button>
-          ) : undefined
-        }
+        action={canManage ? (
+          <Button className="bg-accent text-accent-foreground hover:bg-accent/90" onClick={openAdd}>
+            <Plus className="size-4 mr-1.5" /> Add learner
+          </Button>
+        ) : undefined}
       />
 
       <div className="mb-4 relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input placeholder="Search by name or learner number…" value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+        <Input placeholder="Search by name or learner number…" value={search}
+          onChange={e => setSearch(e.target.value)} className="pl-9" />
       </div>
 
       {loading ? (
@@ -173,7 +153,7 @@ export function LearnersPage() {
               <tr>
                 <th className="p-3">Name</th>
                 <th className="p-3">Learner no.</th>
-                <th className="p-3">Grade</th>
+                <th className="p-3">Grade / Class</th>
                 <th className="p-3">Gender</th>
                 <th className="p-3">Date of birth</th>
                 {canManage && <th className="p-3 w-20"></th>}
@@ -183,24 +163,33 @@ export function LearnersPage() {
               {filtered.map(l => (
                 <tr key={l.id} className="border-t align-middle hover:bg-muted/30">
                   <td className="p-3 font-medium">
-                    <Link to="/app/learner/$learnerId" params={{ learnerId: l.id }} className="hover:text-accent transition-colors">
+                    <Link to="/app/learner/$learnerId" params={{ learnerId: l.id }}
+                      className="hover:text-accent transition-colors">
                       {l.firstName} {l.lastName}
                     </Link>
                   </td>
                   <td className="p-3 font-mono text-xs text-muted-foreground">{l.learnerNumber ?? "—"}</td>
-                  <td className="p-3"><Badge variant="secondary">{gradeLabel(l.gradeId)}</Badge></td>
+                  <td className="p-3">
+                    <Badge variant="secondary">{gradeClassLabel(l.gradeId, l.className)}</Badge>
+                  </td>
                   <td className="p-3 text-muted-foreground capitalize">{l.gender ?? "—"}</td>
                   <td className="p-3 text-muted-foreground text-xs">
                     {l.dateOfBirth
-                      ? new Date(l.dateOfBirth + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" })
+                      ? new Date(l.dateOfBirth + "T00:00:00").toLocaleDateString("en-ZA",
+                          { day: "numeric", month: "short", year: "numeric" })
                       : "—"}
                   </td>
                   {canManage && (
                     <td className="p-3">
                       <div className="flex gap-1 justify-end">
-                        <Button size="icon" variant="ghost" onClick={() => openEdit(l)}><Pencil className="size-4" /></Button>
-                        <Button size="icon" variant="ghost" disabled={deleting === l.id} onClick={() => onDelete(l)}>
-                          {deleting === l.id ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4 text-destructive" />}
+                        <Button size="icon" variant="ghost" onClick={() => openEdit(l)}>
+                          <Pencil className="size-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" disabled={deleting === l.id}
+                          onClick={() => onDelete(l)}>
+                          {deleting === l.id
+                            ? <Loader2 className="size-4 animate-spin" />
+                            : <Trash2 className="size-4 text-destructive" />}
                         </Button>
                       </div>
                     </td>
@@ -214,30 +203,34 @@ export function LearnersPage() {
 
       <Dialog open={dialogOpen} onOpenChange={v => setDialogOpen(v)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader><DialogTitle>{editing ? "Edit learner" : "Add learner"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editing ? "Edit learner" : "Add learner"}</DialogTitle>
+          </DialogHeader>
           <form onSubmit={onSave} className="space-y-4 mt-1">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="fn">First name</Label>
-                <Input id="fn" value={firstName} onChange={e => setFirstName(e.target.value)} required autoFocus placeholder="e.g. Sipho" />
+                <Input id="fn" value={firstName} onChange={e => setFirstName(e.target.value)}
+                  required autoFocus placeholder="e.g. Sipho" />
               </div>
               <div>
                 <Label htmlFor="ln">Last name</Label>
-                <Input id="ln" value={lastName} onChange={e => setLastName(e.target.value)} required placeholder="e.g. Dlamini" />
+                <Input id="ln" value={lastName} onChange={e => setLastName(e.target.value)}
+                  required placeholder="e.g. Dlamini" />
               </div>
             </div>
-            <div>
-              <Label>Grade</Label>
-              <Select value={gradeId} onValueChange={setGradeId}>
-                <SelectTrigger><SelectValue placeholder="Select grade" /></SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {grades.map(g => <SelectItem key={g.id} value={String(g.id)}>{g.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+
+            <GradeSelect value={gradeId} onChange={v => { setGradeId(v); setClassId(""); }} required />
+
+            {primarySchoolId && (
+              <ClassSelect schoolId={primarySchoolId} gradeId={gradeId}
+                value={classId} onChange={setClassId} />
+            )}
+
             <div>
               <Label htmlFor="lno">Learner number <span className="text-muted-foreground text-xs">(optional)</span></Label>
-              <Input id="lno" value={learnerNumber} onChange={e => setLearnerNumber(e.target.value)} placeholder="e.g. 2024001" />
+              <Input id="lno" value={learnerNumber} onChange={e => setLearnerNumber(e.target.value)}
+                placeholder="e.g. 2024001" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -255,8 +248,12 @@ export function LearnersPage() {
                 <Input id="dob" type="date" value={dob} onChange={e => setDob(e.target.value)} />
               </div>
             </div>
-            <Button type="submit" disabled={saving || !firstName.trim() || !lastName.trim() || !gradeId} className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
-              {saving ? <><Loader2 className="size-4 animate-spin mr-2" />Saving…</> : editing ? "Save changes" : <><Plus className="size-4 mr-2" />Add learner</>}
+            <Button type="submit"
+              disabled={saving || !firstName.trim() || !lastName.trim() || !gradeId}
+              className="w-full bg-accent text-accent-foreground hover:bg-accent/90">
+              {saving
+                ? <><Loader2 className="size-4 animate-spin mr-2" />Saving…</>
+                : editing ? "Save changes" : <><Plus className="size-4 mr-2" />Add learner</>}
             </Button>
           </form>
         </DialogContent>

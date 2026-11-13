@@ -10,5 +10,7 @@ public record SubmitLinkRequest(
     @NotBlank String learnerNumber,
     @NotBlank String firstName,
     @NotBlank String lastName,
-    String relationship
+    String relationship,
+    @NotNull Integer gradeId,
+    UUID classId
 ) {}

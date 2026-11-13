@@ -12,5 +12,9 @@ public record LearnerResponse(
     String learnerNumber,
     String gender,
     UUID schoolId,
-    String schoolName
+    String schoolName,
+    /** UUID of the class the learner belongs to (e.g. 10A). Null if unassigned. */
+    UUID classId,
+    /** Name of the class (e.g. "10A"). Null if unassigned. Used for display: "Grade 10A". */
+    String className
 ) {}

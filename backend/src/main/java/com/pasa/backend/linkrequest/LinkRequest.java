@@ -42,6 +42,14 @@ public class LinkRequest {
     @Column(nullable = false, columnDefinition = "link_request_status")
     private String status;
 
+    /** Grade provided by the parent. Used when auto-creating a learner on approval. */
+    @Column(name = "grade_id")
+    private Integer gradeId;
+
+    /** Class provided by the parent (e.g. 10A). Used when auto-creating a learner on approval. */
+    @Column(name = "class_id")
+    private UUID classId;
+
     @Column(name = "reviewed_by")
     private UUID reviewedBy;
 
@@ -73,6 +81,10 @@ public class LinkRequest {
     public void setRelationship(String relationship) { this.relationship = relationship; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+    public Integer getGradeId() { return gradeId; }
+    public void setGradeId(Integer gradeId) { this.gradeId = gradeId; }
+    public UUID getClassId() { return classId; }
+    public void setClassId(UUID classId) { this.classId = classId; }
     public UUID getReviewedBy() { return reviewedBy; }
     public void setReviewedBy(UUID reviewedBy) { this.reviewedBy = reviewedBy; }
     public OffsetDateTime getReviewedAt() { return reviewedAt; }

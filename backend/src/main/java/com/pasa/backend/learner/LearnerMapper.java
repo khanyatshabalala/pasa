@@ -6,7 +6,12 @@ public final class LearnerMapper {
 
     private LearnerMapper() {}
 
-    public static LearnerResponse toResponse(Learner learner) {
+    /**
+     * Map to response. className is passed in by the service (which looks it up from
+     * the SchoolClassRepository) so the mapper stays a pure data transformer with no
+     * repository dependency.
+     */
+    public static LearnerResponse toResponse(Learner learner, String className) {
         return new LearnerResponse(
             learner.getId(),
             learner.getFirstName(),
@@ -16,8 +21,15 @@ public final class LearnerMapper {
             learner.getLearnerNumber(),
             learner.getGender(),
             learner.getSchool() != null ? learner.getSchool().getId() : null,
-            learner.getSchool() != null ? learner.getSchool().getName() : null
+            learner.getSchool() != null ? learner.getSchool().getName() : null,
+            learner.getClassId(),
+            className
         );
+    }
+
+    /** Convenience overload for cases where the class name is not needed / not available. */
+    public static LearnerResponse toResponse(Learner learner) {
+        return toResponse(learner, null);
     }
 
     public static Learner toEntity(CreateLearnerRequest req) {
@@ -28,6 +40,7 @@ public final class LearnerMapper {
         learner.setGradeId(req.gradeId());
         learner.setLearnerNumber(req.learnerNumber());
         learner.setGender(req.gender());
+        learner.setClassId(req.classId());
         return learner;
     }
 }

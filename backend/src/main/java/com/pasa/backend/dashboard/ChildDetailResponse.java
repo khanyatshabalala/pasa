@@ -19,7 +19,9 @@ public record ChildDetailResponse(
         String id, String firstName, String lastName,
         Integer gradeId, String learnerNumber,
         String schoolId, String schoolName,
-        String todayStatus
+        String todayStatus,
+        /** Name of the class the learner is in (e.g. "10A"). Null if unassigned. */
+        String className
     ) {}
 
     public record AttendanceSummary(int present, int late, int absent, int total, Integer ratePercent) {}

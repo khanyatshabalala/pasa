@@ -165,9 +165,10 @@ public class DashboardService {
 
         Map<String, Object> l = first("""
             SELECT l.id, l.first_name, l.last_name, l.grade_id, l.learner_number,
-                   l.school_id, s.name AS school_name
+                   l.school_id, s.name AS school_name, c.name AS class_name
               FROM public.learners l
               LEFT JOIN public.schools s ON s.id = l.school_id
+              LEFT JOIN public.classes c ON c.id = l.class_id
              WHERE l.id = ?
             """, learnerId);
         if (l.isEmpty()) {
@@ -183,7 +184,7 @@ public class DashboardService {
             str(l.get("id")), str(l.get("first_name")), str(l.get("last_name")),
             l.get("grade_id") == null ? null : ((Number) l.get("grade_id")).intValue(),
             str(l.get("learner_number")), str(schoolId), str(l.get("school_name")),
-            todayStatus);
+            todayStatus, str(l.get("class_name")));
 
         // Attendance for the current calendar year, newest first (also drives the summary).
         String yearStart = LocalDate.now().withDayOfYear(1).toString();

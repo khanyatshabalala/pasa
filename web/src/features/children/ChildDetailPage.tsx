@@ -9,6 +9,7 @@ import {
   Star, AlertTriangle, ShieldAlert, Zap, FileText, Download, Loader2, CalendarDays,
 } from "lucide-react";
 import { toast } from "sonner";
+import { gradeClassLabel } from "@/components/shared/GradeClassDisplay";
 import { Route } from "@/routes/app.child.$learnerId";
 
 const ATT_COLOR: Record<string, string> = {
@@ -37,11 +38,6 @@ const DISC_ICON: Record<string, React.ReactNode> = {
   suspension: <ShieldAlert className="size-3.5" />,
   incident:   <Zap className="size-3.5" />,
 };
-
-function gradeLabel(g: number | null) {
-  if (g === null) return "";
-  return g === 0 ? "Grade R" : `Grade ${g}`;
-}
 
 function fmtDate(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
@@ -108,7 +104,7 @@ export function ChildDetailPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">{child.firstName} {child.lastName}</h1>
           <p className="text-sm text-muted-foreground">
-            {[gradeLabel(child.gradeId), child.schoolName].filter(Boolean).join(" · ")}
+            {[gradeClassLabel(child.gradeId, child.className), child.schoolName].filter(Boolean).join(" · ")}
           </p>
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             {child.learnerNumber && <Badge variant="secondary" className="text-[10px]">No. {child.learnerNumber}</Badge>}

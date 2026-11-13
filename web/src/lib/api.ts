@@ -193,6 +193,10 @@ export interface LearnerResponse {
   gender: string | null;
   dateOfBirth: string | null;
   schoolName: string | null;
+  /** UUID of the class (e.g. 10A). Null if unassigned. */
+  classId: string | null;
+  /** Name of the class (e.g. "10A"). Null if unassigned. */
+  className: string | null;
 }
 
 export interface AttendanceResponse {
@@ -411,6 +415,7 @@ export interface ChildDetailResponse {
     schoolId: string | null;
     schoolName: string | null;
     todayStatus: string | null;
+    className: string | null;
   };
   attendanceSummary: {
     present: number;

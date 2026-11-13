@@ -6,6 +6,7 @@ import com.pasa.backend.domain.entity.School;
 import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.repository.ParentLinkRepository;
 import com.pasa.backend.repository.SchoolRepository;
+import com.pasa.backend.schoolclass.SchoolClassRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,7 @@ public class LinkRequestService {
     private final SchoolRepository schoolRepo;
     private final LearnerRepository learnerRepo;
     private final ParentLinkRepository parentLinkRepo;
+    private final SchoolClassRepository classRepo;
     private final JdbcTemplate jdbc;
 
     public LinkRequestService(
@@ -35,11 +37,13 @@ public class LinkRequestService {
             SchoolRepository schoolRepo,
             LearnerRepository learnerRepo,
             ParentLinkRepository parentLinkRepo,
+            SchoolClassRepository classRepo,
             JdbcTemplate jdbc) {
         this.linkRequestRepo = linkRequestRepo;
         this.schoolRepo = schoolRepo;
         this.learnerRepo = learnerRepo;
         this.parentLinkRepo = parentLinkRepo;
+        this.classRepo = classRepo;
         this.jdbc = jdbc;
     }
 
@@ -61,6 +65,8 @@ public class LinkRequestService {
         request.setLastName(req.lastName());
         request.setRelationship(req.relationship() != null ? req.relationship() : "parent");
         request.setStatus("pending");
+        request.setGradeId(req.gradeId());
+        request.setClassId(req.classId());
 
         return LinkRequestMapper.toResponse(linkRequestRepo.save(request));
     }
@@ -123,6 +129,15 @@ public class LinkRequestService {
             learner.setFirstName(request.getFirstName().trim());
             learner.setLastName(request.getLastName().trim());
             learner.setLearnerNumber(request.getLearnerNumber().trim());
+            // Use grade/class supplied by the parent if available.
+            Integer gradeId = request.getGradeId();
+            UUID classId = request.getClassId();
+            if (gradeId == null && classId != null) {
+                // Derive grade from the class if grade wasn't set directly.
+                gradeId = classRepo.findById(classId).map(c -> c.getGradeId()).orElse(null);
+            }
+            learner.setGradeId(gradeId);
+            learner.setClassId(classId);
             learner = learnerRepo.save(learner);
             log.info("Approving link request {} — auto-created learner {}", id, learner.getId());
         }

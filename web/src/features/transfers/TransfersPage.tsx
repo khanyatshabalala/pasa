@@ -266,7 +266,7 @@ export function TransfersPage() {
                 <SelectContent className="max-h-60">
                   {learners.map(l => (
                     <SelectItem key={l.id} value={l.id}>
-                      {l.firstName} {l.lastName} · Grade {l.gradeId === 0 ? "R" : l.gradeId}
+                      {l.firstName} {l.lastName} · {l.className ? (l.className.match(/^\d/) ? `Grade ${l.className}` : `Grade ${l.gradeId === 0 ? "R" : l.gradeId}${l.className}`) : `Grade ${l.gradeId === 0 ? "R" : l.gradeId}`}
                     </SelectItem>
                   ))}
                 </SelectContent>
