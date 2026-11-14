@@ -2,6 +2,7 @@ package com.pasa.backend.linkrequest;
 
 import com.pasa.backend.domain.entity.School;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.OffsetDateTime;
@@ -40,6 +41,7 @@ public class LinkRequest {
 
     // pending | approved | rejected — stored as Postgres native enum link_request_status
     @Column(nullable = false, columnDefinition = "link_request_status")
+    @ColumnTransformer(write = "?::public.link_request_status")
     private String status;
 
     /** Grade provided by the parent. Used when auto-creating a learner on approval. */
