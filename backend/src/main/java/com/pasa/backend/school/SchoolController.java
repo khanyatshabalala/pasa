@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -45,8 +46,12 @@ public class SchoolController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN','PRINCIPAL','SCHOOL_ADMIN')")
-    public SchoolResponse updateSchool(@PathVariable UUID id, @Valid @RequestBody CreateSchoolRequest req) {
-        return schoolService.updateSchool(id, req);
+    public SchoolResponse updateSchool(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateSchoolRequest req,
+            Authentication auth
+    ) {
+        return schoolService.updateSchool(id, req, (UUID) auth.getPrincipal());
     }
 
     @GetMapping("/{schoolId}/report-cards")

@@ -26,46 +26,46 @@ alter table exam_timetables enable row level security;
 create policy "school staff can read exam timetables"
   on exam_timetables for select
   using (
-    has_school_role(
-      array['teacher','principal','school_admin']::app_role[],
+    public.has_school_role(
+      auth.uid(),
       school_id,
-      auth.uid()
+      array['teacher','principal','school_admin']::public.app_role[]
     )
-    or is_super_admin(auth.uid())
+    or public.is_super_admin(auth.uid())
   );
 
 -- Principal and school_admin can insert
 create policy "school admin can insert exam timetables"
   on exam_timetables for insert
   with check (
-    has_school_role(
-      array['principal','school_admin']::app_role[],
+    public.has_school_role(
+      auth.uid(),
       school_id,
-      auth.uid()
+      array['principal','school_admin']::public.app_role[]
     )
-    or is_super_admin(auth.uid())
+    or public.is_super_admin(auth.uid())
   );
 
 -- Principal and school_admin can update
 create policy "school admin can update exam timetables"
   on exam_timetables for update
   using (
-    has_school_role(
-      array['principal','school_admin']::app_role[],
+    public.has_school_role(
+      auth.uid(),
       school_id,
-      auth.uid()
+      array['principal','school_admin']::public.app_role[]
     )
-    or is_super_admin(auth.uid())
+    or public.is_super_admin(auth.uid())
   );
 
 -- Principal and school_admin can delete
 create policy "school admin can delete exam timetables"
   on exam_timetables for delete
   using (
-    has_school_role(
-      array['principal','school_admin']::app_role[],
+    public.has_school_role(
+      auth.uid(),
       school_id,
-      auth.uid()
+      array['principal','school_admin']::public.app_role[]
     )
-    or is_super_admin(auth.uid())
+    or public.is_super_admin(auth.uid())
   );

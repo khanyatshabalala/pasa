@@ -62,6 +62,16 @@ public final class SchoolMapper {
         school.setEmail(req.email());
         school.setPhone(req.phone());
         school.setDistrictId(req.districtId());
+        school.setAddress(req.address());
+        school.setPostalCode(req.postalCode());
+        school.setWebsite(req.website());
+        school.setPrincipalName(req.principalName());
+        school.setEstablishedYear(req.establishedYear());
+        school.setLearnerCount(req.learnerCount());
+        school.setFeesAnnual(req.feesAnnual());
+        school.setLogoUrl(req.logoUrl());
+        school.setMotto(req.motto());
+        school.setDescription(req.description());
         school.setGradeFrom(req.gradeFrom());
         school.setGradeTo(req.gradeTo());
         school.setApplicationOpen(req.applicationOpen());

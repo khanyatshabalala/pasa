@@ -10,7 +10,8 @@ public final class StaffMapper {
             staff.getId(),
             staff.getUserId(),
             staff.getStaffNumber(),
-            staff.getPosition()
+            staff.getPosition(),
+            null
         );
     }
 

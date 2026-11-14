@@ -9,6 +9,7 @@ import java.util.UUID;
 @Repository
 public interface LinkRequestRepository extends JpaRepository<LinkRequest, UUID> {
     List<LinkRequest> findByParentUserId(UUID parentUserId);
+    boolean existsByParentUserIdAndSchool_IdAndLearnerNumber(UUID parentUserId, UUID schoolId, String learnerNumber);
     List<LinkRequest> findBySchoolIdOrderByCreatedAtDesc(UUID schoolId);
     List<LinkRequest> findBySchoolIdAndStatus(UUID schoolId, String status);
 }

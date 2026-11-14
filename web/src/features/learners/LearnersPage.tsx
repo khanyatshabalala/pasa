@@ -26,6 +26,7 @@ export function LearnersPage() {
   const [learners, setLearners] = useState<LearnerResponse[]>([]);
   const [search, setSearch]     = useState("");
   const [loading, setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [saving, setSaving]     = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -40,10 +41,13 @@ export function LearnersPage() {
   const [dob, setDob]                     = useState("");
 
   const load = async () => {
-    if (!primarySchoolId) { setLoading(false); return; }
+    if (!primarySchoolId) { setLoading(false); setLearners([]); return; }
     setLoading(true);
+    setLoadError(null);
     try {
       setLearners(await api.get<LearnerResponse[]>(`/api/v1/schools/${primarySchoolId}/learners`));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not load learners.");
     } finally { setLoading(false); }
   };
 
@@ -139,6 +143,11 @@ export function LearnersPage() {
 
       {loading ? (
         <div className="text-sm text-muted-foreground py-10 text-center">Loading…</div>
+      ) : loadError ? (
+        <Card className="p-8 text-center text-sm">
+          <p className="text-destructive mb-3">{loadError}</p>
+          <Button variant="outline" onClick={load}>Try again</Button>
+        </Card>
       ) : filtered.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground text-sm">
           <Users className="size-8 mx-auto mb-2 opacity-40" />
@@ -220,7 +229,8 @@ export function LearnersPage() {
               </div>
             </div>
 
-            <GradeSelect value={gradeId} onChange={v => { setGradeId(v); setClassId(""); }} required />
+            <GradeSelect schoolId={primarySchoolId} value={gradeId}
+              onChange={v => { setGradeId(v); setClassId(""); }} required />
 
             {primarySchoolId && (
               <ClassSelect schoolId={primarySchoolId} gradeId={gradeId}

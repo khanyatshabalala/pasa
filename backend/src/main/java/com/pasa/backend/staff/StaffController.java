@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,8 +22,8 @@ public class StaffController {
 
     @GetMapping
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public List<StaffResponse> getStaff(@PathVariable UUID schoolId) {
-        return staffService.getStaff(schoolId);
+    public List<StaffResponse> getStaff(@PathVariable UUID schoolId, Authentication auth) {
+        return staffService.getStaff(schoolId, (UUID) auth.getPrincipal());
     }
 
     @PostMapping

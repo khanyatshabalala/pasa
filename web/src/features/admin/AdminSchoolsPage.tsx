@@ -28,6 +28,11 @@ const PHASE_GRADE_HINT: Record<string, string> = {
   secondary: "Grades 8 to 12",
   combined:  "Grades R to 12",
 };
+const PHASE_GRADE_RANGE: Record<string, { from: number; to: number }> = {
+  primary: { from: 0, to: 7 },
+  secondary: { from: 8, to: 12 },
+  combined: { from: 0, to: 12 },
+};
 const TYPES = ["public", "independent", "private", "special"] as const;
 
 const schema = z.object({
@@ -47,16 +52,19 @@ type District = DistrictResponse;
 
 export function AdminSchoolsPage() {
   const [rows, setRows] = useState<School[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [province, setProvince] = useState<string>("Western Cape");
   const [phase, setPhase] = useState<string>("primary");
   const [type, setType] = useState<string>("public");
   const [districtId, setDistrictId] = useState<string>("");
-  const [districtText, setDistrictText] = useState<string>("");
 
   const load = async () => {
+    setLoading(true);
+    setLoadError(null);
     try {
       const [s, d] = await Promise.all([
         api.get<School[]>("/api/v1/schools"),
@@ -64,8 +72,10 @@ export function AdminSchoolsPage() {
       ]);
       setRows([...s].sort((a, b) => a.name.localeCompare(b.name)));
       setDistricts(d);
-    } catch {
-      setRows([]);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : "Could not load schools.");
+    } finally {
+      setLoading(false);
     }
   };
   useEffect(() => { load(); }, []);
@@ -74,13 +84,14 @@ export function AdminSchoolsPage() {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const linked = districts.find(d => d.id === districtId);
-    const effectiveProvince = linked?.province ?? province;
-    const effectiveDistrictName = linked?.name ?? districtText.trim();
+    if (!linked) {
+      return toast.error("Select an existing district before creating the school.");
+    }
     const parsed = schema.safeParse({
       name: fd.get("name"),
       emis_number: fd.get("emis_number"),
-      district: effectiveDistrictName,
-      province: effectiveProvince,
+      district: linked.name,
+      province: linked.province,
       phase,
       school_type: type,
       city: fd.get("city") || "",
@@ -88,9 +99,6 @@ export function AdminSchoolsPage() {
       phone: fd.get("phone") || "",
     });
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
-    if (!linked && !districtText.trim()) {
-      return toast.error("Pick a district from the list or type one in.");
-    }
     setSaving(true);
     try {
       await api.post("/api/v1/schools", {
@@ -100,15 +108,16 @@ export function AdminSchoolsPage() {
         province: parsed.data.province,
         phase: parsed.data.phase,                    // lowercase enum
         schoolType: parsed.data.school_type.toUpperCase(), // backend SchoolType is uppercase
+        gradeFrom: PHASE_GRADE_RANGE[parsed.data.phase].from,
+        gradeTo: PHASE_GRADE_RANGE[parsed.data.phase].to,
         city: parsed.data.city || null,
         email: parsed.data.email || null,
         phone: parsed.data.phone || null,
-        districtId: districtId || null,
+        districtId: linked.id,
       });
       toast.success("School created");
       setOpen(false);
       setDistrictId("");
-      setDistrictText("");
       load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Could not create school. Please try again.");
@@ -154,32 +163,27 @@ export function AdminSchoolsPage() {
                   )}
                 </div>
                 <div className="col-span-2">
-                  <Label>Link to district</Label>
-                  <Select value={districtId || "_none"} onValueChange={(v) => setDistrictId(v === "_none" ? "" : v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder={districtOptions.length ? "Pick a district" : `No districts in ${province}`} />
+                  <Label>District</Label>
+                  <Select value={districtId} onValueChange={setDistrictId}>
+                    <SelectTrigger disabled={districtOptions.length === 0}>
+                      <SelectValue placeholder={districtOptions.length ? "Select a district" : `No districts in ${province}`} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="_none">— Type a custom district below —</SelectItem>
                       {districtOptions.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
-                </div>
-                {!linkedDistrict && (
-                  <div className="col-span-2">
-                    <Label htmlFor="s-district-text">District name</Label>
-                    <Input
-                      id="s-district-text"
-                      value={districtText}
-                      onChange={(e) => setDistrictText(e.target.value)}
-                      required
-                      placeholder="e.g. Metro Central"
-                    />
+                  {districtOptions.length === 0 ? (
                     <p className="text-[10px] text-muted-foreground mt-1">
-                      Tip: create the district under <strong>Districts</strong> first to link it properly.
+                      Create a district for {province} under{" "}
+                      <Link to="/admin/districts" className="text-accent hover:underline">Districts</Link>
+                      {" "}before adding this school.
                     </p>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Select the district where parents will find this school.
+                    </p>
+                  )}
+                </div>
                 <div>
                   <Label>Phase</Label>
                   <Select value={phase} onValueChange={setPhase}>
@@ -211,10 +215,21 @@ export function AdminSchoolsPage() {
         </Dialog>
       </div>
 
-      {rows.length === 0 ? (
+      {loading ? (
+        <Card className="p-10 text-center text-sm text-muted-foreground">Loading schools…</Card>
+      ) : rows.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground text-sm">
-          <Building2 className="size-8 mx-auto mb-2 opacity-50" />
-          No schools yet. Click "New school" to add the first one.
+          {loadError ? (
+            <>
+              <p className="text-destructive mb-3">{loadError}</p>
+              <Button variant="outline" onClick={load}>Try again</Button>
+            </>
+          ) : (
+            <>
+              <Building2 className="size-8 mx-auto mb-2 opacity-50" />
+              No schools yet. Click "New school" to add the first one.
+            </>
+          )}
         </Card>
       ) : (
         <Card className="overflow-hidden">

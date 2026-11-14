@@ -24,9 +24,10 @@ public class ClassController {
     @PreAuthorize("hasAnyRole('TEACHER','PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
     public List<ClassResponse> getClasses(
             @PathVariable UUID schoolId,
-            @RequestParam(required = false) Integer year
+            @RequestParam(required = false) Integer year,
+            Authentication auth
     ) {
-        return classService.getClasses(schoolId, year);
+        return classService.getClasses(schoolId, year, (UUID) auth.getPrincipal());
     }
 
     @PostMapping
@@ -36,7 +37,8 @@ public class ClassController {
             @Valid @RequestBody CreateClassRequest req,
             Authentication auth
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(classService.createClass(schoolId, req));
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                classService.createClass(schoolId, req, (UUID) auth.getPrincipal()));
     }
 
     @PutMapping("/{id}")
@@ -44,15 +46,20 @@ public class ClassController {
     public ClassResponse updateClass(
             @PathVariable UUID schoolId,
             @PathVariable UUID id,
-            @Valid @RequestBody CreateClassRequest req
+            @Valid @RequestBody CreateClassRequest req,
+            Authentication auth
     ) {
-        return classService.updateClass(id, req);
+        return classService.updateClass(schoolId, id, req, (UUID) auth.getPrincipal());
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<Void> deleteClass(@PathVariable UUID schoolId, @PathVariable UUID id) {
-        classService.deleteClass(id);
+    public ResponseEntity<Void> deleteClass(
+            @PathVariable UUID schoolId,
+            @PathVariable UUID id,
+            Authentication auth
+    ) {
+        classService.deleteClass(schoolId, id, (UUID) auth.getPrincipal());
         return ResponseEntity.noContent().build();
     }
 }

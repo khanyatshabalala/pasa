@@ -23,7 +23,33 @@ public final class LearnerMapper {
             learner.getSchool() != null ? learner.getSchool().getId() : null,
             learner.getSchool() != null ? learner.getSchool().getName() : null,
             learner.getClassId(),
-            className
+            className,
+            null,
+            null
+        );
+    }
+
+    public static LearnerResponse toParentResponse(
+            Learner learner,
+            String className,
+            String relationship,
+            Boolean isPrimary
+    ) {
+        LearnerResponse response = toResponse(learner, className);
+        return new LearnerResponse(
+            response.id(),
+            response.firstName(),
+            response.lastName(),
+            response.dateOfBirth(),
+            response.gradeId(),
+            response.learnerNumber(),
+            response.gender(),
+            response.schoolId(),
+            response.schoolName(),
+            response.classId(),
+            response.className(),
+            relationship,
+            isPrimary
         );
     }
 

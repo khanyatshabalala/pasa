@@ -124,6 +124,8 @@ export interface TokenResponse {
   token: string;
   userId: string;
   role: string;
+  refreshToken?: string | null;
+  schoolId?: string | null;
 }
 
 export interface ProfileResponse {
@@ -197,6 +199,8 @@ export interface LearnerResponse {
   classId: string | null;
   /** Name of the class (e.g. "10A"). Null if unassigned. */
   className: string | null;
+  relationship?: string | null;
+  isPrimary?: boolean | null;
 }
 
 export interface AttendanceResponse {
@@ -262,11 +266,14 @@ export interface ExamEntryResponse {
 export interface LinkRequestResponse {
   id: string;
   parentUserId: string;
+  parentName: string | null;
   schoolId: string;
   schoolName: string | null;
   learnerNumber: string | null;
   firstName: string | null;
   lastName: string | null;
+  gradeId: number | null;
+  classId: string | null;
   relationship: string | null;
   status: string;
   createdAt: string;

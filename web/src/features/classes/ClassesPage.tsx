@@ -23,6 +23,7 @@ export function ClassesPage() {
   const [grades, setGrades]     = useState<GradeResponse[]>([]);
   const [staff, setStaff]       = useState<StaffResponse[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving]     = useState(false);
@@ -33,8 +34,9 @@ export function ClassesPage() {
   const [academicYear, setAcademicYear] = useState(String(CURRENT_YEAR));
 
   const load = async () => {
-    if (!primarySchoolId) { setLoading(false); return; }
+    if (!primarySchoolId) { setLoading(false); setClasses([]); return; }
     setLoading(true);
+    setLoadError(null);
     try {
       const [classData, gradeData, staffData] = await Promise.all([
         api.get<ClassResponse[]>(`/api/v1/schools/${primarySchoolId}/classes`),
@@ -44,6 +46,8 @@ export function ClassesPage() {
       setClasses(classData);
       setGrades(gradeData);
       setStaff(staffData);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Could not load school classes.");
     } finally {
       setLoading(false);
     }
@@ -137,6 +141,15 @@ export function ClassesPage() {
 
       {loading ? (
         <div className="text-sm text-muted-foreground py-10 text-center">Loading…</div>
+      ) : loadError ? (
+        <Card className="p-8 text-center text-sm">
+          <p className="text-destructive mb-3">{loadError}</p>
+          <Button variant="outline" onClick={load}>Try again</Button>
+        </Card>
+      ) : !primarySchoolId ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          No school is assigned to your account. Contact your school administrator.
+        </Card>
       ) : classes.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground text-sm">
           <GraduationCap className="size-8 mx-auto mb-2 opacity-40" />

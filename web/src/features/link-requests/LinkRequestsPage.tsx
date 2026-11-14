@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, ApiError, type LinkRequestResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -15,11 +15,12 @@ import { Users, CheckCircle2, XCircle, Clock, ShieldAlert, Search, Loader2 } fro
 type LinkRequest = LinkRequestResponse;
 
 export function LinkRequestsPage() {
-  const { primaryRole, primarySchoolId, user } = useAuth();
+  const { primaryRole, primarySchoolId } = useAuth();
   const canManage = ["principal", "school_admin", "super_admin"].includes(primaryRole);
 
   const [requests, setRequests]   = useState<LinkRequest[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [acting, setActing]       = useState<string | null>(null);
   const [search, setSearch]       = useState("");
   const [tab, setTab]             = useState<"pending" | "resolved">("pending");
@@ -30,27 +31,28 @@ export function LinkRequestsPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejecting, setRejecting]     = useState(false);
 
-  const load = async () => {
-    if (!primarySchoolId) { setLoading(false); return; }
+  const load = useCallback(async () => {
+    if (!primarySchoolId) { setLoading(false); setRequests([]); return; }
     setLoading(true);
+    setLoadError(null);
     try {
       const data = await api.get<LinkRequest[]>(`/api/v1/schools/${primarySchoolId}/link-requests`);
       setRequests(data);
-    } catch {
-      setRequests([]);
+    } catch (err) {
+      setLoadError(err instanceof ApiError ? err.message : "Could not load link requests.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [primarySchoolId]);
 
-  useEffect(() => { load(); }, [primarySchoolId]);
+  useEffect(() => { load(); }, [load]);
 
   const onApprove = async (req: LinkRequest) => {
     setActing(req.id);
     try {
       await api.post(`/api/v1/link-requests/${req.id}/approve`);
       toast.success(`${req.firstName ?? ""} ${req.lastName ?? ""} linked to parent successfully`);
-      load();
+      await load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -69,7 +71,7 @@ export function LinkRequestsPage() {
       setRejectOpen(false);
       setRejectTarget(null);
       setRejectReason("");
-      load();
+      await load();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -148,6 +150,15 @@ export function LinkRequestsPage() {
 
       {loading ? (
         <div className="text-sm text-muted-foreground py-10 text-center">Loading…</div>
+      ) : loadError ? (
+        <Card className="p-8 text-center text-sm">
+          <p className="text-destructive mb-3">{loadError}</p>
+          <Button variant="outline" onClick={load}>Try again</Button>
+        </Card>
+      ) : !primarySchoolId ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          No school is assigned to your account. Contact your school administrator.
+        </Card>
       ) : displayed.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground text-sm">
           <Users className="size-8 mx-auto mb-2 opacity-40" />
@@ -162,6 +173,7 @@ export function LinkRequestsPage() {
               <tr>
                 <th className="p-3">Learner</th>
                 <th className="p-3">Learner no.</th>
+                <th className="p-3">Grade</th>
                 <th className="p-3">Parent</th>
                 <th className="p-3">Relationship</th>
                 <th className="p-3">Submitted</th>
@@ -179,7 +191,10 @@ export function LinkRequestsPage() {
                     {r.learnerNumber}
                   </td>
                   <td className="p-3 text-muted-foreground text-xs">
-                    {r.schoolName ?? "—"}
+                    {r.gradeId === null ? "—" : r.gradeId === 0 ? "Grade R" : `Grade ${r.gradeId}`}
+                  </td>
+                  <td className="p-3 text-muted-foreground text-xs">
+                    {r.parentName ?? r.parentUserId}
                   </td>
                   <td className="p-3 text-muted-foreground text-xs capitalize">
                     {r.relationship ?? "—"}

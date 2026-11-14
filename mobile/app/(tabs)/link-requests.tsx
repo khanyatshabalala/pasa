@@ -6,27 +6,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth-context';
-import { supabase } from '@/lib/supabase';
+import { apiErrorMessage, apiRequest } from '@/lib/api';
 
 type LinkRequest = {
   id: string;
-  first_name: string;
-  last_name: string;
-  learner_number: string;
+  firstName: string;
+  lastName: string;
+  learnerNumber: string;
+  gradeId: number | null;
   relationship: string;
   status: 'pending' | 'approved' | 'rejected';
-  rejection_reason: string | null;
-  created_at: string;
-  parent_user_id: string;
-  parent_name: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  parentName: string | null;
 };
 
 export default function LinkRequestsScreen() {
-  const { primaryRole, primarySchoolId, user } = useAuth();
+  const { primaryRole, primarySchoolId } = useAuth();
   const canManage = ['principal', 'school_admin', 'super_admin'].includes(primaryRole);
 
   const [requests, setRequests]   = useState<LinkRequest[]>([]);
   const [loading, setLoading]     = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [acting, setActing]       = useState<string | null>(null);
   const [tab, setTab]             = useState<'pending' | 'resolved'>('pending');
 
@@ -37,64 +38,51 @@ export default function LinkRequestsScreen() {
   const [rejecting, setRejecting]       = useState(false);
 
   const load = async () => {
-    if (!primarySchoolId) { setLoading(false); return; }
+    if (!primarySchoolId) { setRequests([]); setLoading(false); return; }
     setLoading(true);
-
-    const { data: reqData } = await (supabase as any)
-      .from('parent_link_requests')
-      .select('id, first_name, last_name, learner_number, relationship, status, rejection_reason, created_at, parent_user_id')
-      .eq('school_id', primarySchoolId)
-      .order('created_at', { ascending: false });
-
-    const rows = (reqData ?? []) as Omit<LinkRequest, 'parent_name'>[];
-
-    // Enrich with parent names
-    const parentIds = [...new Set(rows.map(r => r.parent_user_id))];
-    let nameMap: Record<string, string> = {};
-    if (parentIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .in('id', parentIds);
-      (profiles ?? []).forEach((p: any) => { nameMap[p.id] = p.full_name ?? 'Unknown'; });
+    setLoadError(null);
+    try {
+      const rows = await apiRequest<LinkRequest[]>(`/api/v1/schools/${primarySchoolId}/link-requests`);
+      setRequests(rows);
+    } catch (error) {
+      setLoadError(apiErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
-
-    setRequests(rows.map(r => ({ ...r, parent_name: nameMap[r.parent_user_id] ?? null })));
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
 
   const onApprove = async (req: LinkRequest) => {
     setActing(req.id);
-    const { data, error } = await supabase.rpc('approve_link_request', {
-      _request_id:  req.id,
-      _reviewer_id: user!.id,
-    });
-    setActing(null);
-    if (error) { Alert.alert('Error', error.message); return; }
-    const result = data as any;
-    if (result?.error) { Alert.alert('Could not approve', result.error); return; }
-    Alert.alert('Approved', `${req.first_name} ${req.last_name} has been linked to their parent.`);
-    load();
+    try {
+      await apiRequest(`/api/v1/link-requests/${req.id}/approve`, { method: 'POST' });
+      Alert.alert('Approved', `${req.firstName} ${req.lastName} has been linked to their parent.`);
+      await load();
+    } catch (error) {
+      Alert.alert('Could not approve', apiErrorMessage(error));
+    } finally {
+      setActing(null);
+    }
   };
 
   const onRejectConfirm = async () => {
     if (!rejectTarget) return;
     setRejecting(true);
-    const { data, error } = await supabase.rpc('reject_link_request', {
-      _request_id:  rejectTarget.id,
-      _reviewer_id: user!.id,
-      _reason:      rejectReason.trim() || null,
-    });
-    setRejecting(false);
-    if (error) { Alert.alert('Error', error.message); return; }
-    const result = data as any;
-    if (result?.error) { Alert.alert('Error', result.error); return; }
-    setRejectOpen(false);
-    setRejectTarget(null);
-    setRejectReason('');
-    load();
+    try {
+      await apiRequest(`/api/v1/link-requests/${rejectTarget.id}/reject`, {
+        method: 'POST',
+        body: { reason: rejectReason.trim() || null },
+      });
+      setRejectOpen(false);
+      setRejectTarget(null);
+      setRejectReason('');
+      await load();
+    } catch (error) {
+      Alert.alert('Could not reject request', apiErrorMessage(error));
+    } finally {
+      setRejecting(false);
+    }
   };
 
   if (!canManage) {
@@ -138,6 +126,15 @@ export default function LinkRequestsScreen() {
 
       {loading ? (
         <ActivityIndicator color="#38bdf8" style={{ marginTop: 40 }} />
+      ) : loadError ? (
+        <View style={s.emptyWrap}>
+          <Text style={s.empty}>{loadError}</Text>
+          <TouchableOpacity onPress={load}><Text style={s.tabTextActive}>Try again</Text></TouchableOpacity>
+        </View>
+      ) : !primarySchoolId ? (
+        <View style={s.emptyWrap}>
+          <Text style={s.empty}>No school is associated with this staff account.</Text>
+        </View>
       ) : displayed.length === 0 ? (
         <View style={s.emptyWrap}>
           <Ionicons name="people-outline" size={40} color="#334155" />
@@ -155,15 +152,15 @@ export default function LinkRequestsScreen() {
               {/* Learner info */}
               <View style={s.cardTop}>
                 <View style={s.avatar}>
-                  <Text style={s.avatarText}>{r.first_name[0]}{r.last_name[0]}</Text>
+                  <Text style={s.avatarText}>{r.firstName[0]}{r.lastName[0]}</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={s.cardName}>{r.first_name} {r.last_name}</Text>
+                  <Text style={s.cardName}>{r.firstName} {r.lastName}</Text>
                   <Text style={s.cardSub}>
-                    Learner no. {r.learner_number} · {r.relationship}
+                    Learner no. {r.learnerNumber} · {r.relationship} · Grade {r.gradeId === 0 ? 'R' : r.gradeId ?? '—'}
                   </Text>
-                  {r.parent_name && (
-                    <Text style={s.cardParent}>Parent: {r.parent_name}</Text>
+                  {r.parentName && (
+                    <Text style={s.cardParent}>Parent: {r.parentName}</Text>
                   )}
                 </View>
                 {/* Status badge */}
@@ -178,12 +175,12 @@ export default function LinkRequestsScreen() {
                 )}
               </View>
 
-              {r.rejection_reason && (
-                <Text style={s.rejectionReason}>{r.rejection_reason}</Text>
+              {r.rejectionReason && (
+                <Text style={s.rejectionReason}>{r.rejectionReason}</Text>
               )}
 
               <Text style={s.cardDate}>
-                {new Date(r.created_at).toLocaleDateString('en-ZA', {
+                {new Date(r.createdAt).toLocaleDateString('en-ZA', {
                   day: 'numeric', month: 'short', year: 'numeric',
                 })}
               </Text>
@@ -228,7 +225,7 @@ export default function LinkRequestsScreen() {
             <Text style={s.modalDesc}>
               Rejecting request for{' '}
               <Text style={{ color: '#f1f5f9', fontWeight: '700' }}>
-                {rejectTarget?.first_name} {rejectTarget?.last_name}
+                {rejectTarget?.firstName} {rejectTarget?.lastName}
               </Text>
               . The parent will be notified.
             </Text>

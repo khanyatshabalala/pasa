@@ -41,9 +41,11 @@ public class LinkRequestController {
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
     public List<LinkRequestResponse> getSchoolRequests(
             @PathVariable UUID schoolId,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            Authentication auth
     ) {
-        return linkRequestService.getSchoolRequests(schoolId, status);
+        UUID reviewerId = (UUID) auth.getPrincipal();
+        return linkRequestService.getSchoolRequests(schoolId, status, reviewerId);
     }
 
     @PostMapping("/link-requests/{id}/approve")

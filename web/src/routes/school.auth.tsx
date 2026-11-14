@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { api } from "@/lib/api";
+import { api, type TokenResponse } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +38,7 @@ function SchoolAuth() {
 
     setLoading(true);
     try {
-      const resp = await api.post<{ token: string; userId: string; role: string; schoolId?: string }>(
+      const resp = await api.post<TokenResponse>(
         "/api/v1/auth/staff/signin",
         parsed.data,
         { skipAuth: true }

@@ -6,16 +6,16 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { apiErrorMessage, apiRequest } from "@/lib/api";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 type ClassRow = {
-  id: string; name: string; grade_id: number;
-  academic_year: number; teacher_user_id: string | null; teacher_name: string | null;
+  id: string; name: string; gradeId: number;
+  academicYear: number; teacherUserId: string | null;
 };
 type Grade       = { id: number; label: string };
-type StaffMember = { id: string; full_name: string | null };
+type StaffMember = { id: string; userId: string; staffNumber: string | null; position: string | null; fullName: string | null };
 
 export default function ClassesScreen() {
   const { primaryRole, primarySchoolId } = useAuth();
@@ -25,6 +25,7 @@ export default function ClassesScreen() {
   const [grades, setGrades]     = useState<Grade[]>([]);
   const [staff, setStaff]       = useState<StaffMember[]>([]);
   const [loading, setLoading]   = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving]     = useState(false);
@@ -37,38 +38,23 @@ export default function ClassesScreen() {
   const [showTeacherPicker, setShowTeacherPicker] = useState(false);
 
   const load = async () => {
-    if (!primarySchoolId) { setLoading(false); return; }
+    if (!primarySchoolId) { setClasses([]); setLoading(false); return; }
     setLoading(true);
-
-    const [{ data: classData }, { data: gradeData }, { data: roleData }] = await Promise.all([
-      supabase.from("classes")
-        .select("id, name, grade_id, academic_year, teacher_user_id")
-        .eq("school_id", primarySchoolId)
-        .order("grade_id").order("name"),
-      supabase.from("grades").select("id, label").order("id"),
-      supabase.from("user_roles").select("user_id")
-        .eq("school_id", primarySchoolId)
-        .in("role", ["teacher", "school_admin", "principal"]),
-    ]);
-
-    setGrades((gradeData ?? []) as Grade[]);
-
-    const staffIds = [...new Set((roleData ?? []).map((r: any) => r.user_id))];
-    let staffList: StaffMember[] = [];
-    if (staffIds.length > 0) {
-      const { data: profileData } = await supabase
-        .from("profiles").select("id, full_name").in("id", staffIds).order("full_name");
-      staffList = (profileData ?? []) as StaffMember[];
+    setLoadError(null);
+    try {
+      const [classData, gradeData, staffData] = await Promise.all([
+        apiRequest<ClassRow[]>(`/api/v1/schools/${primarySchoolId}/classes?year=${CURRENT_YEAR}`),
+        apiRequest<Grade[]>(`/api/v1/grades?schoolId=${primarySchoolId}`),
+        apiRequest<StaffMember[]>(`/api/v1/schools/${primarySchoolId}/staff`),
+      ]);
+      setClasses(classData);
+      setGrades(gradeData);
+      setStaff(staffData);
+    } catch (error) {
+      setLoadError(apiErrorMessage(error));
+    } finally {
+      setLoading(false);
     }
-    setStaff(staffList);
-
-    const staffMap = Object.fromEntries(staffList.map(s => [s.id, s.full_name]));
-    const enriched: ClassRow[] = (classData ?? []).map((c: any) => ({
-      ...c,
-      teacher_name: c.teacher_user_id ? (staffMap[c.teacher_user_id] ?? "Unknown") : null,
-    }));
-    setClasses(enriched);
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [primarySchoolId]);
@@ -81,19 +67,25 @@ export default function ClassesScreen() {
     if (gradeId === null) { Alert.alert("Select a grade"); return; }
     if (!primarySchoolId) return;
     setSaving(true);
-    const { error } = await supabase.from("classes").insert({
-      school_id:       primarySchoolId,
-      name:            name.trim(),
-      grade_id:        gradeId,
-      teacher_user_id: teacherId ?? null,
-      academic_year:   CURRENT_YEAR,
-    });
-    setSaving(false);
-    if (error) { Alert.alert("Error", error.message); return; }
-    Alert.alert("Class created", `"${name.trim()}" has been added.`);
-    setModalOpen(false);
-    setName(""); setGradeId(null); setTeacherId(null);
-    load();
+    try {
+      await apiRequest(`/api/v1/schools/${primarySchoolId}/classes`, {
+        method: "POST",
+        body: {
+          name: name.trim(),
+          gradeId,
+          teacherUserId: teacherId,
+          academicYear: CURRENT_YEAR,
+        },
+      });
+      Alert.alert("Class created", `"${name.trim()}" has been added.`);
+      setModalOpen(false);
+      setName(""); setGradeId(null); setTeacherId(null);
+      await load();
+    } catch (error) {
+      Alert.alert("Could not create class", apiErrorMessage(error));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const onDelete = (cls: ClassRow) => {
@@ -102,10 +94,16 @@ export default function ClassesScreen() {
       {
         text: "Delete", style: "destructive",
         onPress: async () => {
+          if (!primarySchoolId) return;
           setDeleting(cls.id);
-          await supabase.from("classes").delete().eq("id", cls.id);
-          setDeleting(null);
-          load();
+          try {
+            await apiRequest(`/api/v1/schools/${primarySchoolId}/classes/${cls.id}`, { method: "DELETE" });
+            await load();
+          } catch (error) {
+            Alert.alert("Could not delete class", apiErrorMessage(error));
+          } finally {
+            setDeleting(null);
+          }
         },
       },
     ]);
@@ -124,7 +122,7 @@ export default function ClassesScreen() {
 
   // Group by grade
   const byGrade = classes.reduce<Record<number, ClassRow[]>>((acc, c) => {
-    (acc[c.grade_id] ??= []).push(c);
+    (acc[c.gradeId] ??= []).push(c);
     return acc;
   }, {});
   const sortedGrades = Object.keys(byGrade).map(Number).sort((a, b) => a - b);
@@ -140,6 +138,15 @@ export default function ClassesScreen() {
 
       {loading ? (
         <ActivityIndicator color="#38bdf8" style={{ marginTop: 40 }} />
+      ) : loadError ? (
+        <View style={s.emptyWrap}>
+          <Text style={s.empty}>{loadError}</Text>
+          <TouchableOpacity onPress={load}><Text style={s.pickerOptionActive}>Try again</Text></TouchableOpacity>
+        </View>
+      ) : !primarySchoolId ? (
+        <View style={s.emptyWrap}>
+          <Text style={s.empty}>No school is associated with this staff account.</Text>
+        </View>
       ) : classes.length === 0 ? (
         <View style={s.emptyWrap}>
           <Ionicons name="school-outline" size={40} color="#334155" />
@@ -158,8 +165,10 @@ export default function ClassesScreen() {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={s.cardName}>{cls.name}</Text>
-                    {cls.teacher_name ? (
-                      <Text style={s.cardTeacher}>{cls.teacher_name}</Text>
+                    {cls.teacherUserId ? (
+                      <Text style={s.cardTeacher}>
+                        {staff.find(t => t.userId === cls.teacherUserId)?.fullName ?? "Teacher assigned"}
+                      </Text>
                     ) : (
                       <Text style={s.cardTeacherEmpty}>Unassigned</Text>
                     )}
@@ -209,7 +218,7 @@ export default function ClassesScreen() {
             </Text>
             <TouchableOpacity style={s.picker} onPress={() => setShowTeacherPicker(true)}>
               <Text style={teacherId ? s.pickerText : s.pickerPlaceholder}>
-                {teacherId ? (staff.find(t => t.id === teacherId)?.full_name ?? "Unknown") : "Unassigned"}
+                {teacherId ? (staff.find(t => t.userId === teacherId)?.fullName ?? "Teacher selected") : "Unassigned"}
               </Text>
               <Ionicons name="chevron-down" size={16} color="#64748b" />
             </TouchableOpacity>
@@ -256,12 +265,12 @@ export default function ClassesScreen() {
                 {!teacherId && <Ionicons name="checkmark" size={16} color="#38bdf8" />}
               </TouchableOpacity>
               {staff.map(t => (
-                <TouchableOpacity key={t.id} style={s.pickerOption}
-                  onPress={() => { setTeacherId(t.id); setShowTeacherPicker(false); }}>
-                  <Text style={[s.pickerOptionText, teacherId === t.id && s.pickerOptionActive]}>
-                    {t.full_name ?? t.id}
+                <TouchableOpacity key={t.userId} style={s.pickerOption}
+                  onPress={() => { setTeacherId(t.userId); setShowTeacherPicker(false); }}>
+                  <Text style={[s.pickerOptionText, teacherId === t.userId && s.pickerOptionActive]}>
+                    {t.fullName ?? t.staffNumber ?? "Staff member"}
                   </Text>
-                  {teacherId === t.id && <Ionicons name="checkmark" size={16} color="#38bdf8" />}
+                  {teacherId === t.userId && <Ionicons name="checkmark" size={16} color="#38bdf8" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>

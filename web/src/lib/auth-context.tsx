@@ -31,7 +31,7 @@ interface AuthCtx {
   primarySchoolId: string | null;
   displayName: string | null;
   /** Call after a successful sign-in to store token + hydrate context */
-  onSignIn: (resp: TokenResponse & { schoolId?: string | null }) => Promise<void>;
+  onSignIn: (resp: TokenResponse) => Promise<void>;
   signOut: () => void;
   refresh: () => Promise<void>;
 }
@@ -62,12 +62,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadProfile = async (uid: string) => {
     if (fetchedUid.current === uid) return;
-    fetchedUid.current = uid;
     try {
       const p = await api.get<ProfileResponse>("/api/v1/profile");
       setProfile(p);
-    } catch {
-      // non-fatal — profile may not be available yet
+      fetchedUid.current = uid;
+    } catch (err) {
+      fetchedUid.current = null;
+      console.error("Could not load the signed-in user's profile.", err);
     }
   };
 
@@ -78,7 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       id: decoded.sub,
       email: decoded.email,
       role: decoded.role as UserRole,
-      schoolId: null, // will be filled after profile load if needed
+      schoolId: null,
     };
     setUser(u);
     await loadProfile(decoded.sub);
@@ -95,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const onSignIn = async (resp: TokenResponse & { schoolId?: string | null }) => {
+  const onSignIn = async (resp: TokenResponse) => {
     setToken(resp.token);
     const decoded = decodeJwt(resp.token);
     if (!decoded) return;
@@ -124,8 +125,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const primaryRole: UserRole = user?.role ?? "parent";
-  // The sign-in response carries no school, so the school comes from the profile, which is
-  // loaded both after sign-in and when a session is restored on page load.
+  // Sign-in provides the school immediately; restored sessions resolve it through the profile.
   const primarySchoolId = user?.schoolId ?? profile?.schoolId ?? null;
 
   return (

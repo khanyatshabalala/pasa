@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, Modal, TextInput, Alert,
@@ -6,7 +6,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { apiRequest, apiErrorMessage } from "@/lib/api";
 
 const PROVINCES = [
   "Eastern Cape","Free State","Gauteng","KwaZulu-Natal","Limpopo",
@@ -15,18 +15,25 @@ const PROVINCES = [
 
 type ChildLink = {
   id: string;
-  relationship: string;
-  is_primary: boolean;
-  learners: { id: string; first_name: string; last_name: string; grade_id: number; schools: { name: string } | null } | null;
+  firstName: string;
+  lastName: string;
+  gradeId: number | null;
+  schoolName: string | null;
+  relationship: string | null;
+  isPrimary: boolean | null;
 };
 type LinkRequest = {
-  id: string; first_name: string; last_name: string; learner_number: string;
-  status: "pending" | "approved" | "rejected"; rejection_reason: string | null;
-  created_at: string; schools: { name: string } | null;
+  id: string; firstName: string; lastName: string; learnerNumber: string;
+  gradeId: number | null; schoolName: string | null;
+  status: "pending" | "approved" | "rejected"; rejectionReason: string | null;
+  createdAt: string;
 };
+type District = { id: string; name: string };
+type School = { id: string; name: string; gradeFrom: number | null; gradeTo: number | null };
+type Grade = { id: number; label: string; phase: string };
 
 export default function ChildrenScreen() {
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const isPremium = profile?.subscription_tier === "premium";
   const [children, setChildren] = useState<ChildLink[]>([]);
   const [requests, setRequests] = useState<LinkRequest[]>([]);
@@ -38,8 +45,11 @@ export default function ChildrenScreen() {
   const [province, setProvince] = useState("");
   const [districtId, setDistrictId] = useState("");
   const [schoolId, setSchoolId] = useState("");
-  const [districts, setDistricts] = useState<{ id: string; name: string }[]>([]);
-  const [schools, setSchools] = useState<{ id: string; name: string }[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [schools, setSchools] = useState<School[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [gradeId, setGradeId] = useState<number | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [learnerNo, setLearnerNo] = useState("");
@@ -48,57 +58,83 @@ export default function ChildrenScreen() {
   const [showProvince, setShowProvince] = useState(false);
   const [showDistrict, setShowDistrict] = useState(false);
   const [showSchool, setShowSchool] = useState(false);
+  const [showGrade, setShowGrade] = useState(false);
 
-  const load = async () => {
-    if (!user) return;
-    const [{ data: links }, { data: reqs }] = await Promise.all([
-      supabase.from("parent_links")
-        .select("id, relationship, is_primary, learners(id, first_name, last_name, grade_id, schools(name))")
-        .eq("parent_user_id", user.id),
-      (supabase as any).from("parent_link_requests")
-        .select("id, first_name, last_name, learner_number, status, rejection_reason, created_at, schools(name)")
-        .eq("parent_user_id", user.id).order("created_at", { ascending: false }),
-    ]);
-    setChildren((links ?? []) as unknown as ChildLink[]);
-    setRequests((reqs ?? []) as LinkRequest[]);
-    setLoading(false);
-  };
+  const load = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [links, reqs] = await Promise.all([
+        apiRequest<ChildLink[]>("/api/v1/children"),
+        apiRequest<LinkRequest[]>("/api/v1/link-requests/mine"),
+      ]);
+      setChildren(links);
+      setRequests(reqs);
+    } catch (error) {
+      setLoadError(apiErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
     if (!province) { setDistricts([]); setDistrictId(""); setSchools([]); setSchoolId(""); return; }
-    supabase.from("districts").select("id, name").eq("province", province as any).order("name")
-      .then(({ data }) => { setDistricts(data ?? []); setDistrictId(""); setSchools([]); setSchoolId(""); });
+    apiRequest<District[]>(`/api/v1/districts?province=${encodeURIComponent(province)}`)
+      .then(data => { setDistricts(data); setDistrictId(""); setSchools([]); setSchoolId(""); })
+      .catch(error => Alert.alert("Could not load districts", apiErrorMessage(error)));
   }, [province]);
 
   useEffect(() => {
     if (!districtId) { setSchools([]); setSchoolId(""); return; }
-    supabase.from("schools").select("id, name").eq("district_id", districtId).order("name")
-      .then(({ data }) => { setSchools(data ?? []); setSchoolId(""); });
+    apiRequest<Array<{ id: string; name: string; gradeFrom: number | null; gradeTo: number | null }>>(
+      `/api/v1/schools?districtId=${encodeURIComponent(districtId)}`
+    )
+      .then(data => { setSchools(data); setSchoolId(""); setGradeId(null); setGrades([]); })
+      .catch(error => Alert.alert("Could not load schools", apiErrorMessage(error)));
   }, [districtId]);
+
+  useEffect(() => {
+    if (!schoolId) { setGrades([]); setGradeId(null); return; }
+    apiRequest<Grade[]>(`/api/v1/grades?schoolId=${encodeURIComponent(schoolId)}`)
+      .then(setGrades)
+      .catch(error => Alert.alert("Could not load grades", apiErrorMessage(error)));
+  }, [schoolId]);
 
   const resetForm = () => {
     setProvince(""); setDistrictId(""); setSchoolId("");
     setDistricts([]); setSchools([]);
+    setGrades([]); setGradeId(null);
     setFirstName(""); setLastName(""); setLearnerNo("");
   };
 
   const onSubmit = async () => {
     if (!schoolId) return Alert.alert("Select a school");
+    if (gradeId === null) return Alert.alert("Select the learner's grade");
     if (!firstName.trim()) return Alert.alert("Enter first name");
     if (!lastName.trim()) return Alert.alert("Enter last name");
     if (!learnerNo.trim()) return Alert.alert("Enter learner number");
     setSubmitting(true);
-    const { error } = await (supabase as any).from("parent_link_requests").insert({
-      parent_user_id: user!.id, school_id: schoolId,
-      first_name: firstName.trim(), last_name: lastName.trim(),
-      learner_number: learnerNo.trim(), relationship: "parent",
-    });
-    setSubmitting(false);
-    if (error) { Alert.alert("Error", error.code === "23505" ? "Request already submitted for this learner." : error.message); return; }
-    Alert.alert("Submitted", "The school will review and approve your request.");
-    setModalOpen(false); resetForm(); load();
+    try {
+      await apiRequest("/api/v1/link-requests", {
+        method: "POST",
+        body: {
+          schoolId,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          learnerNumber: learnerNo.trim(),
+          relationship: "parent",
+          gradeId,
+        },
+      });
+      Alert.alert("Submitted", "The school will review and approve your request.");
+      setModalOpen(false); resetForm(); await load();
+    } catch (error) {
+      Alert.alert("Could not submit request", apiErrorMessage(error));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const pending = requests.filter(r => r.status === "pending");
@@ -123,7 +159,12 @@ export default function ChildrenScreen() {
         </View>
       )}
 
-      {loading ? <ActivityIndicator color="#38bdf8" style={{ marginTop: 40 }} /> : (
+      {loading ? <ActivityIndicator color="#38bdf8" style={{ marginTop: 40 }} /> : loadError ? (
+        <View style={s.emptyWrap}>
+          <Text style={s.rejectedReason}>{loadError}</Text>
+          <TouchableOpacity onPress={load}><Text style={s.pickerOptionActive}>Try again</Text></TouchableOpacity>
+        </View>
+      ) : (
         <ScrollView contentContainerStyle={s.list}>
           {pending.length > 0 && (
             <>
@@ -132,8 +173,8 @@ export default function ChildrenScreen() {
                 <View key={r.id} style={[s.card, s.cardPending]}>
                   <Ionicons name="time-outline" size={18} color="#f97316" />
                   <View style={{ flex: 1 }}>
-                    <Text style={s.cardName}>{r.first_name} {r.last_name}</Text>
-                    <Text style={s.cardSub}>{r.schools?.name} · {r.learner_number}</Text>
+                    <Text style={s.cardName}>{r.firstName} {r.lastName}</Text>
+                    <Text style={s.cardSub}>{r.schoolName} · {r.learnerNumber}</Text>
                   </View>
                   <View style={s.pendingPill}><Text style={s.pendingPillText}>Pending</Text></View>
                 </View>
@@ -148,9 +189,9 @@ export default function ChildrenScreen() {
                 <View key={r.id} style={[s.card, s.cardRejected]}>
                   <Ionicons name="close-circle-outline" size={18} color="#ef4444" />
                   <View style={{ flex: 1 }}>
-                    <Text style={s.cardName}>{r.first_name} {r.last_name}</Text>
-                    <Text style={s.cardSub}>{r.schools?.name} · {r.learner_number}</Text>
-                    {r.rejection_reason && <Text style={s.rejectedReason}>{r.rejection_reason}</Text>}
+                    <Text style={s.cardName}>{r.firstName} {r.lastName}</Text>
+                    <Text style={s.cardSub}>{r.schoolName} · {r.learnerNumber}</Text>
+                    {r.rejectionReason && <Text style={s.rejectedReason}>{r.rejectionReason}</Text>}
                   </View>
                 </View>
               ))}
@@ -161,14 +202,13 @@ export default function ChildrenScreen() {
             <>
               <Text style={s.sectionLabel}>Linked children</Text>
               {children.map(c => {
-                const l = c.learners; if (!l) return null;
                 return (
                   <View key={c.id} style={s.card}>
-                    <View style={s.avatar}><Text style={s.avatarText}>{l.first_name[0]}{l.last_name[0]}</Text></View>
+                    <View style={s.avatar}><Text style={s.avatarText}>{c.firstName[0]}{c.lastName[0]}</Text></View>
                     <View style={{ flex: 1 }}>
-                      <Text style={s.cardName}>{l.first_name} {l.last_name}</Text>
-                      <Text style={s.cardSub}>{l.schools?.name} · Grade {l.grade_id === 0 ? "R" : l.grade_id}</Text>
-                      <Text style={s.cardRelationship}>{c.relationship}{c.is_primary ? " · Primary" : ""}</Text>
+                      <Text style={s.cardName}>{c.firstName} {c.lastName}</Text>
+                      <Text style={s.cardSub}>{c.schoolName} · {grades.find(g => g.id === c.gradeId)?.label ?? (c.gradeId === 0 ? "Grade R" : c.gradeId ? `Grade ${c.gradeId}` : "Grade not set")}</Text>
+                      <Text style={s.cardRelationship}>{c.relationship}{c.isPrimary ? " · Primary" : ""}</Text>
                     </View>
                     <Ionicons name="checkmark-circle" size={18} color="#22c55e" />
                   </View>
@@ -177,7 +217,7 @@ export default function ChildrenScreen() {
             </>
           )}
 
-          {children.length === 0 && pending.length === 0 && (
+          {children.length === 0 && requests.length === 0 && (
             <View style={s.emptyWrap}>
               <Ionicons name="people-outline" size={40} color="#334155" />
               <Text style={s.empty}>No children linked yet.</Text>
@@ -200,6 +240,14 @@ export default function ChildrenScreen() {
             <Text style={s.fieldLabel}>Province</Text>
             <TouchableOpacity style={s.picker} onPress={() => setShowProvince(true)}>
               <Text style={province ? s.pickerText : s.pickerPlaceholder}>{province || "Select province"}</Text>
+              <Ionicons name="chevron-down" size={16} color="#64748b" />
+            </TouchableOpacity>
+
+            <Text style={s.fieldLabel}>Learner grade</Text>
+            <TouchableOpacity style={[s.picker, !schoolId && s.pickerDisabled]} onPress={() => schoolId && setShowGrade(true)}>
+              <Text style={gradeId !== null ? s.pickerText : s.pickerPlaceholder}>
+                {grades.find(g => g.id === gradeId)?.label ?? (!schoolId ? "Select school first" : "Select grade")}
+              </Text>
               <Ionicons name="chevron-down" size={16} color="#64748b" />
             </TouchableOpacity>
 
@@ -230,9 +278,9 @@ export default function ChildrenScreen() {
             <Text style={s.hint}>Enter details exactly as registered at the school.</Text>
 
             <TouchableOpacity
-              style={[s.submitBtn, (submitting || !schoolId || !firstName || !lastName || !learnerNo) && s.submitBtnDisabled]}
+              style={[s.submitBtn, (submitting || !schoolId || gradeId === null || !firstName || !lastName || !learnerNo) && s.submitBtnDisabled]}
               onPress={onSubmit}
-              disabled={submitting || !schoolId || !firstName || !lastName || !learnerNo}
+              disabled={submitting || !schoolId || gradeId === null || !firstName || !lastName || !learnerNo}
             >
               <Text style={s.submitBtnText}>{submitting ? "Submitting…" : "Submit request"}</Text>
             </TouchableOpacity>
@@ -253,6 +301,26 @@ export default function ChildrenScreen() {
                 ))}
               </ScrollView>
               <TouchableOpacity style={s.pickerCancel} onPress={() => setShowProvince(false)}>
+                <Text style={s.pickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Grade picker */}
+        <Modal visible={showGrade} transparent animationType="slide">
+          <View style={s.pickerModal}>
+            <View style={s.pickerSheet}>
+              <Text style={s.pickerSheetTitle}>Select grade</Text>
+              <ScrollView>
+                {grades.map(g => (
+                  <TouchableOpacity key={g.id} style={s.pickerOption} onPress={() => { setGradeId(g.id); setShowGrade(false); }}>
+                    <Text style={[s.pickerOptionText, gradeId === g.id && s.pickerOptionActive]}>{g.label}</Text>
+                    {gradeId === g.id && <Ionicons name="checkmark" size={16} color="#38bdf8" />}
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+              <TouchableOpacity style={s.pickerCancel} onPress={() => setShowGrade(false)}>
                 <Text style={s.pickerCancelText}>Cancel</Text>
               </TouchableOpacity>
             </View>

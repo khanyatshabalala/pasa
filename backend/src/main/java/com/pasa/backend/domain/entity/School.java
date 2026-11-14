@@ -3,6 +3,7 @@ package com.pasa.backend.domain.entity;
 import com.pasa.backend.domain.enums.SchoolPhase;
 import com.pasa.backend.domain.enums.SchoolType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -29,13 +30,16 @@ public class School {
     private String district;
 
     @Column(nullable = false)
+    @ColumnTransformer(write = "?::sa_province")
     private String province;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @ColumnTransformer(write = "?::school_phase")
     private SchoolPhase phase;
 
     @Column(name = "school_type", nullable = false)
+    @ColumnTransformer(write = "?::school_type")
     private SchoolType schoolType;
 
     private String address;

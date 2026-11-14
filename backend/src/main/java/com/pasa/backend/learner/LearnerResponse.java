@@ -16,5 +16,7 @@ public record LearnerResponse(
     /** UUID of the class the learner belongs to (e.g. 10A). Null if unassigned. */
     UUID classId,
     /** Name of the class (e.g. "10A"). Null if unassigned. Used for display: "Grade 10A". */
-    String className
+    String className,
+    String relationship,
+    Boolean isPrimary
 ) {}

@@ -7,6 +7,7 @@ import com.pasa.backend.repository.LearnerRepository;
 import com.pasa.backend.repository.ParentLinkRepository;
 import com.pasa.backend.repository.SchoolRepository;
 import com.pasa.backend.schoolclass.SchoolClassRepository;
+import com.pasa.backend.security.SchoolAccessGuard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.OffsetDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,6 +34,7 @@ public class LinkRequestService {
     private final ParentLinkRepository parentLinkRepo;
     private final SchoolClassRepository classRepo;
     private final JdbcTemplate jdbc;
+    private final SchoolAccessGuard schoolAccessGuard;
 
     public LinkRequestService(
             LinkRequestRepository linkRequestRepo,
@@ -38,13 +42,15 @@ public class LinkRequestService {
             LearnerRepository learnerRepo,
             ParentLinkRepository parentLinkRepo,
             SchoolClassRepository classRepo,
-            JdbcTemplate jdbc) {
+            JdbcTemplate jdbc,
+            SchoolAccessGuard schoolAccessGuard) {
         this.linkRequestRepo = linkRequestRepo;
         this.schoolRepo = schoolRepo;
         this.learnerRepo = learnerRepo;
         this.parentLinkRepo = parentLinkRepo;
         this.classRepo = classRepo;
         this.jdbc = jdbc;
+        this.schoolAccessGuard = schoolAccessGuard;
     }
 
     public List<LinkRequestResponse> getMyRequests(UUID parentId) {
@@ -56,13 +62,30 @@ public class LinkRequestService {
     public LinkRequestResponse submitRequest(SubmitLinkRequest req, UUID parentId) {
         School school = schoolRepo.findById(req.schoolId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
+        int gradeFrom = school.getGradeFrom() != null ? school.getGradeFrom() : defaultGradeFrom(school);
+        int gradeTo = school.getGradeTo() != null ? school.getGradeTo() : defaultGradeTo(school);
+        if (req.gradeId() < gradeFrom || req.gradeId() > gradeTo) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Selected grade is not offered by this school");
+        }
+        if (req.classId() != null) {
+            var schoolClass = classRepo.findById(req.classId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class not found"));
+            if (!schoolClass.getSchool().getId().equals(school.getId())
+                    || !schoolClass.getGradeId().equals(req.gradeId())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class must belong to the selected school and grade");
+            }
+        }
+        String learnerNumber = req.learnerNumber().trim();
+        if (linkRequestRepo.existsByParentUserIdAndSchool_IdAndLearnerNumber(parentId, school.getId(), learnerNumber)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Request already submitted for this learner");
+        }
 
         LinkRequest request = new LinkRequest();
         request.setParentUserId(parentId);
         request.setSchool(school);
-        request.setLearnerNumber(req.learnerNumber());
-        request.setFirstName(req.firstName());
-        request.setLastName(req.lastName());
+        request.setLearnerNumber(learnerNumber);
+        request.setFirstName(req.firstName().trim());
+        request.setLastName(req.lastName().trim());
         request.setRelationship(req.relationship() != null ? req.relationship() : "parent");
         request.setStatus("pending");
         request.setGradeId(req.gradeId());
@@ -71,14 +94,44 @@ public class LinkRequestService {
         return LinkRequestMapper.toResponse(linkRequestRepo.save(request));
     }
 
-    public List<LinkRequestResponse> getSchoolRequests(UUID schoolId, String status) {
+    private int defaultGradeFrom(School school) {
+        return switch (school.getPhase()) {
+            case primary, combined -> 0;
+            case secondary -> 8;
+            case ecd -> 0;
+        };
+    }
+
+    private int defaultGradeTo(School school) {
+        return switch (school.getPhase()) {
+            case primary -> 7;
+            case secondary, combined -> 12;
+            case ecd -> 0;
+        };
+    }
+
+    public List<LinkRequestResponse> getSchoolRequests(UUID schoolId, String status, UUID reviewerId) {
+        schoolAccessGuard.assertCanManageSchool(schoolId, reviewerId);
         List<LinkRequest> requests;
         if (status != null) {
             requests = linkRequestRepo.findBySchoolIdAndStatus(schoolId, status);
         } else {
             requests = linkRequestRepo.findBySchoolIdOrderByCreatedAtDesc(schoolId);
         }
-        return requests.stream().map(LinkRequestMapper::toResponse).toList();
+        Map<UUID, String> parentNames = new HashMap<>();
+        for (Map<String, Object> row : jdbc.queryForList("""
+                SELECT DISTINCT lr.parent_user_id, p.full_name
+                FROM public.parent_link_requests lr
+                LEFT JOIN public.profiles p ON p.id = lr.parent_user_id
+                WHERE lr.school_id = ?
+                """, schoolId)) {
+            if (row.get("full_name") != null) {
+                parentNames.put(UUID.fromString(row.get("parent_user_id").toString()), row.get("full_name").toString());
+            }
+        }
+        return requests.stream()
+                .map(request -> LinkRequestMapper.toResponse(request, parentNames.get(request.getParentUserId())))
+                .toList();
     }
 
     /**
@@ -104,6 +157,7 @@ public class LinkRequestService {
 
         School school = request.getSchool();
         UUID schoolId = school.getId();
+        schoolAccessGuard.assertCanManageSchool(schoolId, reviewerId);
 
         // ── Step 1: find or create the learner ───────────────────────────────
         Optional<Learner> existing = learnerRepo.findBySchool_IdAndLearnerNumber(
@@ -132,9 +186,13 @@ public class LinkRequestService {
             // Use grade/class supplied by the parent if available.
             Integer gradeId = request.getGradeId();
             UUID classId = request.getClassId();
-            if (gradeId == null && classId != null) {
-                // Derive grade from the class if grade wasn't set directly.
-                gradeId = classRepo.findById(classId).map(c -> c.getGradeId()).orElse(null);
+            if (classId != null) {
+                var schoolClass = classRepo.findById(classId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class not found"));
+                if (!schoolClass.getSchool().getId().equals(schoolId)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Class must belong to this school");
+                }
+                if (gradeId == null) gradeId = schoolClass.getGradeId();
             }
             learner.setGradeId(gradeId);
             learner.setClassId(classId);
@@ -181,6 +239,7 @@ public class LinkRequestService {
     public LinkRequestResponse rejectRequest(UUID id, RejectRequest body, UUID reviewerId) {
         LinkRequest request = linkRequestRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        schoolAccessGuard.assertCanManageSchool(request.getSchool().getId(), reviewerId);
         if (!"pending".equals(request.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Request already processed");
         }

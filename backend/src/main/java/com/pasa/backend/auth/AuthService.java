@@ -109,7 +109,25 @@ public class AuthService {
     private TokenResponse issueTokens(UUID userId, String email, String role) {
         String access = jwtUtil.generateToken(userId, email, role);
         String refresh = jwtUtil.generateRefreshToken(userId);
-        return new TokenResponse(access, userId.toString(), role, refresh);
+        String schoolId = getSchoolId(userId, role);
+        return new TokenResponse(access, userId.toString(), role, refresh, schoolId);
+    }
+
+    /** Primary school for staff roles; null for parents and super admins. */
+    private String getSchoolId(UUID userId, String role) {
+        if ("parent".equals(role) || "super_admin".equals(role)) return null;
+        var rows = jdbc.queryForList("""
+            SELECT school_id FROM public.user_roles
+            WHERE user_id = ? AND school_id IS NOT NULL
+              AND role::text IN ('principal','school_admin','teacher')
+            ORDER BY CASE role::text
+                       WHEN 'principal'    THEN 1
+                       WHEN 'school_admin' THEN 2
+                       ELSE 3
+                     END, created_at ASC
+            LIMIT 1
+            """, userId);
+        return rows.isEmpty() ? null : rows.get(0).get("school_id").toString();
     }
 
     public TokenResponse signInParent(SignInRequest req) {

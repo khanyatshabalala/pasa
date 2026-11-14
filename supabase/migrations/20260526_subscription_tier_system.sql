@@ -139,7 +139,7 @@ CREATE INDEX IF NOT EXISTS idx_parent_subscriptions_tier
 
 -- ── Bootstrap: Create subscription records for all existing parents ────
 -- All are free tier initially.
-INSERT INTO public.parent_subscriptions (parent_user_id, tier)
+INSERT INTO public.parent_subscriptions (parent_user_id)
 SELECT DISTINCT pl.parent_user_id
 FROM public.parent_links pl
 WHERE NOT EXISTS (

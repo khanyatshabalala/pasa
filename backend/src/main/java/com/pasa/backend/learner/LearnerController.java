@@ -29,8 +29,8 @@ public class LearnerController {
 
     @GetMapping("/schools/{schoolId}/learners")
     @PreAuthorize("hasAnyRole('TEACHER','PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public List<LearnerResponse> getLearnersBySchool(@PathVariable UUID schoolId) {
-        return learnerService.getLearnersBySchool(schoolId);
+    public List<LearnerResponse> getLearnersBySchool(@PathVariable UUID schoolId, Authentication auth) {
+        return learnerService.getLearnersBySchool(schoolId, (UUID) auth.getPrincipal());
     }
 
     @GetMapping("/learners/{id}")
@@ -42,14 +42,20 @@ public class LearnerController {
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
     public ResponseEntity<LearnerResponse> createLearner(
             @PathVariable UUID schoolId,
-            @Valid @RequestBody CreateLearnerRequest req
+            @Valid @RequestBody CreateLearnerRequest req,
+            Authentication auth
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(learnerService.createLearner(schoolId, req));
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                learnerService.createLearner(schoolId, req, (UUID) auth.getPrincipal()));
     }
 
     @PutMapping("/learners/{id}")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
-    public LearnerResponse updateLearner(@PathVariable UUID id, @Valid @RequestBody CreateLearnerRequest req) {
-        return learnerService.updateLearner(id, req);
+    public LearnerResponse updateLearner(
+            @PathVariable UUID id,
+            @Valid @RequestBody CreateLearnerRequest req,
+            Authentication auth
+    ) {
+        return learnerService.updateLearner(id, req, (UUID) auth.getPrincipal());
     }
 }

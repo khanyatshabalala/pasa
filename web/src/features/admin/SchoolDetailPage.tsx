@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
-import { api, ApiError, type SchoolResponse } from "@/lib/api";
+import { api, ApiError, type DistrictResponse, type SchoolResponse } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,7 @@ const PHASE_GRADES: Record<string, { min: number; max: number; label: string }> 
   secondary: { min: 8, max: 12, label: "Grade 8 to Grade 12" },
   combined:  { min: 0, max: 12, label: "Grade R to Grade 12" },
 };
+const SCHOOL_TYPES = ["PUBLIC", "INDEPENDENT", "PRIVATE", "SPECIAL"] as const;
 
 // Builds the full CreateSchoolRequest payload the PUT endpoint requires,
 // merging the current school with the supplied overrides.
@@ -36,11 +37,21 @@ function schoolPayload(school: SchoolResponse, overrides: Record<string, unknown
     district: school.district,
     province: school.province,
     phase: school.phase,
-    schoolType: (school.schoolType ?? "").toUpperCase() || null,
+    schoolType: school.schoolType?.toUpperCase() || null,
     city: school.city,
     email: school.email,
     phone: school.phone,
     districtId: school.districtId,
+    address: school.address,
+    postalCode: school.postalCode,
+    website: school.website,
+    principalName: school.principalName,
+    establishedYear: school.establishedYear,
+    learnerCount: school.learnerCount,
+    feesAnnual: school.feesAnnual,
+    logoUrl: school.logoUrl,
+    motto: school.motto,
+    description: school.description,
     gradeFrom: school.gradeFrom,
     gradeTo: school.gradeTo,
     applicationOpen: school.applicationOpen,
@@ -50,6 +61,27 @@ function schoolPayload(school: SchoolResponse, overrides: Record<string, unknown
     ...overrides,
   };
 }
+
+const schoolDetailsSchema = z.object({
+  name: z.string().trim().min(2).max(200),
+  emis_number: z.string().trim().min(3).max(20),
+  district: z.string().trim().min(2).max(100),
+  province: z.string().trim().min(2).max(100),
+  school_type: z.enum(SCHOOL_TYPES),
+  city: z.string().trim().max(100).optional().or(z.literal("")),
+  email: z.string().trim().email().max(255).optional().or(z.literal("")),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  address: z.string().trim().max(255).optional().or(z.literal("")),
+  postal_code: z.string().trim().max(20).optional().or(z.literal("")),
+  website: z.string().trim().max(255).optional().or(z.literal("")),
+  principal_name: z.string().trim().max(150).optional().or(z.literal("")),
+  established_year: z.union([z.literal(""), z.coerce.number().int().min(1800).max(2100)]),
+  learner_count: z.union([z.literal(""), z.coerce.number().int().min(0)]),
+  fees_annual: z.union([z.literal(""), z.coerce.number().min(0)]),
+  logo_url: z.string().trim().max(500).optional().or(z.literal("")),
+  motto: z.string().trim().max(255).optional().or(z.literal("")),
+  description: z.string().trim().max(2000).optional().or(z.literal("")),
+});
 
 const admissionsSchema = z.object({
   grade_from: z.coerce.number().int().min(0).max(12).nullable(),
@@ -63,20 +95,95 @@ const admissionsSchema = z.object({
 export function SchoolDetailPage() {
   const { schoolId } = Route.useParams();
   const [school, setSchool] = useState<SchoolResponse | null>(null);
+  const [districts, setDistricts] = useState<DistrictResponse[]>([]);
+  const [districtId, setDistrictId] = useState("");
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [savingDetails, setSavingDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
   const [savingPhase, setSavingPhase] = useState(false);
   const [phase, setPhase] = useState<string>("");
 
-  const loadSchool = () =>
-    api.get<SchoolResponse>(`/api/v1/schools/${schoolId}`)
-      .then((data) => {
-        setSchool(data);
-        setPhase(data?.phase ?? "");
-      })
-      .catch(() => setSchool(null));
+  const loadSchool = async () => {
+    setLoadError(null);
+    try {
+      const [data, districtRows] = await Promise.all([
+        api.get<SchoolResponse>(`/api/v1/schools/${schoolId}`),
+        api.get<DistrictResponse[]>("/api/v1/admin/districts"),
+      ]);
+      setSchool(data);
+      setDistricts(districtRows);
+      const matchingDistrict = districtRows.find(district => district.id === data.districtId)
+        ?? districtRows.find(district => district.name === data.district && district.province === data.province);
+      setDistrictId(matchingDistrict?.id ?? "");
+      setPhase(data.phase ?? "");
+    } catch (err) {
+      setSchool(null);
+      setLoadError(err instanceof ApiError ? err.message : "Could not load school and district information.");
+    }
+  };
 
   useEffect(() => { loadSchool(); }, [schoolId]);
+
+  const onSaveDetails = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!school) return;
+    const fd = new FormData(e.currentTarget);
+    const selectedDistrict = districts.find(district => district.id === districtId);
+    if (!selectedDistrict) return toast.error("Select an existing district for this school.");
+    const parsed = schoolDetailsSchema.safeParse({
+      name: fd.get("name"),
+      emis_number: fd.get("emis_number"),
+      district: selectedDistrict.name,
+      province: selectedDistrict.province,
+      school_type: fd.get("school_type"),
+      city: fd.get("city") || "",
+      email: fd.get("email") || "",
+      phone: fd.get("phone") || "",
+      address: fd.get("address") || "",
+      postal_code: fd.get("postal_code") || "",
+      website: fd.get("website") || "",
+      principal_name: fd.get("principal_name") || "",
+      established_year: fd.get("established_year") || "",
+      learner_count: fd.get("learner_count") || "",
+      fees_annual: fd.get("fees_annual") || "",
+      logo_url: fd.get("logo_url") || "",
+      motto: fd.get("motto") || "",
+      description: fd.get("description") || "",
+    });
+    if (!parsed.success) return toast.error(parsed.error.issues[0].message);
+
+    setSavingDetails(true);
+    try {
+      await api.put(`/api/v1/schools/${schoolId}`, schoolPayload(school, {
+        name: parsed.data.name,
+        emisNumber: parsed.data.emis_number,
+        district: parsed.data.district,
+        province: parsed.data.province,
+        districtId: selectedDistrict.id,
+        schoolType: parsed.data.school_type,
+        city: parsed.data.city || null,
+        email: parsed.data.email || null,
+        phone: parsed.data.phone || null,
+        address: parsed.data.address || null,
+        postalCode: parsed.data.postal_code || null,
+        website: parsed.data.website || null,
+        principalName: parsed.data.principal_name || null,
+        establishedYear: parsed.data.established_year === "" ? null : Number(parsed.data.established_year),
+        learnerCount: parsed.data.learner_count === "" ? null : Number(parsed.data.learner_count),
+        feesAnnual: parsed.data.fees_annual === "" ? null : Number(parsed.data.fees_annual),
+        logoUrl: parsed.data.logo_url || null,
+        motto: parsed.data.motto || null,
+        description: parsed.data.description || null,
+      }));
+      toast.success("School profile updated");
+      await loadSchool();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Could not update this school.");
+    } finally {
+      setSavingDetails(false);
+    }
+  };
 
   const onSavePhase = async () => {
     if (!phase || !school) return;
@@ -144,7 +251,14 @@ export function SchoolDetailPage() {
   };
 
   if (!school) return (
-    <div className="text-sm text-muted-foreground py-10 text-center">Loading…</div>
+    <div className="text-sm text-muted-foreground py-10 text-center">
+      {loadError ? (
+        <div className="space-y-3">
+          <p>{loadError}</p>
+          <Button variant="outline" onClick={loadSchool}>Try again</Button>
+        </div>
+      ) : "Loading…"}
+    </div>
   );
 
   const phaseInfo = PHASE_GRADES[school.phase ?? ""];
@@ -160,6 +274,112 @@ export function SchoolDetailPage() {
           <p className="text-sm text-muted-foreground">{school.district} · {school.province}</p>
         </div>
       </div>
+
+      <Card className="p-6 mb-6">
+        <h2 className="font-semibold mb-4">School profile</h2>
+        <form onSubmit={onSaveDetails} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <Label htmlFor="school-name">School name</Label>
+              <Input id="school-name" name="name" defaultValue={school.name} required />
+            </div>
+            <div>
+              <Label htmlFor="school-emis">EMIS number</Label>
+              <Input id="school-emis" name="emis_number" defaultValue={school.emisNumber ?? ""} required />
+            </div>
+            <div>
+              <Label>School type</Label>
+              <Select name="school_type" defaultValue={school.schoolType?.toUpperCase() ?? "PUBLIC"}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SCHOOL_TYPES.map(type => (
+                    <SelectItem key={type} value={type}>{type.toLowerCase()}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>District</Label>
+              <Select value={districtId} onValueChange={setDistrictId}>
+                <SelectTrigger disabled={districts.filter(district => district.province === school.province).length === 0}>
+                  <SelectValue placeholder="Select a district" />
+                </SelectTrigger>
+                <SelectContent>
+                  {districts
+                    .filter(district => district.province === school.province)
+                    .map(district => (
+                      <SelectItem key={district.id} value={district.id}>{district.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="school-province">Province</Label>
+              <Input id="school-province" value={districts.find(district => district.id === districtId)?.province ?? school.province ?? ""} disabled />
+            </div>
+            <div>
+              <Label htmlFor="school-city">City</Label>
+              <Input id="school-city" name="city" defaultValue={school.city ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-phone">Phone</Label>
+              <Input id="school-phone" name="phone" type="tel" defaultValue={school.phone ?? ""} />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="school-email">Email</Label>
+              <Input id="school-email" name="email" type="email" defaultValue={school.email ?? ""} />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="school-address">Address</Label>
+              <Input id="school-address" name="address" defaultValue={school.address ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-postal-code">Postal code</Label>
+              <Input id="school-postal-code" name="postal_code" defaultValue={school.postalCode ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-website">Website</Label>
+              <Input id="school-website" name="website" type="url" defaultValue={school.website ?? ""} placeholder="https://…" />
+            </div>
+            <div>
+              <Label htmlFor="school-principal">Principal name</Label>
+              <Input id="school-principal" name="principal_name" defaultValue={school.principalName ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-established">Established year</Label>
+              <Input id="school-established" name="established_year" type="number" min={1800} max={2100}
+                defaultValue={school.establishedYear ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-learner-count">Learner count</Label>
+              <Input id="school-learner-count" name="learner_count" type="number" min={0}
+                defaultValue={school.learnerCount ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-fees">Annual fees</Label>
+              <Input id="school-fees" name="fees_annual" type="number" min={0} step="0.01"
+                defaultValue={school.feesAnnual ?? ""} />
+            </div>
+            <div>
+              <Label htmlFor="school-logo">Logo URL</Label>
+              <Input id="school-logo" name="logo_url" type="url" defaultValue={school.logoUrl ?? ""} />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="school-motto">Motto</Label>
+              <Input id="school-motto" name="motto" defaultValue={school.motto ?? ""} />
+            </div>
+            <div className="col-span-2">
+              <Label htmlFor="school-description">Description</Label>
+              <Textarea id="school-description" name="description" rows={3}
+                defaultValue={school.description ?? ""} />
+            </div>
+          </div>
+          <Button type="submit" disabled={savingDetails} className="bg-accent text-accent-foreground hover:bg-accent/90">
+            {savingDetails && <Loader2 className="size-4 animate-spin mr-2" />}
+            Save school profile
+          </Button>
+        </form>
+      </Card>
 
       {/* ── School type & phase ── */}
       <Card className="p-5 mb-6">

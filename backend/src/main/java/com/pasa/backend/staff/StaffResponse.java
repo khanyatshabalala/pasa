@@ -6,5 +6,6 @@ public record StaffResponse(
     UUID id,
     UUID userId,
     String staffNumber,
-    String position
+    String position,
+    String fullName
 ) {}

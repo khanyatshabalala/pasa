@@ -1,7 +1,9 @@
 package com.pasa.backend.school;
 
 import com.pasa.backend.domain.entity.School;
+import com.pasa.backend.domain.enums.SchoolPhase;
 import com.pasa.backend.repository.SchoolRepository;
+import com.pasa.backend.security.SchoolAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -15,10 +17,12 @@ public class SchoolService {
 
     private final SchoolRepository schoolRepo;
     private final JdbcTemplate jdbc;
+    private final SchoolAccessGuard schoolAccessGuard;
 
-    public SchoolService(SchoolRepository schoolRepo, JdbcTemplate jdbc) {
+    public SchoolService(SchoolRepository schoolRepo, JdbcTemplate jdbc, SchoolAccessGuard schoolAccessGuard) {
         this.schoolRepo = schoolRepo;
         this.jdbc = jdbc;
+        this.schoolAccessGuard = schoolAccessGuard;
     }
 
     public List<SchoolResponse> listSchools(String province, String district, UUID districtId) {
@@ -48,13 +52,24 @@ public class SchoolService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "EMIS number already registered");
         }
         School school = SchoolMapper.toEntity(req);
+        if (req.gradeFrom() == null && req.gradeTo() == null) {
+            int[] range = defaultGradeRange(req.phase());
+            if (range != null) {
+                school.setGradeFrom(range[0]);
+                school.setGradeTo(range[1]);
+            }
+        }
         return SchoolMapper.toResponse(schoolRepo.save(school));
     }
 
-    public SchoolResponse updateSchool(UUID id, CreateSchoolRequest req) {
+    public SchoolResponse updateSchool(UUID id, CreateSchoolRequest req, UUID userId) {
+        schoolAccessGuard.assertCanManageSchool(id, userId);
         validate(req);
         School existing = schoolRepo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
+        if (!existing.getEmisNumber().equals(req.emisNumber()) && schoolRepo.existsByEmisNumber(req.emisNumber())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "EMIS number already registered");
+        }
         SchoolMapper.applyRequest(existing, req);
         return SchoolMapper.toResponse(schoolRepo.save(existing));
     }
@@ -74,5 +89,14 @@ public class SchoolService {
                 && req.applicationClose().isBefore(req.applicationOpen())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "applicationClose must be on or after applicationOpen");
         }
+    }
+
+    private int[] defaultGradeRange(SchoolPhase phase) {
+        return switch (phase) {
+            case primary -> new int[] {0, 7};
+            case secondary -> new int[] {8, 12};
+            case combined -> new int[] {0, 12};
+            case ecd -> null;
+        };
     }
 }

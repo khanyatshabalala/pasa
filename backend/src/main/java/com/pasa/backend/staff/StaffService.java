@@ -2,6 +2,7 @@ package com.pasa.backend.staff;
 
 import com.pasa.backend.domain.entity.School;
 import com.pasa.backend.repository.SchoolRepository;
+import com.pasa.backend.security.SchoolAccessGuard;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,21 +23,37 @@ public class StaffService {
     private final SchoolRepository schoolRepo;
     private final JdbcTemplate jdbc;
     private final BCryptPasswordEncoder encoder;
+    private final SchoolAccessGuard schoolAccessGuard;
 
     public StaffService(StaffRepository staffRepo, SchoolRepository schoolRepo,
-                        JdbcTemplate jdbc, BCryptPasswordEncoder encoder) {
+                        JdbcTemplate jdbc, BCryptPasswordEncoder encoder,
+                        SchoolAccessGuard schoolAccessGuard) {
         this.staffRepo = staffRepo;
         this.schoolRepo = schoolRepo;
         this.jdbc = jdbc;
         this.encoder = encoder;
+        this.schoolAccessGuard = schoolAccessGuard;
     }
 
-    public List<StaffResponse> getStaff(UUID schoolId) {
+    public List<StaffResponse> getStaff(UUID schoolId, UUID requesterId) {
+        schoolAccessGuard.assertCanManageSchool(schoolId, requesterId);
         schoolRepo.findById(schoolId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
-        return staffRepo.findBySchoolId(schoolId).stream()
-                .map(StaffMapper::toResponse)
-                .toList();
+        return jdbc.query("""
+                SELECT s.id, s.user_id, s.staff_number, s.position, p.full_name
+                FROM public.staff s
+                LEFT JOIN public.profiles p ON p.id = s.user_id
+                WHERE s.school_id = ?
+                ORDER BY p.full_name NULLS LAST, s.staff_number
+                """,
+                (rs, rowNum) -> new StaffResponse(
+                        UUID.fromString(rs.getString("id")),
+                        UUID.fromString(rs.getString("user_id")),
+                        rs.getString("staff_number"),
+                        rs.getString("position"),
+                        rs.getString("full_name")
+                ),
+                schoolId);
     }
 
     public StaffResponse addStaff(UUID schoolId, AddStaffRequest req) {

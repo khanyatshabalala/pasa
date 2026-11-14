@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { PageHeader } from "@/components/shared/PageHeader";
@@ -26,6 +26,8 @@ export function ChildrenPage() {
   const { user } = useAuth();
   const [children, setChildren]     = useState<ParentChildResponse[]>([]);
   const [requests, setRequests]     = useState<LinkRequestResponse[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState<string | null>(null);
   const [open, setOpen]             = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -44,8 +46,10 @@ export function ChildrenPage() {
   const [learnerNo, setLearnerNo]   = useState("");
   const [relationship, setRelationship] = useState("parent");
 
-  const load = async () => {
-    if (!user) return;
+  const load = useCallback(async () => {
+    if (!user) { setLoading(false); return; }
+    setLoading(true);
+    setLoadError(null);
     try {
       const [kids, reqs] = await Promise.all([
         api.get<ParentChildResponse[]>("/api/v1/children"),
@@ -53,17 +57,21 @@ export function ChildrenPage() {
       ]);
       setChildren(kids);
       setRequests(reqs);
-    } catch { /* non-fatal */ }
-  };
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Could not load your children and requests.");
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
-  useEffect(() => { load(); }, [user]);
+  useEffect(() => { load(); }, [load]);
 
   // Load districts when province changes.
   useEffect(() => {
     if (!province) { setDistricts([]); setDistrictId(""); setSchools([]); setSchoolId(""); return; }
     api.get<DistrictResponse[]>(`/api/v1/districts?province=${encodeURIComponent(province)}`)
       .then(d => { setDistricts(d); setDistrictId(""); setSchools([]); setSchoolId(""); })
-      .catch(() => {});
+      .catch(error => toast.error(error instanceof Error ? error.message : "Could not load districts."));
   }, [province]);
 
   // Load schools when district changes (UUID first, name fallback for schools without districtId).
@@ -75,8 +83,8 @@ export function ChildrenPage() {
         ? api.get<SchoolResponse[]>(`/api/v1/schools?district=${encodeURIComponent(dist.name)}`)
         : Promise.resolve([] as SchoolResponse[]))
       .then(s => { setSchools(s); setSchoolId(""); })
-      .catch(() => {});
-  }, [districtId]);
+      .catch(error => toast.error(error instanceof Error ? error.message : "Could not load schools."));
+  }, [districtId, districts]);
 
   const resetDialog = () => {
     setProvince(""); setDistrictId(""); setSchoolId("");
@@ -108,9 +116,9 @@ export function ChildrenPage() {
       toast.success("Request submitted. The school will review and approve it.");
       setOpen(false);
       resetDialog();
-      load();
-    } catch (err: any) {
-      toast.error(err.message ?? "Could not submit request");
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not submit request");
     } finally {
       setSubmitting(false);
     }
@@ -131,6 +139,15 @@ export function ChildrenPage() {
         }
       />
 
+      {loading ? (
+        <Card className="p-8 text-center text-sm text-muted-foreground">Loading your children and requests…</Card>
+      ) : loadError ? (
+        <Card className="p-8 text-center text-sm">
+          <p className="text-destructive mb-3">{loadError}</p>
+          <Button variant="outline" onClick={load}>Try again</Button>
+        </Card>
+      ) : (
+      <>
       {pendingRequests.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-muted-foreground mb-2">Pending approval</h2>
@@ -203,6 +220,8 @@ export function ChildrenPage() {
           </div>
         </div>
       )}
+      </>
+      )}
 
       <Dialog open={open} onOpenChange={v => { setOpen(v); if (!v) resetDialog(); }}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -232,7 +251,11 @@ export function ChildrenPage() {
             </div>
             <div>
               <Label>School</Label>
-              <Select value={schoolId} onValueChange={setSchoolId} disabled={!districtId || schools.length === 0}>
+              <Select value={schoolId} onValueChange={value => {
+                setSchoolId(value);
+                setGradeId("");
+                setClassId("");
+              }} disabled={!districtId || schools.length === 0}>
                 <SelectTrigger>
                   <SelectValue placeholder={!districtId ? "Select district first" : schools.length === 0 ? "No schools in this district" : "Select school"} />
                 </SelectTrigger>
@@ -245,6 +268,7 @@ export function ChildrenPage() {
                 <p className="text-xs text-muted-foreground">Child's details as registered at the school.</p>
 
                 <GradeSelect
+                  schoolId={schoolId}
                   value={gradeId}
                   onChange={v => { setGradeId(v); setClassId(""); }}
                   required
