@@ -23,7 +23,9 @@ public final class LinkRequestMapper {
             request.getRelationship(),
             request.getStatus(),
             request.getCreatedAt(),
-            request.getRejectionReason()
+            request.getRejectionReason(),
+            request.getUpdatedAt(),
+            request.getWithdrawnAt()
         );
     }
 }

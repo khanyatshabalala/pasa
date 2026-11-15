@@ -10,7 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Users, CheckCircle2, XCircle, Clock, ShieldAlert, Search, Loader2 } from "lucide-react";
+import {
+  Users,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  ShieldAlert,
+  Search,
+  Loader2,
+  Ban,
+} from "lucide-react";
 
 type LinkRequest = LinkRequestResponse;
 
@@ -18,21 +27,25 @@ export function LinkRequestsPage() {
   const { primaryRole, primarySchoolId } = useAuth();
   const canManage = ["principal", "school_admin", "super_admin"].includes(primaryRole);
 
-  const [requests, setRequests]   = useState<LinkRequest[]>([]);
-  const [loading, setLoading]     = useState(true);
+  const [requests, setRequests] = useState<LinkRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [acting, setActing]       = useState<string | null>(null);
-  const [search, setSearch]       = useState("");
-  const [tab, setTab]             = useState<"pending" | "resolved">("pending");
+  const [acting, setActing] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"pending" | "resolved">("pending");
 
   // Reject dialog
-  const [rejectOpen, setRejectOpen]   = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectTarget, setRejectTarget] = useState<LinkRequest | null>(null);
   const [rejectReason, setRejectReason] = useState("");
-  const [rejecting, setRejecting]     = useState(false);
+  const [rejecting, setRejecting] = useState(false);
 
   const load = useCallback(async () => {
-    if (!primarySchoolId) { setLoading(false); setRequests([]); return; }
+    if (!primarySchoolId) {
+      setLoading(false);
+      setRequests([]);
+      return;
+    }
     setLoading(true);
     setLoadError(null);
     try {
@@ -45,7 +58,9 @@ export function LinkRequestsPage() {
     }
   }, [primarySchoolId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const onApprove = async (req: LinkRequest) => {
     setActing(req.id);
@@ -54,7 +69,9 @@ export function LinkRequestsPage() {
       toast.success(`${req.firstName ?? ""} ${req.lastName ?? ""} linked to parent successfully`);
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
+      );
     } finally {
       setActing(null);
     }
@@ -73,7 +90,9 @@ export function LinkRequestsPage() {
       setRejectReason("");
       await load();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Something went wrong. Please try again.");
+      toast.error(
+        err instanceof ApiError ? err.message : "Something went wrong. Please try again.",
+      );
     } finally {
       setRejecting(false);
     }
@@ -91,15 +110,16 @@ export function LinkRequestsPage() {
     );
   }
 
-  const pending  = requests.filter(r => r.status === "pending");
-  const resolved = requests.filter(r => r.status !== "pending");
+  const pending = requests.filter((r) => r.status === "pending");
+  const resolved = requests.filter((r) => r.status !== "pending");
 
   const filterRows = (rows: LinkRequest[]) => {
     if (!search.trim()) return rows;
     const q = search.toLowerCase();
-    return rows.filter(r =>
-      `${r.firstName ?? ""} ${r.lastName ?? ""}`.toLowerCase().includes(q) ||
-      (r.learnerNumber ?? "").toLowerCase().includes(q)
+    return rows.filter(
+      (r) =>
+        `${r.firstName ?? ""} ${r.lastName ?? ""}`.toLowerCase().includes(q) ||
+        (r.learnerNumber ?? "").toLowerCase().includes(q),
     );
   };
 
@@ -119,7 +139,9 @@ export function LinkRequestsPage() {
             size="sm"
             variant={tab === "pending" ? "default" : "outline"}
             onClick={() => setTab("pending")}
-            className={tab === "pending" ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
+            className={
+              tab === "pending" ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""
+            }
           >
             Pending
             {pending.length > 0 && (
@@ -132,7 +154,9 @@ export function LinkRequestsPage() {
             size="sm"
             variant={tab === "resolved" ? "default" : "outline"}
             onClick={() => setTab("resolved")}
-            className={tab === "resolved" ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""}
+            className={
+              tab === "resolved" ? "bg-accent text-accent-foreground hover:bg-accent/90" : ""
+            }
           >
             History
           </Button>
@@ -142,7 +166,7 @@ export function LinkRequestsPage() {
           <Input
             placeholder="Search learner or parent…"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
         </div>
@@ -153,7 +177,9 @@ export function LinkRequestsPage() {
       ) : loadError ? (
         <Card className="p-8 text-center text-sm">
           <p className="text-destructive mb-3">{loadError}</p>
-          <Button variant="outline" onClick={load}>Try again</Button>
+          <Button variant="outline" onClick={load}>
+            Try again
+          </Button>
         </Card>
       ) : !primarySchoolId ? (
         <Card className="p-8 text-center text-sm text-muted-foreground">
@@ -182,14 +208,12 @@ export function LinkRequestsPage() {
               </tr>
             </thead>
             <tbody>
-              {displayed.map(r => (
+              {displayed.map((r) => (
                 <tr key={r.id} className="border-t align-middle">
                   <td className="p-3 font-medium">
                     {r.firstName} {r.lastName}
                   </td>
-                  <td className="p-3 font-mono text-xs text-muted-foreground">
-                    {r.learnerNumber}
-                  </td>
+                  <td className="p-3 font-mono text-xs text-muted-foreground">{r.learnerNumber}</td>
                   <td className="p-3 text-muted-foreground text-xs">
                     {r.gradeId === null ? "—" : r.gradeId === 0 ? "Grade R" : `Grade ${r.gradeId}`}
                   </td>
@@ -201,23 +225,34 @@ export function LinkRequestsPage() {
                   </td>
                   <td className="p-3 text-muted-foreground text-xs whitespace-nowrap">
                     {new Date(r.createdAt).toLocaleDateString("en-ZA", {
-                      day: "numeric", month: "short", year: "numeric",
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
                     })}
                   </td>
                   <td className="p-3">
                     {r.status === "pending" && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-orange-500 bg-orange-500/10">
-                        <Clock className="size-3" />Pending
+                        <Clock className="size-3" />
+                        Pending
                       </span>
                     )}
                     {r.status === "approved" && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-green-600 bg-green-500/10">
-                        <CheckCircle2 className="size-3" />Approved
+                        <CheckCircle2 className="size-3" />
+                        Approved
                       </span>
                     )}
                     {r.status === "rejected" && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-red-500 bg-red-500/10">
-                        <XCircle className="size-3" />Rejected
+                        <XCircle className="size-3" />
+                        Rejected
+                      </span>
+                    )}
+                    {r.status === "withdrawn" && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full text-muted-foreground bg-muted">
+                        <Ban className="size-3" />
+                        Withdrawn
                       </span>
                     )}
                   </td>
@@ -230,18 +265,27 @@ export function LinkRequestsPage() {
                           disabled={acting === r.id}
                           onClick={() => onApprove(r)}
                         >
-                          {acting === r.id
-                            ? <Loader2 className="size-3 animate-spin" />
-                            : <><CheckCircle2 className="size-3 mr-1" />Approve</>}
+                          {acting === r.id ? (
+                            <Loader2 className="size-3 animate-spin" />
+                          ) : (
+                            <>
+                              <CheckCircle2 className="size-3 mr-1" />
+                              Approve
+                            </>
+                          )}
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
                           className="border-destructive text-destructive hover:bg-destructive/10 h-7 px-2.5"
                           disabled={acting === r.id}
-                          onClick={() => { setRejectTarget(r); setRejectOpen(true); }}
+                          onClick={() => {
+                            setRejectTarget(r);
+                            setRejectOpen(true);
+                          }}
                         >
-                          <XCircle className="size-3 mr-1" />Reject
+                          <XCircle className="size-3 mr-1" />
+                          Reject
                         </Button>
                       </div>
                     </td>
@@ -254,22 +298,35 @@ export function LinkRequestsPage() {
       )}
 
       {/* Reject dialog */}
-      <Dialog open={rejectOpen} onOpenChange={v => { setRejectOpen(v); if (!v) { setRejectTarget(null); setRejectReason(""); } }}>
+      <Dialog
+        open={rejectOpen}
+        onOpenChange={(v) => {
+          setRejectOpen(v);
+          if (!v) {
+            setRejectTarget(null);
+            setRejectReason("");
+          }
+        }}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Reject request</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground -mt-2">
-            Rejecting the request for <span className="font-medium text-foreground">
+            Rejecting the request for{" "}
+            <span className="font-medium text-foreground">
               {rejectTarget?.firstName} {rejectTarget?.lastName}
-            </span>. The parent will be notified.
+            </span>
+            . The parent will be notified.
           </p>
           <div className="space-y-3 mt-2">
             <div>
-              <Label>Reason <span className="text-muted-foreground text-xs">(optional)</span></Label>
+              <Label>
+                Reason <span className="text-muted-foreground text-xs">(optional)</span>
+              </Label>
               <Textarea
                 value={rejectReason}
-                onChange={e => setRejectReason(e.target.value)}
+                onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="e.g. Learner number not found in our records"
                 rows={3}
                 maxLength={300}
@@ -281,7 +338,11 @@ export function LinkRequestsPage() {
                 onClick={onRejectConfirm}
                 disabled={rejecting}
               >
-                {rejecting ? <Loader2 className="size-4 animate-spin mr-2" /> : <XCircle className="size-4 mr-2" />}
+                {rejecting ? (
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                ) : (
+                  <XCircle className="size-4 mr-2" />
+                )}
                 Reject request
               </Button>
               <Button variant="outline" onClick={() => setRejectOpen(false)} disabled={rejecting}>

@@ -279,6 +279,18 @@ export interface LinkRequestResponse {
   createdAt: string;
   /** Set when a school rejects the request; shown to the parent. */
   rejectionReason: string | null;
+  updatedAt: string | null;
+  withdrawnAt: string | null;
+}
+
+export interface LinkRequestPayload {
+  schoolId: string;
+  firstName: string;
+  lastName: string;
+  learnerNumber: string;
+  relationship: string;
+  gradeId: number;
+  classId: string | null;
 }
 
 export interface TransferResponse {

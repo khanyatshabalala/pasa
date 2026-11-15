@@ -9,11 +9,7 @@ import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(
-    name = "parent_link_requests",
-    schema = "public",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"parent_user_id", "school_id", "learner_number"})
-)
+@Table(name = "parent_link_requests", schema = "public")
 public class LinkRequest {
 
     @Id
@@ -39,7 +35,7 @@ public class LinkRequest {
     @Column(nullable = false)
     private String relationship;
 
-    // pending | approved | rejected — stored as Postgres native enum link_request_status
+    // pending | approved | rejected | withdrawn — stored as a Postgres enum
     @Column(nullable = false, columnDefinition = "link_request_status")
     @ColumnTransformer(write = "?::public.link_request_status")
     private String status;
@@ -57,6 +53,12 @@ public class LinkRequest {
 
     @Column(name = "reviewed_at")
     private OffsetDateTime reviewedAt;
+
+    @Column(name = "updated_at", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    @Column(name = "withdrawn_at")
+    private OffsetDateTime withdrawnAt;
 
     @Column(name = "rejection_reason")
     private String rejectionReason;
@@ -91,6 +93,10 @@ public class LinkRequest {
     public void setReviewedBy(UUID reviewedBy) { this.reviewedBy = reviewedBy; }
     public OffsetDateTime getReviewedAt() { return reviewedAt; }
     public void setReviewedAt(OffsetDateTime reviewedAt) { this.reviewedAt = reviewedAt; }
+    public OffsetDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(OffsetDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public OffsetDateTime getWithdrawnAt() { return withdrawnAt; }
+    public void setWithdrawnAt(OffsetDateTime withdrawnAt) { this.withdrawnAt = withdrawnAt; }
     public String getRejectionReason() { return rejectionReason; }
     public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
     public OffsetDateTime getCreatedAt() { return createdAt; }

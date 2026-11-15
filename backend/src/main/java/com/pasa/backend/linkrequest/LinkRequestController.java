@@ -37,6 +37,24 @@ public class LinkRequestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(linkRequestService.submitRequest(req, parentId));
     }
 
+    @PutMapping("/link-requests/{id}")
+    @PreAuthorize("hasRole('PARENT')")
+    public LinkRequestResponse updateRequest(
+            @PathVariable UUID id,
+            @Valid @RequestBody SubmitLinkRequest req,
+            Authentication auth
+    ) {
+        UUID parentId = (UUID) auth.getPrincipal();
+        return linkRequestService.updateRequest(id, req, parentId);
+    }
+
+    @PostMapping("/link-requests/{id}/withdraw")
+    @PreAuthorize("hasRole('PARENT')")
+    public LinkRequestResponse withdrawRequest(@PathVariable UUID id, Authentication auth) {
+        UUID parentId = (UUID) auth.getPrincipal();
+        return linkRequestService.withdrawRequest(id, parentId);
+    }
+
     @GetMapping("/schools/{schoolId}/link-requests")
     @PreAuthorize("hasAnyRole('PRINCIPAL','SCHOOL_ADMIN','SUPER_ADMIN')")
     public List<LinkRequestResponse> getSchoolRequests(

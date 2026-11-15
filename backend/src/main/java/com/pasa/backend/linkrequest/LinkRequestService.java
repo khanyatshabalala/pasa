@@ -60,6 +60,48 @@ public class LinkRequestService {
     }
 
     public LinkRequestResponse submitRequest(SubmitLinkRequest req, UUID parentId) {
+        School school = validateRequestDetails(req, parentId, null);
+        OffsetDateTime now = OffsetDateTime.now();
+        LinkRequest request = new LinkRequest();
+        request.setParentUserId(parentId);
+        applyRequestDetails(request, req, school);
+        request.setStatus("pending");
+        request.setUpdatedAt(now);
+        return LinkRequestMapper.toResponse(linkRequestRepo.save(request));
+    }
+
+    @Transactional
+    public LinkRequestResponse updateRequest(UUID id, SubmitLinkRequest req, UUID parentId) {
+        LinkRequest request = getPendingParentRequest(id, parentId);
+        School school = validateRequestDetails(req, parentId, id);
+        applyRequestDetails(request, req, school);
+        request.setUpdatedAt(OffsetDateTime.now());
+        return LinkRequestMapper.toResponse(linkRequestRepo.save(request));
+    }
+
+    @Transactional
+    public LinkRequestResponse withdrawRequest(UUID id, UUID parentId) {
+        LinkRequest request = getPendingParentRequest(id, parentId);
+        OffsetDateTime now = OffsetDateTime.now();
+        request.setStatus("withdrawn");
+        request.setWithdrawnAt(now);
+        request.setUpdatedAt(now);
+        return LinkRequestMapper.toResponse(linkRequestRepo.save(request));
+    }
+
+    private LinkRequest getPendingParentRequest(UUID id, UUID parentId) {
+        LinkRequest request = linkRequestRepo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found"));
+        if (!request.getParentUserId().equals(parentId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Request not found");
+        }
+        if (!"pending".equals(request.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Only pending requests can be changed");
+        }
+        return request;
+    }
+
+    private School validateRequestDetails(SubmitLinkRequest req, UUID parentId, UUID requestId) {
         School school = schoolRepo.findById(req.schoolId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "School not found"));
         int gradeFrom = school.getGradeFrom() != null ? school.getGradeFrom() : defaultGradeFrom(school);
@@ -76,22 +118,23 @@ public class LinkRequestService {
             }
         }
         String learnerNumber = req.learnerNumber().trim();
-        if (linkRequestRepo.existsByParentUserIdAndSchool_IdAndLearnerNumber(parentId, school.getId(), learnerNumber)) {
+        boolean duplicate = requestId == null
+                ? linkRequestRepo.existsActiveRequest(parentId, school.getId(), learnerNumber)
+                : linkRequestRepo.existsOtherActiveRequest(parentId, school.getId(), learnerNumber, requestId);
+        if (duplicate) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Request already submitted for this learner");
         }
+        return school;
+    }
 
-        LinkRequest request = new LinkRequest();
-        request.setParentUserId(parentId);
+    private void applyRequestDetails(LinkRequest request, SubmitLinkRequest req, School school) {
         request.setSchool(school);
-        request.setLearnerNumber(learnerNumber);
+        request.setLearnerNumber(req.learnerNumber().trim());
         request.setFirstName(req.firstName().trim());
         request.setLastName(req.lastName().trim());
         request.setRelationship(req.relationship() != null ? req.relationship() : "parent");
-        request.setStatus("pending");
         request.setGradeId(req.gradeId());
         request.setClassId(req.classId());
-
-        return LinkRequestMapper.toResponse(linkRequestRepo.save(request));
     }
 
     private int defaultGradeFrom(School school) {
